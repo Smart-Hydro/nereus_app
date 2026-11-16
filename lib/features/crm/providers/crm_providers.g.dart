@@ -48,7 +48,7 @@ final class CrmRepositoryProvider
   }
 }
 
-String _$crmRepositoryHash() => r'7e8444228e4612872290415ff24f52a0398e7079';
+String _$crmRepositoryHash() => r'946101a82892317ce122b24849ec12225dc664d5';
 
 @ProviderFor(crmSummary)
 const crmSummaryProvider = CrmSummaryProvider._();
@@ -89,7 +89,7 @@ final class CrmSummaryProvider
   }
 }
 
-String _$crmSummaryHash() => r'a12b34c56d78e90f1234567890abcdef12345678';
+String _$crmSummaryHash() => r'f7fef1664b18ff7289adc51b92d2e307fb045125';
 
 @ProviderFor(leadSources)
 const leadSourcesProvider = LeadSourcesProvider._();
@@ -130,7 +130,7 @@ final class LeadSourcesProvider
   }
 }
 
-String _$leadSourcesHash() => r'b23c45d67e89f01a2345678901bcdefa23456789';
+String _$leadSourcesHash() => r'd836b700a177dc359ba478e780bdd9227c126dd5';
 
 @ProviderFor(followUpCategories)
 const followUpCategoriesProvider = FollowUpCategoriesProvider._();
@@ -171,7 +171,8 @@ final class FollowUpCategoriesProvider
   }
 }
 
-String _$followUpCategoriesHash() => r'c34d56e78f90a12b3456789012cdefab34567890';
+String _$followUpCategoriesHash() =>
+    r'0732fa0d901ef9cecf984944f32248ef4520405e';
 
 @ProviderFor(leads)
 const leadsProvider = LeadsProvider._();

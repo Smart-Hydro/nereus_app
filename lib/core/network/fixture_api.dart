@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:nereus_app/core/network/operations_fixture.dart';
 import 'package:nereus_app/core/network/session_controller.dart';
 
 /// Answers the app locally while the session is the demo fixture token.
@@ -6,6 +7,7 @@ class FixtureApiInterceptor extends Interceptor {
   FixtureApiInterceptor(this.session);
 
   final SessionController session;
+  final OperationsFixture _operations = OperationsFixture();
   final List<Map<String, dynamic>> _comments = [];
   final List<Map<String, dynamic>> _tickets = [
     {
@@ -87,6 +89,10 @@ class FixtureApiInterceptor extends Interceptor {
   dynamic _answer(RequestOptions options) {
     final path = options.path;
     final method = options.method.toUpperCase();
+    if (path.contains('/operations/')) {
+      final answered = _operations.answer(options);
+      if (answered != null) return answered;
+    }
     if (path.contains('/devices/overview')) {
       return {
         'devices': {'total': 4, 'online': 3, 'offline': 1},

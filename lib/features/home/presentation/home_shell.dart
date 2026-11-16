@@ -128,6 +128,20 @@ const shellDestinations = [
     section: 'Strøm — Operaciones',
   ),
   ShellDest(
+    path: '/strom/instalaciones',
+    label: 'Instalaciones',
+    icon: Icons.water_outlined,
+    selectedIcon: Icons.water,
+    section: 'Strøm — Operaciones',
+  ),
+  ShellDest(
+    path: '/strom/ordenes',
+    label: 'Órdenes',
+    icon: Icons.engineering_outlined,
+    selectedIcon: Icons.engineering,
+    section: 'Strøm — Operaciones',
+  ),
+  ShellDest(
     path: '/strom/visitas',
     label: 'Visitas',
     icon: Icons.event_outlined,
@@ -156,10 +170,31 @@ const shellDestinations = [
     section: 'Strøm — Operaciones',
   ),
   ShellDest(
+    path: '/strom/rts',
+    label: 'RTS',
+    icon: Icons.inventory_outlined,
+    selectedIcon: Icons.inventory,
+    section: 'Strøm — Operaciones',
+  ),
+  ShellDest(
+    path: '/strom/informes',
+    label: 'Informes',
+    icon: Icons.description_outlined,
+    selectedIcon: Icons.description,
+    section: 'Strøm — Operaciones',
+  ),
+  ShellDest(
     path: '/strom/aclaraciones',
     label: 'Aclaraciones',
     icon: Icons.forum_outlined,
     selectedIcon: Icons.forum,
+    section: 'Strøm — Operaciones',
+  ),
+  ShellDest(
+    path: '/strom/costos',
+    label: 'Costos',
+    icon: Icons.payments_outlined,
+    selectedIcon: Icons.payments,
     section: 'Strøm — Operaciones',
   ),
   ShellDest(
@@ -193,7 +228,7 @@ const shellDestinations = [
 ];
 
 /// Destinations shown in the mobile bottom navigation.
-const mobileDestinations = [0, 10, 7, 3, 22];
+const mobileDestinations = [0, 10, 7, 3, 27];
 
 /// Destinations shown in the tablet rail when it is collapsed.
 const railDestinations = [0, 10, 3, 6, 7, 4, 11];
@@ -211,16 +246,21 @@ int destinationIndexFor(String path) {
   if (path.startsWith('/devices') || path.startsWith('/alerts')) return 10;
   if (path.startsWith('/tickets')) return 11;
   if (path.startsWith('/strom/dev')) return 12;
-  if (path.startsWith('/strom/visitas')) return 14;
-  if (path.startsWith('/strom/actividades')) return 15;
-  if (path.startsWith('/strom/terreno')) return 16;
-  if (path.startsWith('/strom/tecnico')) return 17;
-  if (path.startsWith('/strom/aclaraciones')) return 18;
-  if (path.startsWith('/strom/auditoria')) return 19;
-  if (path.startsWith('/strom/indicadores')) return 20;
-  if (path.startsWith('/strom/configuracion')) return 21;
+  if (path.startsWith('/strom/instalaciones')) return 14;
+  if (path.startsWith('/strom/ordenes')) return 15;
+  if (path.startsWith('/strom/visitas')) return 16;
+  if (path.startsWith('/strom/actividades')) return 17;
+  if (path.startsWith('/strom/terreno')) return 18;
+  if (path.startsWith('/strom/tecnico')) return 19;
+  if (path.startsWith('/strom/rts')) return 20;
+  if (path.startsWith('/strom/informes')) return 21;
+  if (path.startsWith('/strom/aclaraciones')) return 22;
+  if (path.startsWith('/strom/costos')) return 23;
+  if (path.startsWith('/strom/auditoria')) return 24;
+  if (path.startsWith('/strom/indicadores')) return 25;
+  if (path.startsWith('/strom/configuracion')) return 26;
   if (path.startsWith('/strom')) return 13;
-  if (path.startsWith('/profile') || path.startsWith('/settings')) return 22;
+  if (path.startsWith('/profile') || path.startsWith('/settings')) return 27;
   return 0;
 }
 

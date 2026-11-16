@@ -7,39 +7,37 @@ import 'package:nereus_app/features/strom/presentation/strom_visit_screen.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
 void main() {
-  testWidgets('visit check does not offer execution without results', (tester) async {
-    final visit = StromVisit(
-      id: 'v1',
-      number: 'OT-1',
-      ticketId: 't1',
-      scheduledDate: DateTime(2026, 11, 8, 10),
-      items: const [
-        StromActivity(
-          id: 'a1',
-          workOrderId: 'v1',
-          description: 'Medir caudal',
-        ),
+  testWidgets('a scheduled planned visit shows its crew and start', (tester) async {
+    const visit = OpsVisit(
+      id: '15',
+      workOrder: '8',
+      specialty: 'hydraulic',
+      visitType: 'planned',
+      status: 'scheduled',
+      scheduledFor: '2026-11-12',
+      crew: [
+        OpsCrewMember(id: '3', name: 'Cuadrilla Sur', specialty: 'hydraulic'),
       ],
+      siteWarnings: ['Falta el permiso de ingreso'],
     );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          stromVisitProvider.overrideWith((ref, id) async => visit),
+          opsVisitProvider.overrideWith((ref, id) async => visit),
+          opsCrewProvider.overrideWith((ref) async => visit.crew),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: const StromVisitScreen(ticketId: 't1', visitId: 'v1'),
+          home: const StromVisitScreen(visitId: '15'),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Registrar el check de terreno no cierra el proyecto.'), findsOneWidget);
-    expect(find.text('Medir caudal'), findsOneWidget);
-    expect(find.text('Plantillas'), findsOneWidget);
-    expect(find.text('Medir caudal del pozo'), findsOneWidget);
-    final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Falta el resultado de las actividades'),
-    );
-    expect(button.onPressed, isNotNull);
+    expect(find.text('Visita 15'), findsOneWidget);
+    expect(find.textContaining('Planificada'), findsWidgets);
+    expect(find.textContaining('Cuadrilla Sur'), findsWidgets);
+    expect(find.textContaining('Hidráulica'), findsWidgets);
+    expect(find.text('Iniciar'), findsOneWidget);
+    expect(find.text('Falta el permiso de ingreso'), findsOneWidget);
   });
 }

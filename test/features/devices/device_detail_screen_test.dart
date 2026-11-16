@@ -65,7 +65,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pozo Norte'), findsOneWidget);
     expect(find.text('3.50 L/s'), findsOneWidget);
-    expect(find.text('Caudal'), findsOneWidget);
+    expect(find.text('CAUDAL'), findsOneWidget);
     expect(find.text(ApiError.genericMessage), findsNothing);
     expect(find.byIcon(Icons.wifi_off_rounded), findsNothing);
   });

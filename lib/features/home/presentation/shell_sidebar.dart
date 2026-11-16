@@ -359,7 +359,6 @@ class _NavTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final muted = dark ? NereusTokens.darkMuted : NereusTokens.inkMuted;
-    final hoverBg = dark ? NereusTokens.darkRaised : NereusTokens.surface2;
     final fg = selected ? scheme.onSurface : muted;
 
     return Padding(

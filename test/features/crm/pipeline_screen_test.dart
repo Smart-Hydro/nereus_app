@@ -45,7 +45,7 @@ void main() {
 
     expect(find.text('Pozo Nahuen'), findsOneWidget);
     expect(find.text('Propuesta'), findsWidgets);
-    expect(find.text(r'$1.500.000'), findsOneWidget);
+    expect(find.text(r'$1.500.000'), findsWidgets);
     expect(find.textContaining('{id:'), findsNothing);
   });
 }

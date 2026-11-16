@@ -27,12 +27,26 @@ import 'package:nereus_app/features/org/presentation/org_screen.dart';
 import 'package:nereus_app/features/points/presentation/points_screen.dart';
 import 'package:nereus_app/features/profile/presentation/profile_screen.dart';
 import 'package:nereus_app/features/settings/presentation/settings_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_activities_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_audit_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_config_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_coordination_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_costs_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_desk.dart';
 import 'package:nereus_app/features/strom/presentation/strom_dev_screen.dart';
-import 'package:nereus_app/features/strom/presentation/strom_plan_screen.dart';
-import 'package:nereus_app/features/strom/presentation/strom_projects_screen.dart';
-import 'package:nereus_app/features/strom/presentation/strom_sections.dart';
+import 'package:nereus_app/features/strom/presentation/strom_field_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_indicators_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_installations_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_orders_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_project_form.dart';
 import 'package:nereus_app/features/strom/presentation/strom_project_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_projects_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_reports_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_rts_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_technical_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_visit_form.dart';
 import 'package:nereus_app/features/strom/presentation/strom_visit_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_visits_screen.dart';
 import 'package:nereus_app/features/tickets/presentation/ticket_create_screen.dart';
 import 'package:nereus_app/features/tickets/presentation/ticket_detail_screen.dart';
 import 'package:nereus_app/features/tickets/presentation/tickets_screen.dart';
@@ -211,87 +225,136 @@ GoRouter appRouter(Ref ref) {
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: '/strom',
-                builder: (_, __) => const StromProjectsScreen(),
+              ShellRoute(
+                builder: (context, state, child) => StromDesk(
+                  location: state.uri.path,
+                  child: child,
+                ),
                 routes: [
                   GoRoute(
-                    path: 'dev',
-                    builder: (_, __) => const StromDevScreen(),
-                  ),
-                  GoRoute(
-                    path: 'nuevo',
-                    builder: (_, __) => const StromProjectCreateScreen(),
-                  ),
-                  GoRoute(
-                    path: 'visitas',
-                    builder: (_, __) => const StromVisitsScreen(),
+                    path: '/strom',
+                    builder: (_, __) => const StromProjectsScreen(),
                     routes: [
+                      GoRoute(path: 'dev', builder: (_, __) => const StromDevScreen()),
+                      GoRoute(path: 'nuevo', builder: (_, __) => const StromProjectCreateScreen()),
                       GoRoute(
-                        path: 'nueva',
-                        builder: (_, __) => const StromVisitCreateScreen(),
-                      ),
-                    ],
-                  ),
-                  GoRoute(
-                    path: 'actividades',
-                    builder: (_, __) => const StromActivitiesScreen(),
-                  ),
-                  GoRoute(
-                    path: 'terreno',
-                    builder: (_, __) => const StromFieldScreen(),
-                  ),
-                  GoRoute(
-                    path: 'tecnico',
-                    builder: (_, __) => const StromTechnicalScreen(),
-                  ),
-                  GoRoute(
-                    path: 'aclaraciones',
-                    builder: (_, __) => const StromClarificationsScreen(),
-                  ),
-                  GoRoute(
-                    path: 'auditoria',
-                    builder: (_, __) => const StromAuditScreen(),
-                  ),
-                  GoRoute(
-                    path: 'indicadores',
-                    builder: (_, __) => const StromIndicatorsScreen(),
-                  ),
-                  GoRoute(
-                    path: 'configuracion',
-                    builder: (_, __) => const StromConfigScreen(),
-                  ),
-                  GoRoute(
-                    path: ':ticketId',
-                    builder: (context, state) => StromProjectScreen(
-                      ticketId: state.pathParameters['ticketId']!,
-                    ),
-                    routes: [
-                      GoRoute(
-                        path: 'editar',
-                        builder: (context, state) => StromProjectCreateScreen(
-                          ticketId: state.pathParameters['ticketId'],
-                        ),
+                        path: 'instalaciones',
+                        builder: (_, __) => const StromInstallationsScreen(),
+                        routes: [
+                          GoRoute(
+                            path: ':id',
+                            builder: (context, state) => StromInstallationScreen(
+                              installationId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
                       ),
                       GoRoute(
-                        path: 'visita/nueva',
-                        builder: (context, state) => StromPlanScreen(
-                          ticketId: state.pathParameters['ticketId']!,
-                        ),
+                        path: 'ordenes',
+                        builder: (_, __) => const StromOrdersScreen(),
+                        routes: [
+                          GoRoute(
+                            path: ':id',
+                            builder: (context, state) => StromOrderScreen(
+                              orderId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
                       ),
                       GoRoute(
-                        path: 'visita/:visitId/editar',
-                        builder: (context, state) => StromPlanScreen(
-                          ticketId: state.pathParameters['ticketId']!,
-                          visitId: state.pathParameters['visitId'],
-                        ),
+                        path: 'visitas',
+                        builder: (_, __) => const StromVisitsScreen(),
+                        routes: [
+                          GoRoute(
+                            path: 'nueva',
+                            builder: (context, state) => StromVisitCreateScreen(
+                              workOrderId: state.uri.queryParameters['ot'],
+                            ),
+                          ),
+                          GoRoute(
+                            path: ':visitId',
+                            builder: (context, state) => StromVisitScreen(
+                              visitId: state.pathParameters['visitId']!,
+                            ),
+                          ),
+                        ],
                       ),
                       GoRoute(
-                        path: 'visita/:visitId',
-                        builder: (context, state) => StromVisitScreen(
-                          ticketId: state.pathParameters['ticketId']!,
-                          visitId: state.pathParameters['visitId']!,
+                        path: 'actividades',
+                        builder: (_, __) => const StromActivitiesScreen(),
+                        routes: [
+                          GoRoute(
+                            path: ':id',
+                            builder: (context, state) => StromActivityScreen(
+                              activityId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(path: 'terreno', builder: (_, __) => const StromFieldScreen()),
+                      GoRoute(path: 'tecnico', builder: (_, __) => const StromTechnicalScreen()),
+                      GoRoute(
+                        path: 'rts',
+                        builder: (_, __) => const StromRtsScreen(),
+                        routes: [
+                          GoRoute(
+                            path: ':id',
+                            builder: (context, state) => StromRtsDetailScreen(
+                              rtsId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'informes',
+                        builder: (_, __) => const StromReportsScreen(),
+                        routes: [
+                          GoRoute(
+                            path: ':id',
+                            builder: (context, state) => StromReportScreen(
+                              reportId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'aclaraciones',
+                        builder: (_, __) => const StromClarificationsScreen(),
+                      ),
+                      GoRoute(path: 'costos', builder: (_, __) => const StromCostsScreen()),
+                      GoRoute(
+                        path: 'auditoria',
+                        builder: (_, __) => const StromAuditScreen(),
+                        routes: [
+                          GoRoute(
+                            path: ':id',
+                            builder: (context, state) => StromTransitionScreen(
+                              transitionId: state.pathParameters['id']!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'indicadores',
+                        builder: (_, __) => const StromIndicatorsScreen(),
+                      ),
+                      GoRoute(
+                        path: 'configuracion',
+                        builder: (_, __) => const StromConfigScreen(),
+                      ),
+                      GoRoute(
+                        path: ':projectId',
+                        builder: (context, state) => StromProjectScreen(
+                          projectId: state.pathParameters['projectId']!,
                         ),
+                        routes: [
+                          GoRoute(
+                            path: 'editar',
+                            builder: (context, state) => StromProjectCreateScreen(
+                              projectId: state.pathParameters['projectId'],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

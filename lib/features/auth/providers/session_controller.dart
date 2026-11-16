@@ -76,8 +76,10 @@ class Session extends _$Session {
       }
       final demo = token == 'fixture-token';
       if (demo) {
-        Future<void>.microtask(
-          () => ref.read(dataModeProvider.notifier).useFixture(),
+        unawaited(
+          Future<void>.microtask(
+            () => ref.read(dataModeProvider.notifier).useFixture(),
+          ),
         );
       }
       var profile = await repo.readStoredProfile();
