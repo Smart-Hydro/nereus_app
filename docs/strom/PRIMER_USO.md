@@ -19,10 +19,10 @@ Entra a Strøm desde el menú **Operaciones**. El escritorio abre en **Proyectos
 1. En la ficha, **Importar alcance**.
 2. Elige el punto de captación por su nombre (Pozo 1, por ejemplo).
 3. Escribe la actividad y deja la especialidad en Hidráulica.
-4. Confirma. El ítem queda pendiente.
+4. Confirma. El ítem queda pendiente. La ficha titula el punto con su nombre (Pozo 1), no con un texto genérico.
 5. Pulsa **Confirmar** en ese ítem. Pasa a confirmado.
 
-Hasta que el backend publique `GET /projects/{id}/scope/`, la ficha muestra el alcance que acabas de importar. No hace falta recargarlo a mano.
+Hasta que el backend publique `GET /projects/{id}/scope/`, la ficha muestra el alcance que acabas de importar. Cuando ese GET responde, el nombre del punto viene en `device_name`. No hace falta recargarlo a mano.
 
 ## 3. Instalación
 
@@ -59,15 +59,17 @@ Hasta que el backend publique `GET /projects/{id}/scope/`, la ficha muestra el a
 
 1. Desde la OT, **RTS**.
 2. **Crear**. La OT queda fija. Elige el producto por su nombre y la cantidad.
-3. Abre la RTS. **Reservar**: descuenta el stock del producto una sola vez. No se elige bodega.
-4. **Dar salida** no vuelve a descontar. Una bodega de otra sucursal se rechaza.
+3. La bodega es opcional. Si no eliges, la reserva usa la bodega por defecto de la sucursal. Puedes elegir otra bodega de la sucursal por su nombre. La ficha muestra ese nombre cuando el JSON lo trae.
+4. **Vincular OC**. Busca la orden por número o proveedor y tócala. Se ve el número y el proveedor. Si el listado aún responde 404, queda el aviso y no se pide un id. Si hay recepciones de esa orden, puedes elegir una; si el listado no existe, se vincula igual.
+5. Abre la RTS. **Reservar**: la reserva descuenta una sola vez de la bodega de la sucursal.
+6. **Dar salida** no vuelve a descontar. Una bodega de otra sucursal se rechaza.
 
 ## 8. Informe
 
 1. Desde el proyecto, **Informes**.
-2. **Generar**. El proyecto queda fijo y la especialidad en Hidráulica. Nace en borrador.
+2. **Generar**. El proyecto queda fijo. La especialidad nace en Hidráulica. También puedes dejarla en **Sin especialidad**. Nace en borrador.
 3. Ábrelo. **Enviar a revisión**.
-4. **Aprobar**. Lo aprueba el líder de la especialidad.
+4. **Aprobar**. Con especialidad lo aprueba Operaciones o el líder de esa especialidad. Sin especialidad, Operaciones o cualquier líder. El botón sigue disponible: el backend rechaza a quien no corresponde.
 5. **Enviar**.
 
 ## 9. Costos
@@ -85,4 +87,4 @@ Hasta que el backend publique `GET /projects/{id}/scope/`, la ficha muestra el a
 
 ## Qué no se escribe
 
-No hay campos de id de proyecto, OT, visita, actividad, punto, producto, cliente, usuario, ticket ni cotización. Si un listado nuevo aún responde 404 o 405, el selector avisa y sigue vacío. No aparece un campo para tipear el número.
+No hay campos de id de proyecto, OT, visita, actividad, punto, producto, cliente, usuario, ticket, cotización, orden de compra, recepción ni bodega. Si un listado nuevo aún responde 404 o 405, el selector avisa y sigue vacío. No aparece un campo para tipear el número.

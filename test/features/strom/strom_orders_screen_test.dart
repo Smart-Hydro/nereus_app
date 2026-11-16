@@ -65,8 +65,36 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('El líder de la especialidad aprueba el informe.'),
+      find.text(
+        'Con especialidad, Operaciones o su líder. Sin especialidad, Operaciones o cualquier líder.',
+      ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('un informe sin especialidad se puede aprobar', (tester) async {
+    const report = OpsReport(
+      id: '9',
+      project: '41',
+      version: '2',
+      status: 'review',
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          opsReportProvider.overrideWith((ref, id) async => report),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const StromReportScreen(reportId: '9'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Lo aprueba Operaciones o cualquier líder.'),
+      findsWidgets,
+    );
+    expect(find.text('Aprobar'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
+import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/strom_chrome.dart';
 
 class StromDevScreen extends StatelessWidget {
@@ -34,10 +35,10 @@ class StromDevScreen extends StatelessWidget {
       'Lo valida el líder de la especialidad.',
       '/strom/tecnico',
     ),
-    _Step('RTS', 'La reserva descuenta el stock una sola vez.', '/strom/rts'),
+    _Step('RTS', rtsReserveNote, '/strom/rts'),
     _Step(
       'Informes',
-      'Versión, Drive y aprobación del líder.',
+      'Con especialidad, su líder. Sin especialidad, Operaciones o cualquier líder.',
       '/strom/informes',
     ),
     _Step(

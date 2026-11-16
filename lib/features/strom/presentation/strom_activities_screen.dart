@@ -32,7 +32,7 @@ class StromActivitiesScreen extends ConsumerWidget {
       ),
       itemBuilder: (context, item) => OpsTile(
         title: item.description.isEmpty ? 'Actividad' : item.description,
-        subtitle: 'OT ${specialtyLabel(item.specialty)} · punto de captación',
+        subtitle: 'OT ${specialtyLabel(item.specialty)} · ${item.pointCaption}',
         status: opsLabel(item.executionStatus, executionLabels),
         onTap: () => context.go('/strom/actividades/${item.id}'),
       ),
@@ -101,7 +101,7 @@ class _ActivityBody extends ConsumerWidget {
       children: [
         OpsNote(opsNextAction(activity.executionStatus)),
         OpsNote(
-          'OT ${specialtyLabel(activity.specialty)} · punto de captación\n'
+          'OT ${specialtyLabel(activity.specialty)} · ${activity.pointCaption}\n'
           '${activity.notDoneReason}\n${activity.validationNotes}',
         ),
         const OpsNote('La ejecución y la validación son estados distintos.'),

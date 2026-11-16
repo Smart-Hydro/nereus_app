@@ -174,13 +174,25 @@ class OpsScopePoint {
   factory OpsScopePoint.fromJson(Map<String, dynamic> json) {
     return OpsScopePoint(
       id: asString(json['id']),
-      device: asString(json['device']),
-      deviceName: asString(json['device_name']),
+      device: opsRefId(json['device']),
+      deviceName: _scopeDeviceName(json),
       deviceType: asString(json['device_type']),
       quotationText: asString(json['quotation_text']),
       items: asMapList(json['items']).map(OpsScopeItem.fromJson).toList(),
     );
   }
+}
+
+/// Nombre del punto que trae el GET de alcance. Nunca el id del dispositivo.
+String _scopeDeviceName(Map<String, dynamic> json) {
+  final named = opsReadableName(json['device_name']);
+  if (named.isNotEmpty) return named;
+  final device = json['device'];
+  if (device is Map) {
+    final nested = opsReadableName(device['name'] ?? device['device_name']);
+    if (nested.isNotEmpty) return nested;
+  }
+  return '';
 }
 
 class OpsInstallation {

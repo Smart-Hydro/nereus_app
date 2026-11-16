@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nereus_app/core/json_util.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/core/providers.dart';
+import 'package:nereus_app/features/strom/data/ops_contract.dart';
 import 'package:nereus_app/features/strom/data/ops_http.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
+import 'package:nereus_app/features/strom/domain/ops_parse.dart';
 import 'package:nereus_app/features/strom/presentation/ops_choice.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -257,15 +259,177 @@ class OpsLookups {
         emptyLabel: 'Cotización',
       );
 
-  OpsChoiceLoader get purchaseOrders =>
-      (query) => _catalog(
-        '/api/inventory/purchase-orders/',
-        query,
-        labelKey: 'number',
-        detailKey: 'supplier_name',
-        emptyLabel: 'Orden de compra',
-        altLabelKey: 'name',
+  /// OC de proveedor: número y proveedor. Filtro de proyecto y sucursal.
+  /// Un 404 (listado aún no publicado) deja el aviso, sin campo de id.
+  OpsChoiceLoader purchaseOrders({String? project}) =>
+      (query) => _purchaseOrders(query, project: project);
+
+  Future<List<OpsChoice>> _purchaseOrders(
+    String query, {
+    String? project,
+  }) async {
+    final branch = _branchId();
+    try {
+      final rows = await _purchaseOrderRows(
+        search: query,
+        project: project,
+        branch: branch,
       );
+      return [
+        for (final row in rows)
+          if (_purchaseVisible(
+            row,
+            query: query,
+            project: project,
+            branch: branch,
+          ))
+            _purchaseChoice(row),
+      ];
+    } on ApiError catch (error) {
+      if (error.statusCode == 404 || error.statusCode == 405) rethrow;
+      if (error.statusCode != 400) rethrow;
+      final rows = await _purchaseOrderRows();
+      return [
+        for (final row in rows)
+          if (_purchaseVisible(
+            row,
+            query: query,
+            project: project,
+            branch: branch,
+          ))
+            _purchaseChoice(row),
+      ];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _purchaseOrderRows({
+    String search = '',
+    String? project,
+    String? branch,
+  }) {
+    return _http.getList(
+      stromPurchaseOrdersPath,
+      (json) => json,
+      query: {
+        if (search.isNotEmpty) 'search': search,
+        if (project != null && project.isNotEmpty) 'project': project,
+        if (branch != null && branch.isNotEmpty) 'branch': branch,
+      },
+    );
+  }
+
+  OpsChoice _purchaseChoice(Map<String, dynamic> row) {
+    final number = _firstName(row, const ['order_number', 'number', 'code']);
+    final supplier = _supplierName(row);
+    return OpsChoice(
+      id: _idOf(row, 'id'),
+      label: number.isEmpty ? 'Orden de compra' : number,
+      detail: supplier,
+    );
+  }
+
+  bool _purchaseVisible(
+    Map<String, dynamic> row, {
+    required String query,
+    String? project,
+    String? branch,
+  }) {
+    if (!_sameRef(row['project'], project)) return false;
+    if (!_sameRef(row['branch'], branch)) return false;
+    final choice = _purchaseChoice(row);
+    return _hit(query, choice.label, choice.detail);
+  }
+
+  /// Recepciones de la OC. Null si el listado aún no existe (404 o 405).
+  Future<List<OpsChoice>?> receptions(String purchaseOrderId) async {
+    try {
+      final rows = await _http.getList(
+        stromPurchaseOrderReceptionsPath(purchaseOrderId),
+        (json) => json,
+      );
+      return [
+        for (final row in rows)
+          OpsChoice(
+            id: _idOf(row, 'id'),
+            label: _receptionLabel(row),
+            detail: asString(row['quantity']),
+          ),
+      ];
+    } on ApiError catch (error) {
+      if (error.statusCode == 404 || error.statusCode == 405) return null;
+      rethrow;
+    }
+  }
+
+  String _receptionLabel(Map<String, dynamic> row) {
+    final notes = opsReadableName(row['notes']);
+    if (notes.isNotEmpty) return notes;
+    final who = opsReadableName(row['received_by_name']);
+    if (who.isNotEmpty) return 'Recepción de $who';
+    return 'Recepción';
+  }
+
+  OpsChoiceLoader get warehouses => _warehouses;
+
+  Future<List<OpsChoice>> _warehouses(String query) async {
+    try {
+      final rows = await _http.getList(
+        stromWarehousesPath,
+        (json) => json,
+        query: {if (query.isNotEmpty) 'search': query},
+      );
+      return [
+        for (final row in rows)
+          if (row['is_active'] != false &&
+              _hit(
+                query,
+                opsReadableName(row['name']),
+                asString(row['location']),
+              ))
+            OpsChoice(
+              id: _idOf(row, 'id'),
+              label: _label(row, 'name', null, 'Bodega'),
+              detail: row['is_default'] == true
+                  ? 'Por defecto'
+                  : asString(row['location']),
+            ),
+      ];
+    } on ApiError catch (error) {
+      if (error.statusCode == 404 || error.statusCode == 405) rethrow;
+      if (query.isNotEmpty && error.statusCode == 400) return _warehouses('');
+      rethrow;
+    }
+  }
+
+  String? _branchId() {
+    final id = ref.read(sessionControllerProvider).branchId;
+    if (id == null || id.isEmpty) return null;
+    return id;
+  }
+
+  String _firstName(Map<String, dynamic> row, List<String> keys) {
+    for (final key in keys) {
+      final name = opsReadableName(row[key]);
+      if (name.isNotEmpty) return name;
+    }
+    return '';
+  }
+
+  String _supplierName(Map<String, dynamic> row) {
+    final direct = opsReadableName(row['supplier_name']);
+    if (direct.isNotEmpty) return direct;
+    final supplier = row['supplier'];
+    if (supplier is Map) return opsReadableName(supplier);
+    return '';
+  }
+
+  /// Si la fila no trae la referencia, no se descarta: el servidor ya filtró.
+  bool _sameRef(dynamic raw, String? expected) {
+    if (expected == null || expected.isEmpty) return true;
+    final id = opsRefId(raw);
+    if (id.isEmpty) return true;
+    return id == expected;
+  }
 
   Future<List<T>> _guard<T>(Future<List<T>> Function() load) async {
     try {

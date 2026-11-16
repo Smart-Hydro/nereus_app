@@ -167,9 +167,10 @@ class _InstallationBody extends ConsumerWidget {
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
     final lookups = OpsLookups(ref);
+    final catalog = await _pointCatalog(lookups);
+    if (!context.mounted) return;
     final current = [
-      for (final id in item.deviceIds)
-        OpsChoice(id: id, label: 'Punto de captación'),
+      for (final id in item.deviceIds) _namedPoint(catalog, id),
     ];
     final points = await askOpsMany(
       context,
@@ -218,4 +219,19 @@ class _InstallationBody extends ConsumerWidget {
       ref.invalidate(opsInstallationProvider(item.id));
     }
   }
+}
+
+Future<List<OpsChoice>> _pointCatalog(OpsLookups lookups) async {
+  try {
+    return await lookups.points('');
+  } on Object {
+    return const [];
+  }
+}
+
+OpsChoice _namedPoint(List<OpsChoice> catalog, String id) {
+  for (final choice in catalog) {
+    if (choice.id == id) return choice;
+  }
+  return OpsChoice(id: id, label: 'Punto de captación');
 }

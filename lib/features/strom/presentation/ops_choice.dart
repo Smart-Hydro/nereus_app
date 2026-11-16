@@ -23,6 +23,7 @@ class OpsEntityField extends StatefulWidget {
     this.initial,
     this.locked = false,
     this.required = false,
+    this.hint = 'Busca por nombre',
   });
 
   final String label;
@@ -31,6 +32,7 @@ class OpsEntityField extends StatefulWidget {
   final OpsChoice? initial;
   final bool locked;
   final bool required;
+  final String hint;
 
   @override
   State<OpsEntityField> createState() => _OpsEntityFieldState();
@@ -96,7 +98,7 @@ class _OpsEntityFieldState extends State<OpsEntityField> {
           controller: _search,
           decoration: InputDecoration(
             labelText: label,
-            hintText: 'Busca por nombre',
+            hintText: widget.hint,
             prefixIcon: const Icon(Icons.search),
           ),
           onChanged: _reload,

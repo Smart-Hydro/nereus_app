@@ -39,7 +39,7 @@ class RtsRepository {
   Future<OpsRts> prepare(String id, {List<int>? itemIds}) =>
       _act(id, 'prepare', itemIds);
 
-  /// La reserva descuenta el stock de la sucursal una sola vez.
+  /// La reserva descuenta una sola vez de la bodega de la sucursal.
   Future<OpsRts> reserve(String id, {List<int>? itemIds}) =>
       _act(id, 'reserve', itemIds);
 
@@ -55,7 +55,7 @@ class RtsRepository {
       '$_root$id/link-purchase-order/',
       data: {
         'purchase_order_id': purchaseOrderId,
-        'reception_id': receptionId,
+        if (receptionId != null) 'reception_id': receptionId,
       },
       parse: OpsRts.fromJson,
     );

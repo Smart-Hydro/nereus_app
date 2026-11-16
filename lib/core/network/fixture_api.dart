@@ -317,11 +317,40 @@ class FixtureApiInterceptor extends Interceptor {
           'client_name': 'Agrícola Santa Rosa SpA',
         },
       ],
-      _ when path.contains('/inventory/purchase-orders') => [
+      _ when path.contains('/inventory/warehouses') => [
         {
-          'id': 'oc-1042',
+          'id': 2,
+          'name': 'Bodega Ñuble',
+          'warehouse_type': 'GENERAL',
+          'is_default': true,
+          'is_active': true,
+          'location': 'Sucursal',
+        },
+        {
+          'id': 3,
+          'name': 'Bodega taller',
+          'warehouse_type': 'GENERAL',
+          'is_default': false,
+          'is_active': true,
+          'location': 'Taller',
+        },
+      ],
+      _ when path.contains('/receptions') => [
+        {
+          'id': 15,
+          'quantity': '3.00',
+          'notes': 'Recepción completa',
+          'received_by_name': 'Ana Lagos',
+        },
+      ],
+      _ when path.contains('/purchase-orders') => [
+        {
+          'id': '8c1e2b7a-4f3d-4a1e-9b2c-0c1042abcdef',
+          'order_number': 'OC-1042',
           'number': 'OC-1042',
-          'supplier_name': 'Bodega central',
+          'supplier_name': 'Ferretería El Huape',
+          'supplier': {'id': 9, 'name': 'Ferretería El Huape'},
+          'status': 'CONFIRMED',
         },
       ],
       _ => null,

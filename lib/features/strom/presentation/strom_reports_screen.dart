@@ -18,7 +18,7 @@ class StromReportsScreen extends ConsumerWidget {
     final projects = ref.watch(opsProjectsProvider).asData?.value ?? const [];
     return OpsBrowse<OpsReport>(
       title: 'Informes',
-      subtitle: 'El líder de la especialidad aprueba el informe.',
+      subtitle: 'Con especialidad, Operaciones o su líder. Sin especialidad, Operaciones o cualquier líder.',
       value: ref.watch(opsReportsProvider).whenData((items) {
         if (projectId == null) return items;
         return items.where((item) => item.project == projectId).toList();
@@ -76,7 +76,11 @@ class StromReportsScreen extends ConsumerWidget {
           key: 'specialty',
           label: 'Especialidad',
           initial: 'hydraulic',
-          options: specialtyLabels,
+          options: {
+            'hydraulic': 'Hidráulica',
+            'electric': 'Eléctrica',
+            '': 'Sin especialidad',
+          },
         ),
       ],
     );
@@ -129,8 +133,12 @@ class _Body extends ConsumerWidget {
       subtitle:
           '${opsLabel(report.kind, reportKindLabels)} · ${opsLabel(report.status, reportStatusLabels)}',
       children: [
-        OpsNote(opsNextAction(report.status)),
-        const OpsNote('Lo aprueba el líder de la especialidad.'),
+        OpsNote(
+          report.status == 'review'
+              ? 'Siguiente: ${reportApproverNote(report.specialty)}'
+              : opsNextAction(report.status),
+        ),
+        OpsNote(reportApproverNote(report.specialty)),
         OpsNote(report.bodyText.isEmpty ? 'Sin cuerpo.' : report.bodyText),
         if (report.driveUrl.isNotEmpty)
           OpsButton('Abrir Drive', () => openOpsLink(context, report.driveUrl)),
@@ -191,7 +199,7 @@ class _Body extends ConsumerWidget {
         _ => 'Enviar informe',
       },
       message: action == 'approve'
-          ? 'Lo aprueba el líder de la especialidad.'
+          ? reportApproverNote(report.specialty)
           : 'Se actualiza la versión del informe.',
       action: () => switch (action) {
         'review' => repo.submitReview(report.id),

@@ -181,3 +181,16 @@ String visitStatusLabel(String value) => opsLabel(value, visitStatusLabels);
 
 String visitTypeLabel(String value) =>
     opsLabel(value, visitTypeLabels, empty: 'Planificada');
+
+/// La reserva de la RTS baja el stock una sola vez, en la bodega de la sucursal.
+const rtsReserveNote =
+    'La reserva descuenta una sola vez de la bodega de la sucursal.';
+
+/// Con especialidad, Operaciones o el líder de esa especialidad.
+/// Sin especialidad, Operaciones o cualquier líder.
+String reportApproverNote(String specialty) {
+  if (specialty.trim().isEmpty) {
+    return 'Lo aprueba Operaciones o cualquier líder.';
+  }
+  return 'Lo aprueba Operaciones o el líder de la especialidad.';
+}

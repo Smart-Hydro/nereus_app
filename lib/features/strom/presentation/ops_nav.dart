@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 
 /// Lee un query de la ruta. Fuera de GoRouter devuelve null.
 String? opsQuery(BuildContext context, String key) {
@@ -73,8 +74,7 @@ String opsNextAction(String status) {
     'review' => 'Siguiente: lo aprueba el líder de la especialidad.',
     'approved' => 'Siguiente: envía el informe.',
     'reserved' => 'Siguiente: da la salida de bodega.',
-    'prepared' =>
-      'Siguiente: reserva. El stock de la sucursal se descuenta una sola vez.',
+    'prepared' => 'Siguiente: reserva. $rtsReserveNote',
     _ => 'Revisa el estado y sigue el flujo del proyecto.',
   };
 }

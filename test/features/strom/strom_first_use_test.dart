@@ -71,6 +71,7 @@ void main() {
     await _tapButton(tester, 'Guardar');
     await _tapButton(tester, 'Confirmar');
     await _until(tester, find.text('Medir caudal del pozo nuevo'));
+    expect(find.text('Pozo 1'), findsWidgets);
     await _tapButton(tester, 'Confirmar');
     await _tapButton(tester, 'Confirmar');
     await _until(tester, find.textContaining('Confirmado'));
@@ -182,11 +183,32 @@ void main() {
     await _until(tester, find.text('OT de esta orden'));
     _expectNoIdField(tester);
     await _tapText(tester, 'Sensor caudal');
+    await _tapText(tester, 'Bodega taller');
+    expect(find.text('Por defecto'), findsOneWidget);
     await _tapButton(tester, 'Guardar');
     await _tapButton(tester, 'Confirmar');
     await _until(tester, find.text('RTS Hidráulica'));
     await _tapText(tester, 'RTS Hidráulica');
     await _until(tester, find.text('Reservar'));
+    expect(find.textContaining('Bodega taller'), findsOneWidget);
+    expect(
+      find.text(
+        'La reserva descuenta una sola vez de la bodega de la sucursal.',
+      ),
+      findsWidgets,
+    );
+    await _tapButton(tester, 'Vincular OC');
+    await _until(tester, find.text('OC-1042'));
+    expect(find.text('Ferretería El Huape'), findsOneWidget);
+    _expectNoIdField(tester);
+    await _tapText(tester, 'OC-1042');
+    await _tapButton(tester, 'Guardar');
+    await _until(tester, find.text('Recepción completa'));
+    _expectNoIdField(tester);
+    await _tapText(tester, 'Recepción completa');
+    await _tapButton(tester, 'Guardar');
+    await _tapButton(tester, 'Confirmar');
+    await _until(tester, find.text('OC-1042 · Ferretería El Huape'));
     await _tapButton(tester, 'Reservar');
     await _tapButton(tester, 'Confirmar');
     await _until(tester, find.textContaining('stock 5'));
@@ -204,6 +226,10 @@ void main() {
     await _until(tester, find.text('Informe versión 1'));
     await _tapText(tester, 'Informe versión 1');
     await _until(tester, find.text('Enviar a revisión'));
+    expect(
+      find.text('Lo aprueba Operaciones o el líder de la especialidad.'),
+      findsWidgets,
+    );
     await _tapButton(tester, 'Enviar a revisión');
     await _tapButton(tester, 'Confirmar');
     await _until(tester, find.text('Aprobar'));

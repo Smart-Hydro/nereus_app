@@ -47,7 +47,7 @@ class ReportsRepository {
   Future<OpsReport> revise(String id) =>
       _http.send('$_root$id/revise/', parse: OpsReport.fromJson);
 
-  /// Lo aprueba el líder de la especialidad.
+  /// Con especialidad, el líder de esa especialidad. Sin ella, Operaciones o cualquier líder.
   Future<OpsReport> approve(String id) =>
       _http.send('$_root$id/approve/', parse: OpsReport.fromJson);
 

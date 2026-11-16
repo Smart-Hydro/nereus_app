@@ -207,6 +207,10 @@ extension OperationsFixtureActions on OperationsFixture {
                   'quantity': '${item['quantity'] ?? '1'}',
                   'unit': item['unit'] ?? 'un',
                   'status': 'pending',
+                  'warehouse': item['warehouse_id'] ?? 2,
+                  'warehouse_name': '${item['warehouse_id']}' == '3'
+                      ? 'Bodega taller'
+                      : 'Bodega Ñuble',
                   'stock_quantity': '6',
                 },
           ],
@@ -223,6 +227,11 @@ extension OperationsFixtureActions on OperationsFixture {
     if (action == 'issue') row['status'] = 'issued';
     if (action == 'link-purchase-order') {
       row['purchase_order'] = body['purchase_order_id'];
+      row['purchase_order_number'] = 'OC-1042';
+      row['supplier_name'] = 'Ferretería El Huape';
+      if (body['reception_id'] != null) {
+        row['reception'] = body['reception_id'];
+      }
     }
     return row;
   }

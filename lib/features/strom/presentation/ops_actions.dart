@@ -17,6 +17,7 @@ class OpsField {
     this.locked = false,
     this.lockedLabel = '',
     this.date = false,
+    this.searchHint,
   });
 
   final String key;
@@ -29,6 +30,7 @@ class OpsField {
   final bool locked;
   final String lockedLabel;
   final bool date;
+  final String? searchHint;
 }
 
 /// Pide confirmación y muestra el mensaje del backend en 400, 403 y 409.
@@ -247,6 +249,7 @@ class _OpsFormDialogState extends State<_OpsFormDialog> {
                   label: field.label,
                   load: field.choices!,
                   required: field.required,
+                  hint: field.searchHint ?? 'Busca por nombre',
                   locked: field.locked,
                   initial: field.initial.isEmpty
                       ? null

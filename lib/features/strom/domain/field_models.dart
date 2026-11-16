@@ -1,4 +1,5 @@
 import 'package:nereus_app/core/json_util.dart';
+import 'package:nereus_app/features/strom/domain/ops_parse.dart';
 
 class OpsFieldCheck {
   const OpsFieldCheck({
@@ -101,6 +102,7 @@ class OpsRtsItem {
     this.unit = '',
     this.status = 'pending',
     this.warehouse = '',
+    this.warehouseName = '',
     this.stockQuantity = '',
   });
 
@@ -112,7 +114,14 @@ class OpsRtsItem {
   final String unit;
   final String status;
   final String warehouse;
+  final String warehouseName;
   final String stockQuantity;
+
+  String get stockLine {
+    final line = '$quantity $unit · stock $stockQuantity'.trim();
+    if (warehouseName.isEmpty) return line;
+    return '$line · $warehouseName';
+  }
 
   factory OpsRtsItem.fromJson(Map<String, dynamic> json) {
     return OpsRtsItem(
@@ -123,10 +132,22 @@ class OpsRtsItem {
       quantity: asString(json['quantity']),
       unit: asString(json['unit']),
       status: asString(json['status'], fallback: 'pending'),
-      warehouse: asString(json['warehouse']),
+      warehouse: opsRefId(json['warehouse']),
+      warehouseName: _warehouseName(json),
       stockQuantity: asString(json['stock_quantity']),
     );
   }
+}
+
+String _warehouseName(Map<String, dynamic> json) {
+  final named = opsReadableName(json['warehouse_name']);
+  if (named.isNotEmpty) return named;
+  final warehouse = json['warehouse'];
+  if (warehouse is Map) return opsReadableName(warehouse);
+  if (warehouse is String && int.tryParse(warehouse.trim()) == null) {
+    return warehouse.trim();
+  }
+  return '';
 }
 
 class OpsRts {
@@ -137,6 +158,8 @@ class OpsRts {
     this.status = 'draft',
     this.notes = '',
     this.purchaseOrder = '',
+    this.purchaseOrderNumber = '',
+    this.supplierName = '',
     this.items = const [],
     this.preparedAt = '',
   });
@@ -147,21 +170,68 @@ class OpsRts {
   final String status;
   final String notes;
   final String purchaseOrder;
+  final String purchaseOrderNumber;
+  final String supplierName;
   final List<OpsRtsItem> items;
   final String preparedAt;
 
+  /// Número y proveedor. Si el JSON solo trae el id, no se muestra.
+  String get purchaseCaption {
+    if (purchaseOrderNumber.isEmpty) {
+      return purchaseOrder.isEmpty ? '' : 'Orden de compra vinculada';
+    }
+    if (supplierName.isEmpty) return purchaseOrderNumber;
+    return '$purchaseOrderNumber · $supplierName';
+  }
+
   factory OpsRts.fromJson(Map<String, dynamic> json) {
+    final linked = _linkedPurchaseOrder(json);
     return OpsRts(
       id: asString(json['id']),
       workOrder: asString(json['work_order']),
       specialty: asString(json['work_order_specialty']),
       status: asString(json['status'], fallback: 'draft'),
       notes: asString(json['notes']),
-      purchaseOrder: asString(json['purchase_order']),
+      purchaseOrder: linked.id,
+      purchaseOrderNumber: linked.number,
+      supplierName: linked.supplier,
       items: asMapList(json['items']).map(OpsRtsItem.fromJson).toList(),
       preparedAt: asString(json['prepared_at']),
     );
   }
+}
+
+class _LinkedPurchaseOrder {
+  const _LinkedPurchaseOrder({
+    required this.id,
+    required this.number,
+    required this.supplier,
+  });
+
+  final String id;
+  final String number;
+  final String supplier;
+}
+
+_LinkedPurchaseOrder _linkedPurchaseOrder(Map<String, dynamic> json) {
+  final raw = json['purchase_order'];
+  final nested = raw is Map
+      ? raw.map((key, value) => MapEntry('$key', value))
+      : const <String, dynamic>{};
+  final number = opsReadableName(
+    json['purchase_order_number'] ??
+        json['order_number'] ??
+        nested['order_number'] ??
+        nested['number'],
+  );
+  final supplier = opsReadableName(
+    json['supplier_name'] ?? nested['supplier_name'] ?? nested['supplier'],
+  );
+  return _LinkedPurchaseOrder(
+    id: opsRefId(raw),
+    number: number,
+    supplier: supplier,
+  );
 }
 
 class OpsReport {

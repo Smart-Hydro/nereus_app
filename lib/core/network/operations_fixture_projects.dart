@@ -79,7 +79,7 @@ extension OperationsFixtureProjects on OperationsFixture {
       return {
         'id': ++_seq,
         'device': 101,
-        'device_name': 'Punto de captación',
+        'device_name': 'Pozo 1',
         'items': [
           {
             'id': itemId,

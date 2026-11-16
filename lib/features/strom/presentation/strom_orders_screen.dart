@@ -154,7 +154,9 @@ class _OrderBody extends ConsumerWidget {
         for (final change in changes)
           OpsTile(
             title: change.activity.isEmpty ? change.kind : change.activity,
-            subtitle: specialtyLabel(change.specialty),
+            subtitle: change.deviceName.isEmpty
+                ? specialtyLabel(change.specialty)
+                : '${specialtyLabel(change.specialty)} · ${change.deviceName}',
             status: change.status,
             onTap: () => _decide(context, ref, change),
           ),
