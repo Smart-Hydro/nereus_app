@@ -18,7 +18,8 @@ class ReportsRepository {
     );
   }
 
-  Future<OpsReport> get(String id) => _http.getOne('$_root$id/', OpsReport.fromJson);
+  Future<OpsReport> get(String id) =>
+      _http.getOne('$_root$id/', OpsReport.fromJson);
 
   Future<OpsReport> update(String id, {String? body, String? specialty}) {
     return _http.send(
@@ -46,10 +47,13 @@ class ReportsRepository {
   Future<OpsReport> revise(String id) =>
       _http.send('$_root$id/revise/', parse: OpsReport.fromJson);
 
-  /// Lo aprueba el líder de la especialidad.
+  /// Con especialidad, el líder de esa especialidad. Sin ella, Operaciones o cualquier líder.
   Future<OpsReport> approve(String id) =>
       _http.send('$_root$id/approve/', parse: OpsReport.fromJson);
 
-  Future<OpsReport> send(String id) =>
-      _http.send('$_root$id/send/', data: {'send_backup': <String, dynamic>{}}, parse: OpsReport.fromJson);
+  Future<OpsReport> send(String id) => _http.send(
+    '$_root$id/send/',
+    data: {'send_backup': <String, dynamic>{}},
+    parse: OpsReport.fromJson,
+  );
 }

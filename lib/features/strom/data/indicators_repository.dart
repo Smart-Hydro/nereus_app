@@ -18,25 +18,32 @@ class IndicatorsRepository {
     );
   }
 
-  Future<List<OpsIndicatorTarget>> targets() =>
-      _http.getList('/api/operations/indicator-targets/', OpsIndicatorTarget.fromJson);
+  Future<List<OpsIndicatorTarget>> targets() => _http.getList(
+    '/api/operations/indicator-targets/',
+    OpsIndicatorTarget.fromJson,
+  );
 
-  Future<OpsIndicatorTarget> createTarget(Map<String, dynamic> body) => _http.send(
+  Future<OpsIndicatorTarget> createTarget(Map<String, dynamic> body) =>
+      _http.send(
         '/api/operations/indicator-targets/',
         data: body,
         parse: OpsIndicatorTarget.fromJson,
       );
 
-  Future<OpsIndicatorTarget> updateTarget(String id, Map<String, dynamic> body) =>
-      _http.send(
-        '/api/operations/indicator-targets/$id/',
-        method: 'PATCH',
-        data: body,
-        parse: OpsIndicatorTarget.fromJson,
-      );
+  Future<OpsIndicatorTarget> updateTarget(
+    String id,
+    Map<String, dynamic> body,
+  ) => _http.send(
+    '/api/operations/indicator-targets/$id/',
+    method: 'PATCH',
+    data: body,
+    parse: OpsIndicatorTarget.fromJson,
+  );
 
-  Future<void> deleteTarget(String id) =>
-      _http.sendEmpty('/api/operations/indicator-targets/$id/', method: 'DELETE');
+  Future<void> deleteTarget(String id) => _http.sendEmpty(
+    '/api/operations/indicator-targets/$id/',
+    method: 'DELETE',
+  );
 
   Future<List<OpsConfigurableIndicator>> configurable() {
     return _http.getList(
@@ -45,12 +52,13 @@ class IndicatorsRepository {
     );
   }
 
-  Future<OpsConfigurableIndicator> createConfigurable(Map<String, dynamic> body) =>
-      _http.send(
-        '/api/operations/configurable-indicators/',
-        data: body,
-        parse: OpsConfigurableIndicator.fromJson,
-      );
+  Future<OpsConfigurableIndicator> createConfigurable(
+    Map<String, dynamic> body,
+  ) => _http.send(
+    '/api/operations/configurable-indicators/',
+    data: body,
+    parse: OpsConfigurableIndicator.fromJson,
+  );
 
   Future<OpsConfigurableIndicator> updateConfigurable(
     String id,
@@ -65,9 +73,9 @@ class IndicatorsRepository {
   }
 
   Future<void> deleteConfigurable(String id) => _http.sendEmpty(
-        '/api/operations/configurable-indicators/$id/',
-        method: 'DELETE',
-      );
+    '/api/operations/configurable-indicators/$id/',
+    method: 'DELETE',
+  );
 
   Future<Map<String, dynamic>> compute(
     String id, {

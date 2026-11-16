@@ -11,7 +11,8 @@ class StromProjectsScreen extends ConsumerStatefulWidget {
   const StromProjectsScreen({super.key});
 
   @override
-  ConsumerState<StromProjectsScreen> createState() => _StromProjectsScreenState();
+  ConsumerState<StromProjectsScreen> createState() =>
+      _StromProjectsScreenState();
 }
 
 class _StromProjectsScreenState extends ConsumerState<StromProjectsScreen> {
@@ -28,15 +29,22 @@ class _StromProjectsScreenState extends ConsumerState<StromProjectsScreen> {
         return items.where((item) {
           if (_kind == 'support' && item.serviceType != 'support') return false;
           if (_kind == 'project' && item.serviceType != 'project') return false;
-          if (_kind == 'maintenance' && item.serviceType != 'maintenance') return false;
+          if (_kind == 'maintenance' && item.serviceType != 'maintenance') {
+            return false;
+          }
           if (_status.isNotEmpty && item.status != _status) return false;
           if (_query.isEmpty) return true;
-          final blob = '${item.name} ${item.code} ${item.clientPoNumber}'.toLowerCase();
+          final blob = '${item.name} ${item.code} ${item.clientPoNumber}'
+              .toLowerCase();
           return blob.contains(_query.toLowerCase());
         }).toList();
       }),
       onRetry: () => ref.invalidate(opsProjectsProvider),
       emptyMessage: 'No hay proyectos en esta sucursal.',
+      emptyAction: FilledButton(
+        onPressed: () => context.go('/strom/nuevo'),
+        child: const Text('Crear proyecto'),
+      ),
       action: StromCreateButton(onPressed: () => context.go('/strom/nuevo')),
       header: Column(
         children: [
@@ -89,7 +97,8 @@ class _StromProjectsScreenState extends ConsumerState<StromProjectsScreen> {
           if (project.clientPoNumber.isNotEmpty) 'OC ${project.clientPoNumber}',
           if (project.committedOn.isNotEmpty) project.committedOn,
         ].join(' · '),
-        status: '${serviceTypeLabel(project.serviceType)} · ${projectStatusLabel(project.status)}',
+        status:
+            '${serviceTypeLabel(project.serviceType)} · ${projectStatusLabel(project.status)}',
         onTap: () => context.go('/strom/${project.id}'),
       ),
     );

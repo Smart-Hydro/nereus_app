@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
+import 'package:nereus_app/features/strom/domain/project_models.dart';
 import 'package:nereus_app/features/strom/domain/work_models.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_choice.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
+import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -12,33 +16,65 @@ class StromOrdersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final projectId = opsQuery(context, 'proyecto');
+    final projects = ref.watch(opsProjectsProvider).asData?.value ?? const [];
     return OpsBrowse<OpsWorkOrder>(
       title: 'Órdenes de trabajo',
       subtitle: 'OT técnica por especialidad. No es la visita.',
-      value: ref.watch(opsOrdersProvider),
+      value: ref.watch(opsOrdersProvider).whenData((items) {
+        if (projectId == null) return items;
+        return items.where((order) => order.project == projectId).toList();
+      }),
       onRetry: () => ref.invalidate(opsOrdersProvider),
+      emptyMessage: 'No hay OT. Sugiere una desde el alcance del proyecto.',
       action: FilledButton(
-        onPressed: () => _suggest(context, ref),
+        onPressed: () => _suggest(context, ref, projectId, projects),
         child: const Text('Sugerir'),
       ),
       itemBuilder: (context, order) => OpsTile(
-        title: 'OT ${order.id} · ${specialtyLabel(order.specialty)}',
-        subtitle: 'Proyecto ${order.project} · alcance ${order.scopeVersion}',
+        title: 'OT ${specialtyLabel(order.specialty)}',
+        subtitle: _projectName(projects, order.project),
         status: workOrderStatusLabel(order.status),
         onTap: () => context.go('/strom/ordenes/${order.id}'),
       ),
     );
   }
 
-  Future<void> _suggest(BuildContext context, WidgetRef ref) async {
-    final raw = await askOpsText(context, title: 'Sugerir OT', label: 'Id del proyecto');
-    if (raw == null || !context.mounted) return;
-    final project = requireOpsInt(context, raw, 'proyecto');
+  String _projectName(List<OpsProject> projects, String id) {
+    for (final project in projects) {
+      if (project.id == id) return project.name;
+    }
+    return 'Proyecto de la sucursal';
+  }
+
+  Future<void> _suggest(
+    BuildContext context,
+    WidgetRef ref,
+    String? projectId,
+    List<OpsProject> projects,
+  ) async {
+    final OpsChoice? picked;
+    if (projectId != null) {
+      picked = OpsChoice(
+        id: projectId,
+        label: _projectName(projects, projectId),
+      );
+    } else {
+      picked = await askOpsEntity(
+        context,
+        title: 'Sugerir OT',
+        label: 'Proyecto',
+        load: OpsLookups(ref).projects,
+      );
+    }
+    if (picked == null || !context.mounted) return;
+    final project = requireOpsInt(context, picked.id, 'proyecto');
     if (project == null) return;
     final ok = await runOps(
       context,
       title: 'Sugerir OT',
-      message: 'Se crean las OT por especialidad del alcance. No quedan vacías.',
+      message:
+          'Se crean las OT por especialidad del alcance. No quedan vacías.',
       action: () => ref.read(workOrdersRepositoryProvider).suggest(project),
     );
     if (ok) ref.invalidate(opsOrdersProvider);
@@ -63,7 +99,10 @@ class StromOrderScreen extends ConsumerWidget {
       },
       child: order.asData == null
           ? const SizedBox.shrink()
-          : _OrderBody(order: order.asData!.value, changes: changes.asData?.value ?? const []),
+          : _OrderBody(
+              order: order.asData!.value,
+              changes: changes.asData?.value ?? const [],
+            ),
     );
   }
 }
@@ -76,29 +115,48 @@ class _OrderBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final projects = ref.watch(opsProjectsProvider).asData?.value ?? const [];
+    final projectName = projects
+        .where((project) => project.id == order.project)
+        .map((project) => project.name)
+        .firstOrNull;
     return OpsDetail(
-      title: 'OT ${order.id}',
-      subtitle: '${specialtyLabel(order.specialty)} · ${workOrderStatusLabel(order.status)}',
+      title: 'OT ${specialtyLabel(order.specialty)}',
+      subtitle:
+          '${projectName ?? 'Proyecto'} · ${workOrderStatusLabel(order.status)}',
       children: [
+        OpsNote(opsNextAction(order.status)),
         OpsNote(
-          'Proyecto ${order.project}\nReferencia ${order.commercialReference}\n'
+          '${projectName ?? 'Proyecto de la sucursal'}\n'
+          'Referencia ${order.commercialReference.isEmpty ? 'sin referencia' : order.commercialReference}\n'
           'Cambios de alcance pendientes: ${order.pendingScopeChanges}',
         ),
+        OpsLinks([
+          OpsLink('Visitas', '/strom/visitas?ot=${order.id}'),
+          OpsLink('Nueva visita', '/strom/visitas/nueva?ot=${order.id}'),
+          OpsLink('Actividades', '/strom/actividades?ot=${order.id}'),
+          OpsLink('RTS', '/strom/rts?ot=${order.id}'),
+        ]),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            if (order.status == 'suggested') OpsButton('Confirmar', () => _confirm(context, ref)),
+            if (order.status == 'suggested')
+              OpsButton('Confirmar', () => _confirm(context, ref)),
             OpsButton('Estado', () => _status(context, ref)),
             OpsButton('Costo', () => _cost(context, ref)),
           ],
         ),
-        if (order.blockReason.isNotEmpty) OpsNote('Bloqueo: ${order.blockReason}'),
-        if (order.cancelReason.isNotEmpty) OpsNote('Cancelación: ${order.cancelReason}'),
+        if (order.blockReason.isNotEmpty)
+          OpsNote('Bloqueo: ${order.blockReason}'),
+        if (order.cancelReason.isNotEmpty)
+          OpsNote('Cancelación: ${order.cancelReason}'),
         for (final change in changes)
           OpsTile(
             title: change.activity.isEmpty ? change.kind : change.activity,
-            subtitle: 'Punto ${change.device} · ${specialtyLabel(change.specialty)}',
+            subtitle: change.deviceName.isEmpty
+                ? specialtyLabel(change.specialty)
+                : '${specialtyLabel(change.specialty)} · ${change.deviceName}',
             status: change.status,
             onTap: () => _decide(context, ref, change),
           ),
@@ -124,7 +182,9 @@ class _OrderBody extends ConsumerWidget {
       context,
       title: 'Confirmar OT',
       message: 'Después de confirmar, el alcance no cambia sin aprobación de Operaciones.',
-      action: () => ref.read(workOrdersRepositoryProvider).confirm(
+      action: () => ref
+          .read(workOrdersRepositoryProvider)
+          .confirm(
             order.id,
             commercialReference: reference,
           ),
@@ -160,7 +220,9 @@ class _OrderBody extends ConsumerWidget {
       context,
       title: 'Cambiar estado',
       message: 'El líder de la especialidad registra el cambio.',
-      action: () => ref.read(workOrdersRepositoryProvider).setStatus(
+      action: () => ref
+          .read(workOrdersRepositoryProvider)
+          .setStatus(
             order.id,
             status: status,
             blockReason: status == 'blocked' ? reason : '',
@@ -176,7 +238,9 @@ class _OrderBody extends ConsumerWidget {
       title: 'Costo de la OT',
       message: 'Visitas realizadas por el costo diario vigente.',
       action: () async {
-        final cost = await ref.read(workOrdersRepositoryProvider).cost(order.id);
+        final cost = await ref
+            .read(workOrdersRepositoryProvider)
+            .cost(order.id);
         if (!context.mounted) return;
         await showDialog<void>(
           context: context,
@@ -186,7 +250,10 @@ class _OrderBody extends ConsumerWidget {
               '${cost.visitsPerformed} visitas · diario ${cost.dailyCost}',
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
             ],
           ),
         );
@@ -194,7 +261,11 @@ class _OrderBody extends ConsumerWidget {
     );
   }
 
-  Future<void> _decide(BuildContext context, WidgetRef ref, OpsScopeChange change) async {
+  Future<void> _decide(
+    BuildContext context,
+    WidgetRef ref,
+    OpsScopeChange change,
+  ) async {
     final values = await askOpsFields(
       context,
       title: 'Diferencia de alcance',
@@ -213,7 +284,9 @@ class _OrderBody extends ConsumerWidget {
       context,
       title: 'Decidir alcance',
       message: 'Operaciones aprueba o rechaza la diferencia.',
-      action: () => ref.read(workOrdersRepositoryProvider).decide(
+      action: () => ref
+          .read(workOrdersRepositoryProvider)
+          .decide(
             order.id,
             change.id,
             approve: values['approve'] == 'yes',

@@ -16,8 +16,7 @@ class FixtureApiInterceptor extends Interceptor {
       'ticket_number': 'T-1042',
       'status': 'OPEN',
       'priority': 'MEDIUM',
-      'description':
-          'TIPO=PROYECTO\nCLIENTE=Agrícola Santa Rosa SpA\nOC=OC-1042\nCOMPROMISO=2026-12-01\nRESPONSABLE=Carlos\nPuesta en marcha de dos pozos.',
+      'description': 'TIPO=PROYECTO\nCLIENTE=Agrícola Santa Rosa SpA\nOC=OC-1042\nCOMPROMISO=2026-12-01\nRESPONSABLE=Carlos\nPuesta en marcha de dos pozos.',
       'client_name': 'Agrícola Santa Rosa SpA',
       'ticket_type_name': 'Proyecto',
       'category_name': 'Hidráulica',
@@ -28,8 +27,7 @@ class FixtureApiInterceptor extends Interceptor {
       'ticket_number': 'T-1108',
       'status': 'OPEN',
       'priority': 'HIGH',
-      'description':
-          'TIPO=SOPORTE\nCLIENTE=Comunidad de Aguas El Huape\nRESPONSABLE=Soporte\nEl equipo dejó de reportar.',
+      'description': 'TIPO=SOPORTE\nCLIENTE=Comunidad de Aguas El Huape\nRESPONSABLE=Soporte\nEl equipo dejó de reportar.',
       'client_name': 'Comunidad de Aguas El Huape',
       'ticket_type_name': 'Soporte',
       'category_name': 'Soporte',
@@ -157,6 +155,8 @@ class FixtureApiInterceptor extends Interceptor {
     if (path.contains('/work-order-attachments')) {
       return _attachment(options);
     }
+    final catalog = _catalog(path, options);
+    if (catalog != null) return catalog;
     if (method == 'GET') return _page(const []);
     return _echo(options.data);
   }
@@ -254,6 +254,117 @@ class FixtureApiInterceptor extends Interceptor {
     files.add(item);
     order?['attachments'] = files;
     return item;
+  }
+
+  Map<String, dynamic>? _catalog(String path, RequestOptions options) {
+    final rows = switch (path) {
+      _ when path.contains('/inventory/products') => [
+        {
+          'id': 4,
+          'name': 'Sensor caudal',
+          'code': 'SC',
+          'measurement_unit': 'un',
+        },
+      ],
+      _
+          when path.contains('/iot-telemetry/devices') &&
+              !path.contains('overview') =>
+        [
+          {
+            'id': 101,
+            'name': 'Pozo 1',
+            'device_type': 'FLOW',
+            'address': 'Ñuble',
+          },
+          {
+            'id': 102,
+            'name': 'Pozo 2',
+            'device_type': 'FLOW',
+            'address': 'Ñuble',
+          },
+        ],
+      _ when path.contains('/customers/clients') => [
+        {'id': 12, 'name': 'Agrícola Santa Rosa SpA'},
+      ],
+      _ when path.contains('/operations/assignable-users') => [
+        {
+          'user_id': 7,
+          'name': 'Ana Lagos',
+          'email': 'ana@smarthydro.cl',
+          'role_code': 'STROM_LIDER_HIDRAULICA',
+        },
+      ],
+      _ when path.contains('/sales/quotations') => [
+        {
+          'id': 'q-norte',
+          'order_number': 'COT-1042',
+          'observation': 'Cotización Norte',
+          'status': 'PENDING',
+        },
+      ],
+      _ when path.contains('/branches/users') => [
+        {
+          'id': 1,
+          'user': 7,
+          'user_name': 'Ana Lagos',
+          'role_name': 'Líder hidráulica',
+        },
+      ],
+      _ when path.contains('/crm/opportunities') => [
+        {
+          'id': 'q-norte',
+          'title': 'Cotización Norte',
+          'client_name': 'Agrícola Santa Rosa SpA',
+        },
+      ],
+      _ when path.contains('/inventory/warehouses') => [
+        {
+          'id': 2,
+          'name': 'Bodega Ñuble',
+          'warehouse_type': 'GENERAL',
+          'is_default': true,
+          'is_active': true,
+          'location': 'Sucursal',
+        },
+        {
+          'id': 3,
+          'name': 'Bodega taller',
+          'warehouse_type': 'GENERAL',
+          'is_default': false,
+          'is_active': true,
+          'location': 'Taller',
+        },
+      ],
+      _ when path.contains('/receptions') => [
+        {
+          'id': 15,
+          'quantity': '3.00',
+          'notes': 'Recepción completa',
+          'received_by_name': 'Ana Lagos',
+        },
+      ],
+      _ when path.contains('/purchase-orders') => [
+        {
+          'id': '8c1e2b7a-4f3d-4a1e-9b2c-0c1042abcdef',
+          'order_number': 'OC-1042',
+          'number': 'OC-1042',
+          'supplier_name': 'Ferretería El Huape',
+          'supplier': {'id': 9, 'name': 'Ferretería El Huape'},
+          'status': 'CONFIRMED',
+        },
+      ],
+      _ => null,
+    };
+    if (rows == null) return null;
+    final query = '${options.queryParameters['search'] ?? ''}'.toLowerCase();
+    final visible = query.isEmpty
+        ? rows
+        : rows
+              .where(
+                (row) => row.values.join(' ').toLowerCase().contains(query),
+              )
+              .toList();
+    return _page(visible);
   }
 
   Map<String, dynamic> _echo(Object? data) {

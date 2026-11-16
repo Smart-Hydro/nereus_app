@@ -25,9 +25,7 @@ class StromDesk extends StatelessWidget {
         const SizedBox(width: 420, child: StromProjectsScreen()),
         const VerticalDivider(width: 1),
         Expanded(
-          child: _atList
-              ? const _PickProject()
-              : child,
+          child: _atList ? const _PickProject() : child,
         ),
       ],
     );
@@ -60,7 +58,7 @@ class _PickProject extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(NereusTokens.spaceMd),
         child: Text(
-          'Elige un proyecto para ver sus visitas.',
+          'Elige un proyecto para ver su alcance, las OT y las visitas.',
           style: Theme.of(context).textTheme.titleMedium,
           textAlign: TextAlign.center,
         ),

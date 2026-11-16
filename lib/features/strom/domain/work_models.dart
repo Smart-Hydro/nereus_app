@@ -53,6 +53,7 @@ class OpsScopeChange {
     required this.id,
     this.kind = '',
     this.device = '',
+    this.deviceName = '',
     this.sourceKey = '',
     this.activity = '',
     this.specialty = '',
@@ -64,6 +65,7 @@ class OpsScopeChange {
   final String id;
   final String kind;
   final String device;
+  final String deviceName;
   final String sourceKey;
   final String activity;
   final String specialty;
@@ -75,7 +77,8 @@ class OpsScopeChange {
     return OpsScopeChange(
       id: asString(json['id']),
       kind: asString(json['kind']),
-      device: asString(json['device']),
+      device: opsRefId(json['device']),
+      deviceName: opsReadableName(json['device_name']),
       sourceKey: asString(json['source_key']),
       activity: asString(json['activity']),
       specialty: asString(json['specialty']),
@@ -193,7 +196,9 @@ class OpsVisit {
       notes: asString(json['notes']),
       cancelReason: asString(json['cancel_reason']),
       crew: asMapList(json['crew']).map(OpsCrewMember.fromJson).toList(),
-      reschedules: asMapList(json['reschedules']).map(OpsReschedule.fromJson).toList(),
+      reschedules: asMapList(json['reschedules'])
+          .map(OpsReschedule.fromJson)
+          .toList(),
       siteWarnings: opsMessages(json['site_requirement_warnings']),
       rtsWarnings: opsMessages(json['rts_warnings']),
     );
@@ -207,6 +212,7 @@ class OpsActivity {
     this.specialty = '',
     this.projectPoint = '',
     this.device = '',
+    this.deviceName = '',
     this.scopeItem = '',
     this.description = '',
     this.origin = '',
@@ -222,6 +228,7 @@ class OpsActivity {
   final String specialty;
   final String projectPoint;
   final String device;
+  final String deviceName;
   final String scopeItem;
   final String description;
   final String origin;
@@ -231,20 +238,27 @@ class OpsActivity {
   final String validationStatus;
   final String validationNotes;
 
+  String get pointCaption =>
+      deviceName.isEmpty ? 'punto de captación' : deviceName;
+
   factory OpsActivity.fromJson(Map<String, dynamic> json) {
     return OpsActivity(
       id: asString(json['id']),
       workOrder: asString(json['work_order']),
       specialty: asString(json['specialty']),
       projectPoint: asString(json['project_point']),
-      device: asString(json['device']),
+      device: opsRefId(json['device']),
+      deviceName: opsReadableName(json['device_name']),
       scopeItem: asString(json['scope_item']),
       description: asString(json['description']),
       origin: asString(json['origin']),
       mandatory: opsBool(json['mandatory']),
       executionStatus: asString(json['execution_status'], fallback: 'pending'),
       notDoneReason: asString(json['not_done_reason']),
-      validationStatus: asString(json['validation_status'], fallback: 'pending'),
+      validationStatus: asString(
+        json['validation_status'],
+        fallback: 'pending',
+      ),
       validationNotes: asString(json['validation_notes']),
     );
   }

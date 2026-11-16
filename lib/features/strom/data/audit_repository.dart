@@ -11,7 +11,8 @@ class AuditRepository {
       '/api/operations/transitions/',
       OpsTransition.fromJson,
       query: {
-        if (entityType != null && entityType.isNotEmpty) 'entity_type': entityType,
+        if (entityType != null && entityType.isNotEmpty)
+          'entity_type': entityType,
         if (entityId != null && entityId.isNotEmpty) 'entity_id': entityId,
       },
     );

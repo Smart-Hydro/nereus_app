@@ -17,7 +17,10 @@ class StromConfigScreen extends ConsumerWidget {
       subtitle: 'Cuadrilla sin cuenta. No tiene usuario ni clave.',
       value: ref.watch(opsCrewProvider),
       onRetry: () => ref.invalidate(opsCrewProvider),
-      action: FilledButton(onPressed: () => _create(context, ref), child: const Text('Agregar')),
+      action: FilledButton(
+        onPressed: () => _create(context, ref),
+        child: const Text('Agregar'),
+      ),
       itemBuilder: (context, item) => OpsTile(
         title: item.name,
         subtitle: '${item.company} · ${item.contact}',
@@ -45,7 +48,11 @@ class StromConfigScreen extends ConsumerWidget {
     if (ok) ref.invalidate(opsCrewProvider);
   }
 
-  Future<void> _edit(BuildContext context, WidgetRef ref, OpsCrewMember item) async {
+  Future<void> _edit(
+    BuildContext context,
+    WidgetRef ref,
+    OpsCrewMember item,
+  ) async {
     final values = await _fields(
       context,
       name: item.name,

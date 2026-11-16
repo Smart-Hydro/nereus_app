@@ -42,9 +42,12 @@ class _StromAuditScreenState extends ConsumerState<StromAuditScreen> {
         ),
       ),
       itemBuilder: (context, item) => OpsTile(
-        title: '${opsLabel(item.entityType, entityLabels)} ${item.entityId}',
-        subtitle: '${item.fromValue} → ${item.toValue}. ${item.reason}',
-        status: item.occurredAt.length >= 16 ? item.occurredAt.substring(0, 16) : item.occurredAt,
+        title: opsLabel(item.entityType, entityLabels),
+        subtitle:
+            '${_valueLabel(item.fromValue)} → ${_valueLabel(item.toValue)}. ${item.reason}',
+        status: item.occurredAt.length >= 16
+            ? item.occurredAt.substring(0, 16)
+            : item.occurredAt,
         onTap: () => context.go('/strom/auditoria/${item.id}'),
       ),
     );
@@ -70,6 +73,21 @@ class StromTransitionScreen extends ConsumerWidget {
   }
 }
 
+String _valueLabel(String value) {
+  if (value.isEmpty) return '—';
+  for (final known in [
+    projectStatusLabels,
+    workOrderStatusLabels,
+    visitStatusLabels,
+    executionLabels,
+    validationLabels,
+  ]) {
+    final label = known[value];
+    if (label != null) return label;
+  }
+  return value;
+}
+
 class _Body extends StatelessWidget {
   const _Body({required this.row});
 
@@ -78,11 +96,11 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OpsDetail(
-      title: '${opsLabel(row.entityType, entityLabels)} ${row.entityId}',
+      title: opsLabel(row.entityType, entityLabels),
       subtitle: row.occurredAt,
       children: [
         OpsNote(
-          'De ${row.fromValue.isEmpty ? '—' : row.fromValue} a ${row.toValue}\n'
+          'De ${row.fromValue.isEmpty ? '—' : _valueLabel(row.fromValue)} a ${_valueLabel(row.toValue)}\n'
           'Motivo: ${row.reason.isEmpty ? '—' : row.reason}\n'
           'Alcance: ${row.scopeVersion.isEmpty ? '—' : row.scopeVersion}\n'
           'Quién: ${row.actor.isEmpty ? '—' : row.actor}',

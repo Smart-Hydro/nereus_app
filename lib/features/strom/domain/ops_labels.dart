@@ -1,11 +1,16 @@
 /// Etiquetas en español de Chile. Un valor desconocido se muestra tal cual.
-String opsLabel(String value, Map<String, String> known, {String empty = 'Sin estado'}) {
+String opsLabel(
+  String value,
+  Map<String, String> known, {
+  String empty = 'Sin estado',
+}) {
   if (value.isEmpty) return empty;
   return known[value] ?? value;
 }
 
 const serviceTypeLabels = {
   'project': 'Proyecto',
+  'installation': 'Instalación',
   'support': 'Soporte',
   'maintenance': 'Mantención',
 };
@@ -65,6 +70,7 @@ const validationLabels = {
 };
 
 const scopeItemLabels = {
+  'pending': 'Pendiente técnico',
   'pending_technical': 'Pendiente técnico',
   'confirmed': 'Confirmado',
 };
@@ -165,10 +171,26 @@ String serviceTypeLabel(String value) =>
 
 String projectStatusLabel(String value) => opsLabel(value, projectStatusLabels);
 
-String specialtyLabel(String value) => opsLabel(value, specialtyLabels, empty: 'Sin especialidad');
+String specialtyLabel(String value) =>
+    opsLabel(value, specialtyLabels, empty: 'Sin especialidad');
 
-String workOrderStatusLabel(String value) => opsLabel(value, workOrderStatusLabels);
+String workOrderStatusLabel(String value) =>
+    opsLabel(value, workOrderStatusLabels);
 
 String visitStatusLabel(String value) => opsLabel(value, visitStatusLabels);
 
-String visitTypeLabel(String value) => opsLabel(value, visitTypeLabels, empty: 'Planificada');
+String visitTypeLabel(String value) =>
+    opsLabel(value, visitTypeLabels, empty: 'Planificada');
+
+/// La reserva de la RTS baja el stock una sola vez, en la bodega de la sucursal.
+const rtsReserveNote =
+    'La reserva descuenta una sola vez de la bodega de la sucursal.';
+
+/// Con especialidad, Operaciones o el líder de esa especialidad.
+/// Sin especialidad, Operaciones o cualquier líder.
+String reportApproverNote(String specialty) {
+  if (specialty.trim().isEmpty) {
+    return 'Lo aprueba Operaciones o cualquier líder.';
+  }
+  return 'Lo aprueba Operaciones o el líder de la especialidad.';
+}

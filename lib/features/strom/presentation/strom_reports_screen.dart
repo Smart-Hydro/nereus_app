@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:nereus_app/features/strom/domain/field_models.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
+import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -12,32 +14,73 @@ class StromReportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final projectId = opsQuery(context, 'proyecto');
+    final projects = ref.watch(opsProjectsProvider).asData?.value ?? const [];
     return OpsBrowse<OpsReport>(
       title: 'Informes',
-      subtitle: 'El líder de la especialidad aprueba el informe.',
-      value: ref.watch(opsReportsProvider),
+      subtitle: 'Con especialidad, Operaciones o su líder. Sin especialidad, Operaciones o cualquier líder.',
+      value: ref.watch(opsReportsProvider).whenData((items) {
+        if (projectId == null) return items;
+        return items.where((item) => item.project == projectId).toList();
+      }),
       onRetry: () => ref.invalidate(opsReportsProvider),
-      action: FilledButton(onPressed: () => _generate(context, ref), child: const Text('Generar')),
-      itemBuilder: (context, item) => OpsTile(
-        title: 'Versión ${item.version} · proyecto ${item.project}',
-        subtitle: item.driveUrl.isEmpty ? 'Sin enlace de Drive' : item.driveUrl,
-        status: opsLabel(item.status, reportStatusLabels),
-        onTap: () => context.go('/strom/informes/${item.id}'),
+      emptyMessage: 'No hay informes. Genera el borrador del proyecto.',
+      action: FilledButton(
+        onPressed: () => _generate(context, ref, projectId),
+        child: const Text('Generar'),
       ),
+      itemBuilder: (context, item) {
+        final name = projects
+            .where((project) => project.id == item.project)
+            .map((project) => project.name)
+            .firstOrNull;
+        return OpsTile(
+          title: 'Informe versión ${item.version}',
+          subtitle:
+              name ??
+              (item.driveUrl.isEmpty ? 'Sin enlace de Drive' : item.driveUrl),
+          status: opsLabel(item.status, reportStatusLabels),
+          onTap: () => context.go('/strom/informes/${item.id}'),
+        );
+      },
     );
   }
 
-  Future<void> _generate(BuildContext context, WidgetRef ref) async {
+  Future<void> _generate(
+    BuildContext context,
+    WidgetRef ref,
+    String? projectId,
+  ) async {
     final values = await askOpsFields(
       context,
       title: 'Generar informe',
-      fields: const [
-        OpsField(key: 'project', label: 'Id del proyecto', required: true),
-        OpsField(
+      fields: [
+        if (projectId == null)
+          OpsField(
+            key: 'project',
+            label: 'Proyecto',
+            required: true,
+            choices: OpsLookups(ref).projects,
+          )
+        else
+          OpsField(
+            key: 'project',
+            label: 'Proyecto',
+            required: true,
+            locked: true,
+            initial: projectId,
+            lockedLabel: 'Proyecto de esta ficha',
+            choices: OpsLookups(ref).projects,
+          ),
+        const OpsField(
           key: 'specialty',
           label: 'Especialidad',
           initial: 'hydraulic',
-          options: specialtyLabels,
+          options: {
+            'hydraulic': 'Hidráulica',
+            'electric': 'Eléctrica',
+            '': 'Sin especialidad',
+          },
         ),
       ],
     );
@@ -48,7 +91,9 @@ class StromReportsScreen extends ConsumerWidget {
       context,
       title: 'Generar informe',
       message: 'Nace en borrador, con versión nueva.',
-      action: () => ref.read(reportsRepositoryProvider).generate(
+      action: () => ref
+          .read(reportsRepositoryProvider)
+          .generate(
             projectId: project,
             specialty: values['specialty'] ?? '',
           ),
@@ -88,7 +133,12 @@ class _Body extends ConsumerWidget {
       subtitle:
           '${opsLabel(report.kind, reportKindLabels)} · ${opsLabel(report.status, reportStatusLabels)}',
       children: [
-        const OpsNote('Lo aprueba el líder de la especialidad.'),
+        OpsNote(
+          report.status == 'review'
+              ? 'Siguiente: ${reportApproverNote(report.specialty)}'
+              : opsNextAction(report.status),
+        ),
+        OpsNote(reportApproverNote(report.specialty)),
         OpsNote(report.bodyText.isEmpty ? 'Sin cuerpo.' : report.bodyText),
         if (report.driveUrl.isNotEmpty)
           OpsButton('Abrir Drive', () => openOpsLink(context, report.driveUrl)),
@@ -99,7 +149,10 @@ class _Body extends ConsumerWidget {
             if (report.status == 'draft' || report.status == 'review')
               OpsButton('Editar', () => _edit(context, ref)),
             if (report.status == 'draft')
-              OpsButton('Enviar a revisión', () => _act(context, ref, 'review')),
+              OpsButton(
+                'Enviar a revisión',
+                () => _act(context, ref, 'review'),
+              ),
             if (report.status == 'review') ...[
               OpsButton('Devolver', () => _act(context, ref, 'revise')),
               OpsButton('Aprobar', () => _act(context, ref, 'approve')),
@@ -129,7 +182,8 @@ class _Body extends ConsumerWidget {
       context,
       title: 'Guardar informe',
       message: 'Solo se edita en borrador o revisión.',
-      action: () => ref.read(reportsRepositoryProvider).update(report.id, body: text),
+      action: () =>
+          ref.read(reportsRepositoryProvider).update(report.id, body: text),
     );
     if (ok) await _reload(ref);
   }
@@ -145,7 +199,7 @@ class _Body extends ConsumerWidget {
         _ => 'Enviar informe',
       },
       message: action == 'approve'
-          ? 'Lo aprueba el líder de la especialidad.'
+          ? reportApproverNote(report.specialty)
           : 'Se actualiza la versión del informe.',
       action: () => switch (action) {
         'review' => repo.submitReview(report.id),

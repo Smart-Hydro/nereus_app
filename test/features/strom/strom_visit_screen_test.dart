@@ -7,7 +7,9 @@ import 'package:nereus_app/features/strom/presentation/strom_visit_screen.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
 void main() {
-  testWidgets('a scheduled planned visit shows its crew and start', (tester) async {
+  testWidgets('a scheduled planned visit shows its crew and start', (
+    tester,
+  ) async {
     const visit = OpsVisit(
       id: '15',
       workOrder: '8',
@@ -33,7 +35,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Visita 15'), findsOneWidget);
+    expect(find.text('Visita del 2026-11-12'), findsOneWidget);
     expect(find.textContaining('Planificada'), findsWidgets);
     expect(find.textContaining('Cuadrilla Sur'), findsWidgets);
     expect(find.textContaining('Hidráulica'), findsWidgets);

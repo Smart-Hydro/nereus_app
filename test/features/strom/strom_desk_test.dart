@@ -31,7 +31,9 @@ void main() {
     ]);
   });
 
-  testWidgets('the operaciones column stays within the reading width', (tester) async {
+  testWidgets('the operaciones column stays within the reading width', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1440, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -74,7 +76,9 @@ void main() {
     expect(find.text('Configuración'), findsOneWidget);
   });
 
-  testWidgets('dev lists the mvp and keeps pending steps closed', (tester) async {
+  testWidgets('dev lists the mvp and keeps pending steps closed', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -98,7 +102,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Dev'), findsWidgets);
     expect(find.text('OT técnica'), findsOneWidget);
-    expect(find.text('Distinta de la visita. Por especialidad.'), findsOneWidget);
+    expect(
+      find.text('Distinta de la visita. Por especialidad.'),
+      findsOneWidget,
+    );
     expect(find.text('Pendiente'), findsNothing);
     await tester.tap(find.text('Proyectos'));
     await tester.pumpAndSettle();

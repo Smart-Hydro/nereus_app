@@ -7,7 +7,11 @@ class VisitsRepository {
   final OpsHttp _http;
   static const _root = '/api/operations/visits/';
 
-  Future<List<OpsVisit>> list({String? workOrder, String? status, String? visitType}) {
+  Future<List<OpsVisit>> list({
+    String? workOrder,
+    String? status,
+    String? visitType,
+  }) {
     return _http.getList(
       _root,
       OpsVisit.fromJson,
@@ -19,7 +23,8 @@ class VisitsRepository {
     );
   }
 
-  Future<OpsVisit> get(String id) => _http.getOne('$_root$id/', OpsVisit.fromJson);
+  Future<OpsVisit> get(String id) =>
+      _http.getOne('$_root$id/', OpsVisit.fromJson);
 
   /// La primera visita de la OT nace con tipo planificada si no se envía otro.
   Future<OpsVisit> create({
@@ -41,12 +46,16 @@ class VisitsRepository {
   }
 
   Future<OpsVisit> schedule(String id, String scheduledFor) => _http.send(
-        '$_root$id/schedule/',
-        data: {'scheduled_for': scheduledFor},
-        parse: OpsVisit.fromJson,
-      );
+    '$_root$id/schedule/',
+    data: {'scheduled_for': scheduledFor},
+    parse: OpsVisit.fromJson,
+  );
 
-  Future<OpsVisit> reschedule(String id, {required String newDate, String reason = ''}) {
+  Future<OpsVisit> reschedule(
+    String id, {
+    required String newDate,
+    String reason = '',
+  }) {
     return _http.send(
       '$_root$id/reschedule/',
       data: {'new_date': newDate, 'reason': reason},
@@ -61,16 +70,16 @@ class VisitsRepository {
       _http.send('$_root$id/finish/', parse: OpsVisit.fromJson);
 
   Future<OpsVisit> cancel(String id, {String reason = ''}) => _http.send(
-        '$_root$id/cancel/',
-        data: {'reason': reason},
-        parse: OpsVisit.fromJson,
-      );
+    '$_root$id/cancel/',
+    data: {'reason': reason},
+    parse: OpsVisit.fromJson,
+  );
 
   Future<OpsVisit> addCrew(String visitId, int crewMemberId) => _http.send(
-        '$_root$visitId/crew/',
-        data: {'crew_member_id': crewMemberId},
-        parse: OpsVisit.fromJson,
-      );
+    '$_root$visitId/crew/',
+    data: {'crew_member_id': crewMemberId},
+    parse: OpsVisit.fromJson,
+  );
 
   Future<void> removeCrew(String visitId, int crewMemberId) {
     return _http.sendEmpty(
@@ -89,12 +98,13 @@ class VisitsRepository {
   }
 
   Future<OpsCrewMember> createCrew(Map<String, dynamic> body) => _http.send(
-        '/api/operations/crew-members/',
-        data: body,
-        parse: OpsCrewMember.fromJson,
-      );
+    '/api/operations/crew-members/',
+    data: body,
+    parse: OpsCrewMember.fromJson,
+  );
 
-  Future<OpsCrewMember> updateCrew(String id, Map<String, dynamic> body) => _http.send(
+  Future<OpsCrewMember> updateCrew(String id, Map<String, dynamic> body) =>
+      _http.send(
         '/api/operations/crew-members/$id/',
         method: 'PATCH',
         data: body,

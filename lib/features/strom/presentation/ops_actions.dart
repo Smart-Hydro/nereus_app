@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/features/strom/domain/ops_parse.dart';
+import 'package:nereus_app/features/strom/presentation/ops_choice.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OpsField {
@@ -12,6 +13,11 @@ class OpsField {
     this.required = false,
     this.options = const {},
     this.hint,
+    this.choices,
+    this.locked = false,
+    this.lockedLabel = '',
+    this.date = false,
+    this.searchHint,
   });
 
   final String key;
@@ -20,6 +26,11 @@ class OpsField {
   final bool required;
   final Map<String, String> options;
   final String? hint;
+  final OpsChoiceLoader? choices;
+  final bool locked;
+  final String lockedLabel;
+  final bool date;
+  final String? searchHint;
 }
 
 /// Pide confirmación y muestra el mensaje del backend en 400, 403 y 409.
@@ -69,6 +80,30 @@ Future<String?> askOpsText(
   return values?['value'];
 }
 
+Future<OpsChoice?> askOpsEntity(
+  BuildContext context, {
+  required String title,
+  required String label,
+  required OpsChoiceLoader load,
+  OpsChoice? locked,
+}) async {
+  if (locked != null) return locked;
+  final values = await askOpsFields(
+    context,
+    title: title,
+    fields: [
+      OpsField(key: 'id', label: label, required: true, choices: load),
+    ],
+  );
+  if (values == null) return null;
+  final chosen = values['id__label'] ?? '';
+  return OpsChoice(
+    id: values['id']!,
+    label: chosen.isEmpty ? label : chosen,
+    detail: values['id__detail'] ?? '',
+  );
+}
+
 Future<Map<String, String>?> askOpsFields(
   BuildContext context, {
   required String title,
@@ -99,12 +134,18 @@ int? requireOpsInt(BuildContext context, String raw, String label) {
 Future<void> openOpsLink(BuildContext context, String url) async {
   final uri = Uri.tryParse(url);
   if (uri == null) {
-    showFriendlyError(context, const ApiError(message: 'El enlace no es válido.'));
+    showFriendlyError(
+      context,
+      const ApiError(message: 'El enlace no es válido.'),
+    );
     return;
   }
   final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!opened && context.mounted) {
-    showFriendlyError(context, const ApiError(message: 'No se pudo abrir el enlace.'));
+    showFriendlyError(
+      context,
+      const ApiError(message: 'No se pudo abrir el enlace.'),
+    );
   }
 }
 
@@ -126,13 +167,18 @@ class _OpsFormDialog extends StatefulWidget {
 class _OpsFormDialogState extends State<_OpsFormDialog> {
   late final Map<String, TextEditingController> _texts;
   late final Map<String, String> _choices;
+  final Map<String, OpsChoice?> _picked = {};
+  String? _error;
+
+  bool _isDate(OpsField field) => field.date || field.hint == 'AAAA-MM-DD';
 
   @override
   void initState() {
     super.initState();
     _texts = {
       for (final field in widget.fields)
-        if (field.options.isEmpty) field.key: TextEditingController(text: field.initial),
+        if (field.options.isEmpty && field.choices == null)
+          field.key: TextEditingController(text: field.initial),
     };
     _choices = {
       for (final field in widget.fields)
@@ -151,20 +197,35 @@ class _OpsFormDialogState extends State<_OpsFormDialog> {
     super.dispose();
   }
 
+  String _value(OpsField field) {
+    if (field.choices != null) {
+      if (field.locked) return field.initial;
+      return _picked[field.key]?.id ?? '';
+    }
+    if (field.options.isNotEmpty) return _choices[field.key] ?? '';
+    return _texts[field.key]?.text.trim() ?? '';
+  }
+
   void _submit() {
     for (final field in widget.fields) {
       if (!field.required) continue;
-      final value = field.options.isEmpty
-          ? _texts[field.key]!.text.trim()
-          : _choices[field.key]!;
-      if (value.isEmpty) return;
+      if (_value(field).isEmpty) {
+        setState(() => _error = 'Completa ${field.label}.');
+        return;
+      }
     }
-    Navigator.pop(context, {
-      for (final field in widget.fields)
-        field.key: field.options.isEmpty
-            ? _texts[field.key]!.text.trim()
-            : _choices[field.key]!,
-    });
+    final result = <String, String>{
+      for (final field in widget.fields) field.key: _value(field),
+    };
+    for (final field in widget.fields) {
+      final picked = _picked[field.key];
+      if (picked == null) continue;
+      result['${field.key}__label'] = picked.label;
+      if (picked.detail.isNotEmpty) {
+        result['${field.key}__detail'] = picked.detail;
+      }
+    }
+    Navigator.pop(context, result);
   }
 
   @override
@@ -175,12 +236,44 @@ class _OpsFormDialogState extends State<_OpsFormDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_error != null) ...[
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              const SizedBox(height: 8),
+            ],
             for (final field in widget.fields) ...[
-              if (field.options.isEmpty)
+              if (field.choices != null)
+                OpsEntityField(
+                  label: field.label,
+                  load: field.choices!,
+                  required: field.required,
+                  hint: field.searchHint ?? 'Busca por nombre',
+                  locked: field.locked,
+                  initial: field.initial.isEmpty
+                      ? null
+                      : OpsChoice(
+                          id: field.initial,
+                          label: field.lockedLabel.isEmpty
+                              ? field.label
+                              : field.lockedLabel,
+                        ),
+                  onChanged: (choice) => _picked[field.key] = choice,
+                )
+              else if (field.options.isEmpty && _isDate(field))
+                OpsDateField(
+                  label: field.label,
+                  controller: _texts[field.key]!,
+                  required: field.required,
+                )
+              else if (field.options.isEmpty)
                 TextField(
                   controller: _texts[field.key],
                   decoration: InputDecoration(
-                    labelText: field.required ? '${field.label} *' : field.label,
+                    labelText: field.required
+                        ? '${field.label} *'
+                        : field.label,
                     hintText: field.hint,
                   ),
                 )
@@ -190,10 +283,15 @@ class _OpsFormDialogState extends State<_OpsFormDialog> {
                   decoration: InputDecoration(labelText: field.label),
                   items: [
                     for (final entry in field.options.entries)
-                      DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+                      DropdownMenuItem(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      ),
                   ],
                   onChanged: (value) {
-                    if (value != null) setState(() => _choices[field.key] = value);
+                    if (value != null) {
+                      setState(() => _choices[field.key] = value);
+                    }
                   },
                 ),
               const SizedBox(height: 12),

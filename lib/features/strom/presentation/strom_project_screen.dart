@@ -6,6 +6,9 @@ import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/domain/ops_parse.dart';
 import 'package:nereus_app/features/strom/domain/project_models.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_choice.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
+import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -51,17 +54,36 @@ class _BodyState extends ConsumerState<_Body> {
   Widget build(BuildContext context) {
     return OpsDetail(
       title: project.name,
-      subtitle: '${serviceTypeLabel(project.serviceType)} · ${projectStatusLabel(project.status)}',
-      action: OpsButton('Editar', () => context.go('/strom/${project.id}/editar')),
+      subtitle:
+          '${serviceTypeLabel(project.serviceType)} · ${projectStatusLabel(project.status)}',
+      action: OpsButton(
+        'Editar',
+        () => context.go('/strom/${project.id}/editar'),
+      ),
       children: [
+        OpsNote(opsNextAction(project.status)),
         OpsNote(
           [
             if (project.code.isNotEmpty) 'Código ${project.code}',
-            if (project.clientPoNumber.isNotEmpty) 'OC ${project.clientPoNumber}',
-            if (project.committedOn.isNotEmpty) 'Compromiso ${project.committedOn}',
+            if (project.clientPoNumber.isNotEmpty)
+              'OC ${project.clientPoNumber}',
+            if (project.committedOn.isNotEmpty)
+              'Compromiso ${project.committedOn}',
             'Aclaraciones abiertas: ${project.openClarifications.length}',
           ].join('\n'),
         ),
+        OpsLinks([
+          OpsLink(
+            'Instalaciones',
+            '/strom/instalaciones?proyecto=${project.id}',
+          ),
+          OpsLink('OT', '/strom/ordenes?proyecto=${project.id}'),
+          OpsLink('Visitas', '/strom/visitas?proyecto=${project.id}'),
+          OpsLink('RTS', '/strom/rts?proyecto=${project.id}'),
+          OpsLink('Informes', '/strom/informes?proyecto=${project.id}'),
+          OpsLink('Costos', '/strom/costos?proyecto=${project.id}'),
+          OpsLink('Aclaraciones', '/strom/aclaraciones?proyecto=${project.id}'),
+        ]),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -74,7 +96,9 @@ class _BodyState extends ConsumerState<_Body> {
           ],
         ),
         if (project.milestones.isEmpty)
-          const OpsNote('Sin hitos todavía.')
+          const OpsNote(
+            'Sin hitos todavía. Registra la planificación oficial cuando la tengas.',
+          )
         else
           for (final milestone in project.milestones)
             OpsTile(
@@ -82,29 +106,12 @@ class _BodyState extends ConsumerState<_Body> {
               subtitle: milestone.occurredOn,
               status: milestone.source.isEmpty ? 'Hito' : milestone.source,
             ),
-        if (_scope.isNotEmpty) ...[
-          const OpsNote('Alcance importado. Confirma cada ítem técnico.'),
-          for (final point in _scope)
-            GlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Punto ${point.device} · ${point.deviceType}'),
-                  for (final item in point.items)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(item.activity),
-                      subtitle: Text(
-                        '${specialtyLabel(item.specialty)} · ${opsLabel(item.status, scopeItemLabels)}',
-                      ),
-                      trailing: item.status == 'confirmed'
-                          ? null
-                          : OpsButton('Confirmar', () => _confirm(item.id)),
-                    ),
-                ],
-              ),
-            ),
-        ],
+        _ScopeBlock(
+          remote:
+              ref.watch(opsScopeProvider(project.id)).asData?.value ?? const [],
+          local: _scope,
+          onConfirm: _confirm,
+        ),
       ],
     );
   }
@@ -132,7 +139,9 @@ class _BodyState extends ConsumerState<_Body> {
       context,
       title: 'Cambiar estado',
       message: 'El estado queda registrado como hito.',
-      action: () => ref.read(projectsRepositoryProvider).setStatus(
+      action: () => ref
+          .read(projectsRepositoryProvider)
+          .setStatus(
             project.id,
             values['status']!,
             reason: values['reason'] ?? '',
@@ -155,7 +164,9 @@ class _BodyState extends ConsumerState<_Body> {
       message: 'Exige las OT ejecutadas o canceladas y el informe enviado.',
       confirmLabel: 'Cerrar',
       destructive: true,
-      action: () => ref.read(projectsRepositoryProvider).close(project.id, reason: reason),
+      action: () => ref
+          .read(projectsRepositoryProvider)
+          .close(project.id, reason: reason),
     );
     if (ok) await _refresh();
   }
@@ -166,7 +177,9 @@ class _BodyState extends ConsumerState<_Body> {
       title: 'Costo del proyecto',
       message: 'Se calcula con el costo diario vigente de cada OT.',
       action: () async {
-        final cost = await ref.read(projectsRepositoryProvider).cost(project.id);
+        final cost = await ref
+            .read(projectsRepositoryProvider)
+            .cost(project.id);
         if (!mounted) return;
         await showDialog<void>(
           context: context,
@@ -176,12 +189,15 @@ class _BodyState extends ConsumerState<_Body> {
               cost.workOrders
                   .map(
                     (row) =>
-                        'OT ${row.workOrderId} · ${specialtyLabel(row.specialty)} · ${row.visitsPerformed} visitas · ${row.total}',
+                        'OT ${specialtyLabel(row.specialty)} · ${row.visitsPerformed} visitas · ${row.total}',
                   )
                   .join('\n'),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
             ],
           ),
         );
@@ -205,7 +221,12 @@ class _BodyState extends ConsumerState<_Body> {
             'official_plan': 'Planificación oficial',
           },
         ),
-        OpsField(key: 'day', label: 'Fecha', hint: 'AAAA-MM-DD', required: true),
+        OpsField(
+          key: 'day',
+          label: 'Fecha',
+          hint: 'AAAA-MM-DD',
+          required: true,
+        ),
       ],
     );
     if (values == null || !mounted) return;
@@ -213,7 +234,9 @@ class _BodyState extends ConsumerState<_Body> {
       context,
       title: 'Registrar hito',
       message: 'Queda la fecha original del hito.',
-      action: () => ref.read(projectsRepositoryProvider).addMilestone(
+      action: () => ref
+          .read(projectsRepositoryProvider)
+          .addMilestone(
             project.id,
             kind: values['kind']!,
             occurredOn: values['day']!,
@@ -223,13 +246,19 @@ class _BodyState extends ConsumerState<_Body> {
   }
 
   Future<void> _scopeImport() async {
-    final values = await askOpsFields(
+    final lookups = OpsLookups(ref);
+    final point = await askOpsEntity(
       context,
       title: 'Alcance del punto de captación',
+      label: 'Punto de captación',
+      load: lookups.points,
+    );
+    if (point == null || !mounted) return;
+    final values = await askOpsFields(
+      context,
+      title: 'Actividad del alcance',
       fields: const [
-        OpsField(key: 'device', label: 'Id del punto', required: true),
         OpsField(key: 'activity', label: 'Actividad', required: true),
-        OpsField(key: 'key', label: 'Clave de origen', required: true),
         OpsField(
           key: 'specialty',
           label: 'Especialidad',
@@ -240,8 +269,9 @@ class _BodyState extends ConsumerState<_Body> {
       ],
     );
     if (values == null || !mounted) return;
-    final device = requireOpsInt(context, values['device']!, 'punto');
+    final device = requireOpsInt(context, point.id, 'punto');
     if (device == null) return;
+    final activity = values['activity']!;
     final ok = await runOps(
       context,
       title: 'Importar alcance',
@@ -254,10 +284,11 @@ class _BodyState extends ConsumerState<_Body> {
             'points': [
               {
                 'device_id': device,
+                'device_name': point.label,
                 'items': [
                   {
-                    'source_key': values['key'],
-                    'activity': values['activity'],
+                    'source_key': opsSourceKey(activity),
+                    'activity': activity,
                     'specialty': values['specialty'],
                     'mandatory': true,
                   },
@@ -269,7 +300,10 @@ class _BodyState extends ConsumerState<_Body> {
         if (mounted) setState(() => _scope = points);
       },
     );
-    if (ok) await _refresh();
+    if (ok) {
+      ref.invalidate(opsScopeProvider(project.id));
+      await _refresh();
+    }
   }
 
   Future<void> _confirm(String itemId) async {
@@ -278,7 +312,9 @@ class _BodyState extends ConsumerState<_Body> {
       title: 'Confirmar ítem',
       message: 'El ítem pasa a confirmado en el alcance.',
       action: () async {
-        final point = await ref.read(projectsRepositoryProvider).confirmItem(project.id, itemId);
+        final point = await ref
+            .read(projectsRepositoryProvider)
+            .confirmItem(project.id, itemId);
         if (!mounted) return;
         setState(() {
           _scope = [
@@ -288,6 +324,58 @@ class _BodyState extends ConsumerState<_Body> {
         });
       },
     );
-    if (ok) await _refresh();
+    if (ok) {
+      ref.invalidate(opsScopeProvider(project.id));
+      await _refresh();
+    }
+  }
+}
+
+class _ScopeBlock extends StatelessWidget {
+  const _ScopeBlock({
+    required this.remote,
+    required this.local,
+    required this.onConfirm,
+  });
+
+  final List<OpsScopePoint> remote;
+  final List<OpsScopePoint> local;
+  final Future<void> Function(String itemId) onConfirm;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = remote.isNotEmpty ? remote : local;
+    if (points.isEmpty) {
+      return const OpsNote(
+        'Sin alcance importado. Elige el punto de captación y la actividad.',
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const OpsNote('Alcance importado. Confirma cada ítem técnico.'),
+        const SizedBox(height: 8),
+        for (final point in points)
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(point.pointLabel),
+                for (final item in point.items)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(item.activity),
+                    subtitle: Text(
+                      '${specialtyLabel(item.specialty)} · ${opsLabel(item.status, scopeItemLabels)}',
+                    ),
+                    trailing: item.status == 'confirmed'
+                        ? null
+                        : OpsButton('Confirmar', () => onConfirm(item.id)),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 }

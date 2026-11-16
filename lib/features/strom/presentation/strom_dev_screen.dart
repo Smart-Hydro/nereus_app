@@ -1,24 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
+import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/strom_chrome.dart';
 
 class StromDevScreen extends StatelessWidget {
   const StromDevScreen({super.key});
 
   static const steps = [
-    _Step('Proyectos', 'Alta, estado, alcance, hitos, costo y cierre.', '/strom'),
-    _Step('Instalaciones', 'Punto de captación, equipo y requisitos.', '/strom/instalaciones'),
-    _Step('OT técnica', 'Distinta de la visita. Por especialidad.', '/strom/ordenes'),
+    _Step(
+      'Proyectos',
+      'Alta, estado, alcance, hitos, costo y cierre.',
+      '/strom',
+    ),
+    _Step(
+      'Instalaciones',
+      'Punto de captación, equipo y requisitos.',
+      '/strom/instalaciones',
+    ),
+    _Step(
+      'OT técnica',
+      'Distinta de la visita. Por especialidad.',
+      '/strom/ordenes',
+    ),
     _Step('Visitas', 'La primera nace planificada.', '/strom/visitas'),
-    _Step('Actividades', 'Por punto. Ejecución y validación.', '/strom/actividades'),
+    _Step(
+      'Actividades',
+      'Por punto. Ejecución y validación.',
+      '/strom/actividades',
+    ),
     _Step('Check de terreno', 'No cierra el proyecto.', '/strom/terreno'),
-    _Step('Check técnico', 'Lo valida el líder de la especialidad.', '/strom/tecnico'),
-    _Step('RTS', 'La reserva descuenta el stock una sola vez.', '/strom/rts'),
-    _Step('Informes', 'Versión, Drive y aprobación del líder.', '/strom/informes'),
-    _Step('Aclaraciones', 'Preguntas y trabajo fuera de alcance.', '/strom/aclaraciones'),
+    _Step(
+      'Check técnico',
+      'Lo valida el líder de la especialidad.',
+      '/strom/tecnico',
+    ),
+    _Step('RTS', rtsReserveNote, '/strom/rts'),
+    _Step(
+      'Informes',
+      'Con especialidad, su líder. Sin especialidad, Operaciones o cualquier líder.',
+      '/strom/informes',
+    ),
+    _Step(
+      'Aclaraciones',
+      'Preguntas y trabajo fuera de alcance.',
+      '/strom/aclaraciones',
+    ),
     _Step('Costos', 'Costo diario vigente de la cuadrilla.', '/strom/costos'),
-    _Step('Indicadores', 'KPI-1 a KPI-9. La meta de KPI-9 es un rango.', '/strom/indicadores'),
+    _Step(
+      'Indicadores',
+      'KPI-1 a KPI-9. La meta de KPI-9 es un rango.',
+      '/strom/indicadores',
+    ),
     _Step('Auditoría', 'Transiciones de negocio.', '/strom/auditoria'),
   ];
 
@@ -52,7 +85,10 @@ class StromDevScreen extends StatelessWidget {
                 highlightColor: Colors.transparent,
                 borderRadius: BorderRadius.circular(NereusTokens.radiusLg),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       CircleAvatar(
@@ -67,7 +103,10 @@ class StromDevScreen extends StatelessWidget {
                           children: [
                             Text(
                               step.title,
-                              style: TextStyle(color: ink, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                color: ink,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             Text(step.detail, style: TextStyle(color: muted)),
                           ],

@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/domain/work_models.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_choice.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
+import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -12,28 +15,48 @@ class StromActivitiesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final orderId = opsQuery(context, 'ot');
     return OpsBrowse<OpsActivity>(
       title: 'Actividades',
       subtitle: 'Por punto de captación. Nacen del alcance de la OT.',
-      value: ref.watch(opsActivitiesProvider),
+      value: ref.watch(opsActivitiesProvider).whenData((items) {
+        if (orderId == null) return items;
+        return items.where((item) => item.workOrder == orderId).toList();
+      }),
       onRetry: () => ref.invalidate(opsActivitiesProvider),
+      emptyMessage:
+          'No hay actividades. Materialízalas desde la OT confirmada.',
       action: FilledButton(
-        onPressed: () => _materialize(context, ref),
+        onPressed: () => _materialize(context, ref, orderId),
         child: const Text('Materializar'),
       ),
       itemBuilder: (context, item) => OpsTile(
-        title: item.description.isEmpty ? 'Actividad ${item.id}' : item.description,
-        subtitle: 'OT ${item.workOrder} · punto ${item.device} · ${specialtyLabel(item.specialty)}',
+        title: item.description.isEmpty ? 'Actividad' : item.description,
+        subtitle: 'OT ${specialtyLabel(item.specialty)} · ${item.pointCaption}',
         status: opsLabel(item.executionStatus, executionLabels),
         onTap: () => context.go('/strom/actividades/${item.id}'),
       ),
     );
   }
 
-  Future<void> _materialize(BuildContext context, WidgetRef ref) async {
-    final raw = await askOpsText(context, title: 'Materializar', label: 'Id de la OT');
-    if (raw == null || !context.mounted) return;
-    final order = requireOpsInt(context, raw, 'OT');
+  Future<void> _materialize(
+    BuildContext context,
+    WidgetRef ref,
+    String? orderId,
+  ) async {
+    final OpsChoice? picked;
+    if (orderId != null) {
+      picked = OpsChoice(id: orderId, label: 'OT de esta orden');
+    } else {
+      picked = await askOpsEntity(
+        context,
+        title: 'Materializar',
+        label: 'Orden de trabajo',
+        load: OpsLookups(ref).orders(),
+      );
+    }
+    if (picked == null || !context.mounted) return;
+    final order = requireOpsInt(context, picked.id, 'OT');
     if (order == null) return;
     final ok = await runOps(
       context,
@@ -72,12 +95,13 @@ class _ActivityBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return OpsDetail(
-      title: activity.description.isEmpty ? 'Actividad ${activity.id}' : activity.description,
+      title: activity.description.isEmpty ? 'Actividad' : activity.description,
       subtitle:
           '${opsLabel(activity.executionStatus, executionLabels)} · ${opsLabel(activity.validationStatus, validationLabels)}',
       children: [
+        OpsNote(opsNextAction(activity.executionStatus)),
         OpsNote(
-          'OT ${activity.workOrder} · punto ${activity.projectPoint}\n'
+          'OT ${specialtyLabel(activity.specialty)} · ${activity.pointCaption}\n'
           '${activity.notDoneReason}\n${activity.validationNotes}',
         ),
         const OpsNote('La ejecución y la validación son estados distintos.'),
@@ -122,7 +146,9 @@ class _ActivityBody extends ConsumerWidget {
       context,
       title: 'Registrar ejecución',
       message: 'No cierra el proyecto.',
-      action: () => ref.read(activitiesRepositoryProvider).execution(
+      action: () => ref
+          .read(activitiesRepositoryProvider)
+          .execution(
             activity.id,
             executionStatus: values['status']!,
             notDoneReason: values['reason'] ?? '',
@@ -154,7 +180,9 @@ class _ActivityBody extends ConsumerWidget {
       context,
       title: 'Validar actividad',
       message: 'Lo registra el líder de la especialidad.',
-      action: () => ref.read(activitiesRepositoryProvider).validation(
+      action: () => ref
+          .read(activitiesRepositoryProvider)
+          .validation(
             activity.id,
             result: values['result']!,
             notes: values['notes'] ?? '',
@@ -164,7 +192,9 @@ class _ActivityBody extends ConsumerWidget {
   }
 
   Future<void> _history(BuildContext context, WidgetRef ref) async {
-    final rows = await ref.read(activitiesRepositoryProvider).history(activity.id);
+    final rows = await ref
+        .read(activitiesRepositoryProvider)
+        .history(activity.id);
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
@@ -174,14 +204,17 @@ class _ActivityBody extends ConsumerWidget {
           rows.isEmpty
               ? 'Sin cambios de estado.'
               : rows
-                  .map(
-                    (row) =>
-                        '${opsLabel(row.fromStatus, executionLabels)} → ${opsLabel(row.toStatus, executionLabels)} ${row.reason}',
-                  )
-                  .join('\n'),
+                    .map(
+                      (row) =>
+                          '${opsLabel(row.fromStatus, executionLabels)} → ${opsLabel(row.toStatus, executionLabels)} ${row.reason}',
+                    )
+                    .join('\n'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
         ],
       ),
     );

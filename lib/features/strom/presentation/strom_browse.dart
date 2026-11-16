@@ -17,6 +17,7 @@ class OpsBrowse<T> extends StatelessWidget {
     this.action,
     this.header,
     this.emptyMessage = 'No hay registros en esta sucursal.',
+    this.emptyAction,
     this.bare = false,
   });
 
@@ -28,6 +29,7 @@ class OpsBrowse<T> extends StatelessWidget {
   final Widget? action;
   final Widget? header;
   final String emptyMessage;
+  final Widget? emptyAction;
   final bool bare;
 
   @override
@@ -40,35 +42,37 @@ class OpsBrowse<T> extends StatelessWidget {
         ],
         Expanded(
           child: value.when(
-                loading: () => const ShimmerList(),
-                error: (error, _) => AsyncBody(
+            loading: () => const ShimmerList(),
+            error: (error, _) => AsyncBody(
+              isLoading: false,
+              hasError: true,
+              isEmpty: true,
+              onRetry: onRetry,
+              errorMessage: userFacingErrorMessage(error),
+              isNetworkError: isNetworkFailure(error),
+              child: const SizedBox.shrink(),
+            ),
+            data: (items) {
+              if (items.isEmpty) {
+                return AsyncBody(
                   isLoading: false,
-                  hasError: true,
+                  hasError: false,
                   isEmpty: true,
                   onRetry: onRetry,
-                  errorMessage: userFacingErrorMessage(error),
-                  isNetworkError: isNetworkFailure(error),
+                  emptyMessage: emptyMessage,
+                  emptyAction: emptyAction,
                   child: const SizedBox.shrink(),
-                ),
-                data: (items) {
-                  if (items.isEmpty) {
-                    return AsyncBody(
-                      isLoading: false,
-                      hasError: false,
-                      isEmpty: true,
-                      onRetry: onRetry,
-                      emptyMessage: emptyMessage,
-                      child: const SizedBox.shrink(),
-                    );
-                  }
-                  return ListView.separated(
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) => itemBuilder(context, items[index]),
-                  );
-                },
-              ),
-            ),
+                );
+              }
+              return ListView.separated(
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) =>
+                    itemBuilder(context, items[index]),
+              );
+            },
+          ),
+        ),
       ],
     );
     if (bare) return body;
@@ -194,7 +198,12 @@ class OpsNote extends StatelessWidget {
 }
 
 class OpsButton extends StatelessWidget {
-  const OpsButton(this.label, this.onPressed, {super.key, this.destructive = false});
+  const OpsButton(
+    this.label,
+    this.onPressed, {
+    super.key,
+    this.destructive = false,
+  });
 
   final String label;
   final VoidCallback? onPressed;
