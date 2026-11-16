@@ -130,7 +130,9 @@ class OpsProjectCost {
     return OpsProjectCost(
       projectId: asString(json['project_id']),
       total: asString(json['total']),
-      workOrders: asMapList(json['work_orders']).map(OpsCostRow.fromJson).toList(),
+      workOrders: asMapList(json['work_orders'])
+          .map(OpsCostRow.fromJson)
+          .toList(),
     );
   }
 }

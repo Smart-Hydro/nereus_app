@@ -19,10 +19,10 @@ class FieldRepository {
   }
 
   Future<OpsFieldCheck> createCheck(Map<String, dynamic> body) => _http.send(
-        '/api/operations/field-checks/',
-        data: body,
-        parse: OpsFieldCheck.fromJson,
-      );
+    '/api/operations/field-checks/',
+    data: body,
+    parse: OpsFieldCheck.fromJson,
+  );
 
   Future<List<OpsEvidence>> evidences({String? visit}) {
     return _http.getList(
@@ -67,7 +67,8 @@ class FieldRepository {
     );
   }
 
-  Future<OpsEvidence> linkDrive(String id, {required String fileId}) => _http.send(
+  Future<OpsEvidence> linkDrive(String id, {required String fileId}) =>
+      _http.send(
         '/api/operations/evidences/$id/link-drive/',
         data: {'file_id': fileId},
         parse: OpsEvidence.fromJson,

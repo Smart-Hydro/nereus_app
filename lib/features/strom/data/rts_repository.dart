@@ -43,7 +43,8 @@ class RtsRepository {
   Future<OpsRts> reserve(String id, {List<int>? itemIds}) =>
       _act(id, 'reserve', itemIds);
 
-  Future<OpsRts> issue(String id, {List<int>? itemIds}) => _act(id, 'issue', itemIds);
+  Future<OpsRts> issue(String id, {List<int>? itemIds}) =>
+      _act(id, 'issue', itemIds);
 
   Future<OpsRts> linkPurchaseOrder(
     String id, {

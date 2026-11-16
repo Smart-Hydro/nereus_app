@@ -6,7 +6,10 @@ class CoordinationRepository {
 
   final OpsHttp _http;
 
-  Future<List<OpsClarification>> clarifications({String? project, String? status}) {
+  Future<List<OpsClarification>> clarifications({
+    String? project,
+    String? status,
+  }) {
     return _http.getList(
       '/api/operations/clarifications/',
       OpsClarification.fromJson,

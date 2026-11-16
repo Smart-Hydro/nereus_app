@@ -1,3 +1,4 @@
+import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/features/strom/data/ops_http.dart';
 import 'package:nereus_app/features/strom/domain/coord_models.dart';
 import 'package:nereus_app/features/strom/domain/project_models.dart';
@@ -19,13 +20,18 @@ class ProjectsRepository {
     );
   }
 
-  Future<OpsProject> get(String id) => _http.getOne('$_root$id/', OpsProject.fromJson);
+  Future<OpsProject> get(String id) =>
+      _http.getOne('$_root$id/', OpsProject.fromJson);
 
   Future<OpsProject> create(Map<String, dynamic> body) =>
       _http.send(_root, data: body, parse: OpsProject.fromJson);
 
-  Future<OpsProject> update(String id, Map<String, dynamic> body) =>
-      _http.send('$_root$id/', method: 'PATCH', data: body, parse: OpsProject.fromJson);
+  Future<OpsProject> update(String id, Map<String, dynamic> body) => _http.send(
+    '$_root$id/',
+    method: 'PATCH',
+    data: body,
+    parse: OpsProject.fromJson,
+  );
 
   Future<OpsProject> setStatus(String id, String status, {String reason = ''}) {
     return _http.send(
@@ -46,8 +52,25 @@ class ProjectsRepository {
   Future<OpsProjectCost> cost(String id) =>
       _http.getOne('$_root$id/cost/', OpsProjectCost.fromJson);
 
-  Future<List<OpsScopePoint>> importScope(String id, Map<String, dynamic> body) {
-    return _http.sendList('$_root$id/scope/', OpsScopePoint.fromJson, data: body);
+  /// GET del alcance. Si el backend aún no lo publica, queda vacío.
+  Future<List<OpsScopePoint>> scope(String id) async {
+    try {
+      return await _http.getList('$_root$id/scope/', OpsScopePoint.fromJson);
+    } on ApiError catch (error) {
+      if (error.statusCode == 404 || error.statusCode == 405) return const [];
+      rethrow;
+    }
+  }
+
+  Future<List<OpsScopePoint>> importScope(
+    String id,
+    Map<String, dynamic> body,
+  ) {
+    return _http.sendList(
+      '$_root$id/scope/',
+      OpsScopePoint.fromJson,
+      data: body,
+    );
   }
 
   Future<OpsScopePoint> confirmItem(String projectId, String itemId) {

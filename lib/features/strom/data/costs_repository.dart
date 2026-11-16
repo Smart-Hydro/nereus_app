@@ -49,10 +49,16 @@ class CostsRepository {
   }
 
   Future<OpsProjectCost> projectCost(String projectId) {
-    return _http.getOne('/api/operations/projects/$projectId/cost/', OpsProjectCost.fromJson);
+    return _http.getOne(
+      '/api/operations/projects/$projectId/cost/',
+      OpsProjectCost.fromJson,
+    );
   }
 
   Future<OpsCostRow> workOrderCost(String workOrderId) {
-    return _http.getOne('/api/operations/work-orders/$workOrderId/cost/', OpsCostRow.fromJson);
+    return _http.getOne(
+      '/api/operations/work-orders/$workOrderId/cost/',
+      OpsCostRow.fromJson,
+    );
   }
 }

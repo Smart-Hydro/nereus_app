@@ -22,6 +22,7 @@ void main() {
       ProviderScope(
         overrides: [
           opsOrdersProvider.overrideWith((ref) async => orders),
+          opsProjectsProvider.overrideWith((ref) async => const []),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -30,7 +31,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('OT 8 · Hidráulica'), findsOneWidget);
+    expect(find.text('OT Hidráulica'), findsOneWidget);
+    expect(find.text('Proyecto de la sucursal'), findsOneWidget);
     expect(find.text('Sugerida'), findsOneWidget);
   });
 
@@ -48,6 +50,7 @@ void main() {
       ProviderScope(
         overrides: [
           opsReportsProvider.overrideWith((ref) async => reports),
+          opsProjectsProvider.overrideWith((ref) async => const []),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -56,8 +59,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Versión 1 · proyecto 41'), findsOneWidget);
-    expect(find.text('https://drive.google.com/file/d/informe'), findsOneWidget);
+    expect(find.text('Informe versión 1'), findsOneWidget);
+    expect(
+      find.text('https://drive.google.com/file/d/informe'),
+      findsOneWidget,
+    );
     expect(
       find.text('El líder de la especialidad aprueba el informe.'),
       findsOneWidget,

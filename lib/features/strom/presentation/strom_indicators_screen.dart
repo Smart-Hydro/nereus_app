@@ -6,9 +6,24 @@ import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/features/strom/domain/coord_models.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/presentation/strom_chrome.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
+
+String _kpiName(String code) {
+  final match = RegExp(r'(\d+)').firstMatch(code);
+  if (match != null) return 'KPI-${match.group(1)}';
+  return code;
+}
+
+String _projectTitle(WidgetRef ref, String id) {
+  final projects = ref.watch(opsProjectsProvider).asData?.value ?? const [];
+  for (final project in projects) {
+    if (project.id == id) return project.name;
+  }
+  return 'Proyecto';
+}
 
 class StromIndicatorsScreen extends ConsumerWidget {
   const StromIndicatorsScreen({super.key});
@@ -47,7 +62,8 @@ class StromIndicatorsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               if (data.timezone.isNotEmpty) OpsNote('Zona ${data.timezone}'),
-              for (final entry in data.kpis.entries) _KpiCard(code: entry.key, value: entry.value),
+              for (final entry in data.kpis.entries)
+                _KpiCard(code: entry.key, value: entry.value),
               const SizedBox(height: 12),
               Text('Atrasos', style: Theme.of(context).textTheme.titleMedium),
               if (data.delayProjects.isEmpty && data.delayOrders.isEmpty)
@@ -55,14 +71,16 @@ class StromIndicatorsScreen extends ConsumerWidget {
               else ...[
                 for (final row in data.delayProjects)
                   OpsTile(
-                    title: 'Proyecto ${asString(row['project_id'])}',
+                    title: _projectTitle(ref, asString(row['project_id'])),
                     subtitle: 'Compromiso ${asString(row['committed_on'])}',
-                    status: row['overdue'] == true ? 'Atrasado' : projectStatusLabel(asString(row['status'])),
+                    status: row['overdue'] == true
+                        ? 'Atrasado'
+                        : projectStatusLabel(asString(row['status'])),
                   ),
                 for (final row in data.delayOrders)
                   OpsTile(
-                    title: 'OT ${asString(row['work_order_id'])}',
-                    subtitle: specialtyLabel(asString(row['specialty'])),
+                    title: 'OT ${specialtyLabel(asString(row['specialty']))}',
+                    subtitle: _projectTitle(ref, asString(row['project_id'])),
                     status: workOrderStatusLabel(asString(row['status'])),
                   ),
               ],
@@ -82,7 +100,7 @@ class StromIndicatorsScreen extends ConsumerWidget {
                   children: [
                     for (final item in items)
                       OpsTile(
-                        title: '${item.kpiCode} · ${item.category}',
+                        title: '${_kpiName(item.kpiCode)} · ${item.category}',
                         subtitle:
                             'Puntos ${item.capturePointsMin} a ${item.capturePointsMax.isEmpty ? 'sin máximo' : item.capturePointsMax} · ${item.targetCalendarDays} días',
                         status: 'Meta',
@@ -92,7 +110,10 @@ class StromIndicatorsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Text('Indicadores configurables', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Indicadores configurables',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               Align(
                 alignment: Alignment.centerLeft,
                 child: FilledButton(
@@ -128,10 +149,24 @@ class StromIndicatorsScreen extends ConsumerWidget {
       context,
       title: 'Meta KPI-9',
       fields: const [
-        OpsField(key: 'kpi', label: 'KPI', initial: 'kpi_9', required: true),
+        OpsField(
+          key: 'kpi',
+          label: 'Indicador',
+          initial: 'kpi_9',
+          options: {'kpi_9': 'KPI-9'},
+        ),
         OpsField(key: 'category', label: 'Categoría'),
-        OpsField(key: 'min', label: 'Puntos mínimos', initial: '1', required: true),
-        OpsField(key: 'max', label: 'Puntos máximos', hint: 'Vacío si no hay tope'),
+        OpsField(
+          key: 'min',
+          label: 'Puntos mínimos',
+          initial: '1',
+          required: true,
+        ),
+        OpsField(
+          key: 'max',
+          label: 'Puntos máximos',
+          hint: 'Vacío si no hay tope',
+        ),
         OpsField(key: 'days', label: 'Días corridos meta', required: true),
         OpsField(key: 'notes', label: 'Notas'),
       ],
@@ -140,7 +175,9 @@ class StromIndicatorsScreen extends ConsumerWidget {
     final min = requireOpsInt(context, values['min']!, 'mínimo');
     final days = requireOpsInt(context, values['days']!, 'días');
     if (min == null || days == null) return;
-    final max = (values['max'] ?? '').isEmpty ? null : requireOpsInt(context, values['max']!, 'máximo');
+    final max = (values['max'] ?? '').isEmpty
+        ? null
+        : requireOpsInt(context, values['max']!, 'máximo');
     if ((values['max'] ?? '').isNotEmpty && max == null) return;
     final ok = await runOps(
       context,
@@ -158,14 +195,19 @@ class StromIndicatorsScreen extends ConsumerWidget {
     if (ok) ref.invalidate(opsTargetsProvider);
   }
 
-  Future<void> _deleteTarget(BuildContext context, WidgetRef ref, OpsIndicatorTarget item) async {
+  Future<void> _deleteTarget(
+    BuildContext context,
+    WidgetRef ref,
+    OpsIndicatorTarget item,
+  ) async {
     final ok = await runOps(
       context,
       title: 'Eliminar meta',
-      message: 'Se quita la meta ${item.kpiCode}.',
+      message: 'Se quita la meta ${_kpiName(item.kpiCode)}.',
       destructive: true,
       confirmLabel: 'Eliminar',
-      action: () => ref.read(indicatorsRepositoryProvider).deleteTarget(item.id),
+      action: () =>
+          ref.read(indicatorsRepositoryProvider).deleteTarget(item.id),
     );
     if (ok) ref.invalidate(opsTargetsProvider);
   }
@@ -217,7 +259,12 @@ class StromIndicatorsScreen extends ConsumerWidget {
     WidgetRef ref,
     OpsConfigurableIndicator item,
   ) async {
-    final project = await askOpsText(context, title: 'Calcular ${item.name}', label: 'Id del proyecto');
+    final project = await askOpsEntity(
+      context,
+      title: 'Calcular ${item.name}',
+      label: 'Proyecto',
+      load: OpsLookups(ref).projects,
+    );
     if (project == null || !context.mounted) return;
     await runOps(
       context,
@@ -225,9 +272,11 @@ class StromIndicatorsScreen extends ConsumerWidget {
       message: 'Se cuentan días corridos o hábiles entre los hitos.',
       confirm: false,
       action: () async {
-        final result = await ref.read(indicatorsRepositoryProvider).compute(
+        final result = await ref
+            .read(indicatorsRepositoryProvider)
+            .compute(
               item.id,
-              projectId: project,
+              projectId: project.id,
             );
         if (!context.mounted) return;
         await showDialog<void>(
@@ -254,7 +303,9 @@ class StromIndicatorsScreen extends ConsumerWidget {
                     message: 'Se quita ${item.name}.',
                     destructive: true,
                     confirmLabel: 'Eliminar',
-                    action: () => ref.read(indicatorsRepositoryProvider).deleteConfigurable(item.id),
+                    action: () => ref
+                        .read(indicatorsRepositoryProvider)
+                        .deleteConfigurable(item.id),
                   );
                   if (ok) {
                     ref.invalidate(opsConfigurableProvider);
@@ -285,11 +336,17 @@ class _KpiCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: GlassCard(
         child: ListTile(
-          title: Text(code.toUpperCase()),
+          title: Text(_kpiLabel(code)),
           subtitle: Text(count),
         ),
       ),
     );
+  }
+
+  String _kpiLabel(String code) {
+    final match = RegExp(r'(\d+)').firstMatch(code);
+    if (match != null) return 'KPI-${match.group(1)}';
+    return code;
   }
 
   String _brief(Object? value) {

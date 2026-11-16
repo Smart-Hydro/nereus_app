@@ -193,7 +193,9 @@ class OpsVisit {
       notes: asString(json['notes']),
       cancelReason: asString(json['cancel_reason']),
       crew: asMapList(json['crew']).map(OpsCrewMember.fromJson).toList(),
-      reschedules: asMapList(json['reschedules']).map(OpsReschedule.fromJson).toList(),
+      reschedules: asMapList(json['reschedules'])
+          .map(OpsReschedule.fromJson)
+          .toList(),
       siteWarnings: opsMessages(json['site_requirement_warnings']),
       rtsWarnings: opsMessages(json['rts_warnings']),
     );
@@ -244,7 +246,10 @@ class OpsActivity {
       mandatory: opsBool(json['mandatory']),
       executionStatus: asString(json['execution_status'], fallback: 'pending'),
       notDoneReason: asString(json['not_done_reason']),
-      validationStatus: asString(json['validation_status'], fallback: 'pending'),
+      validationStatus: asString(
+        json['validation_status'],
+        fallback: 'pending',
+      ),
       validationNotes: asString(json['validation_notes']),
     );
   }

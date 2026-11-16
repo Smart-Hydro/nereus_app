@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/domain/work_models.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
+import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -21,7 +23,10 @@ class StromVisitScreen extends ConsumerWidget {
       onRetry: () => ref.invalidate(opsVisitProvider(visitId)),
       child: visit.asData == null
           ? const SizedBox.shrink()
-          : _VisitBody(visit: visit.asData!.value, directory: crew.asData?.value ?? const []),
+          : _VisitBody(
+              visit: visit.asData!.value,
+              directory: crew.asData?.value ?? const [],
+            ),
     );
   }
 }
@@ -35,30 +40,44 @@ class _VisitBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final names = visit.crew.map((member) => member.name).join(', ');
+    final when = visit.scheduledFor.isEmpty ? 'sin fecha' : visit.scheduledFor;
     return OpsDetail(
-      title: 'Visita ${visit.id}',
-      subtitle: '${visitTypeLabel(visit.visitType)} · ${visitStatusLabel(visit.status)}',
+      title: 'Visita del $when',
+      subtitle:
+          '${visitTypeLabel(visit.visitType)} · ${visitStatusLabel(visit.status)}',
       children: [
+        OpsNote(opsNextAction(visit.status)),
         OpsNote(
-          'OT ${visit.workOrder} · ${specialtyLabel(visit.specialty)}\n'
+          'OT ${specialtyLabel(visit.specialty)}\n'
           'Fecha ${visit.scheduledFor.isEmpty ? 'sin programar' : visit.scheduledFor}\n'
           'Cuadrilla: ${names.isEmpty ? 'sin integrantes' : names}\n'
           '${visit.notes}',
         ),
+        OpsLinks([
+          OpsLink('Actividades', '/strom/actividades?ot=${visit.workOrder}'),
+          OpsLink('Check de terreno', '/strom/terreno?visita=${visit.id}'),
+          const OpsLink('Cuadrilla', '/strom/configuracion'),
+        ]),
         for (final warning in [...visit.siteWarnings, ...visit.rtsWarnings])
           OpsNote(warning),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            if (visit.status == 'proposed') OpsButton('Programar', () => _schedule(context, ref)),
-            if (visit.status == 'scheduled') OpsButton('Iniciar', () => _simple(context, ref, 'start')),
+            if (visit.status == 'proposed')
+              OpsButton('Programar', () => _schedule(context, ref)),
+            if (visit.status == 'scheduled')
+              OpsButton('Iniciar', () => _simple(context, ref, 'start')),
             if (visit.status == 'in_progress')
               OpsButton('Finalizar', () => _simple(context, ref, 'finish')),
             if (visit.status == 'scheduled' || visit.status == 'in_progress')
               OpsButton('Reprogramar', () => _reschedule(context, ref)),
             if (visit.status != 'finished' && visit.status != 'cancelled')
-              OpsButton('Cancelar', () => _cancel(context, ref), destructive: true),
+              OpsButton(
+                'Cancelar',
+                () => _cancel(context, ref),
+                destructive: true,
+              ),
             OpsButton('Sumar cuadrilla', () => _addCrew(context, ref)),
           ],
         ),
@@ -81,7 +100,12 @@ class _VisitBody extends ConsumerWidget {
   }
 
   Future<void> _schedule(BuildContext context, WidgetRef ref) async {
-    final day = await askOpsText(context, title: 'Programar', label: 'Fecha', hint: 'AAAA-MM-DD');
+    final day = await askOpsText(
+      context,
+      title: 'Programar',
+      label: 'Fecha',
+      hint: 'AAAA-MM-DD',
+    );
     if (day == null || !context.mounted) return;
     final ok = await runOps(
       context,
@@ -97,7 +121,12 @@ class _VisitBody extends ConsumerWidget {
       context,
       title: 'Reprogramar',
       fields: const [
-        OpsField(key: 'day', label: 'Nueva fecha', hint: 'AAAA-MM-DD', required: true),
+        OpsField(
+          key: 'day',
+          label: 'Nueva fecha',
+          hint: 'AAAA-MM-DD',
+          required: true,
+        ),
         OpsField(key: 'reason', label: 'Motivo'),
       ],
     );
@@ -106,7 +135,9 @@ class _VisitBody extends ConsumerWidget {
       context,
       title: 'Reprogramar visita',
       message: 'Se guarda el historial y el motivo. La visita mantiene su id.',
-      action: () => ref.read(visitsRepositoryProvider).reschedule(
+      action: () => ref
+          .read(visitsRepositoryProvider)
+          .reschedule(
             visit.id,
             newDate: values['day']!,
             reason: values['reason'] ?? '',
@@ -115,7 +146,11 @@ class _VisitBody extends ConsumerWidget {
     if (ok) await _reload(ref);
   }
 
-  Future<void> _simple(BuildContext context, WidgetRef ref, String action) async {
+  Future<void> _simple(
+    BuildContext context,
+    WidgetRef ref,
+    String action,
+  ) async {
     final start = action == 'start';
     final ok = await runOps(
       context,
@@ -131,7 +166,11 @@ class _VisitBody extends ConsumerWidget {
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {
-    final reason = await askOpsText(context, title: 'Cancelar visita', label: 'Motivo');
+    final reason = await askOpsText(
+      context,
+      title: 'Cancelar visita',
+      label: 'Motivo',
+    );
     if (reason == null || !context.mounted) return;
     final ok = await runOps(
       context,
@@ -139,7 +178,8 @@ class _VisitBody extends ConsumerWidget {
       message: 'La cancelación exige motivo.',
       destructive: true,
       confirmLabel: 'Cancelar visita',
-      action: () => ref.read(visitsRepositoryProvider).cancel(visit.id, reason: reason),
+      action: () =>
+          ref.read(visitsRepositoryProvider).cancel(visit.id, reason: reason),
     );
     if (ok) await _reload(ref);
   }
@@ -166,41 +206,50 @@ class _VisitBody extends ConsumerWidget {
         context,
         title: 'Crear integrante',
         message: 'La cuadrilla no tiene cuenta en el sistema.',
-        action: () => ref.read(visitsRepositoryProvider).createCrew({
-          'name': values['name'],
-          'company': values['company'],
-          'specialty': values['specialty'],
-          'contact': values['contact'],
-          'is_active': true,
-        }),
+        action: () async {
+          final created = await ref.read(visitsRepositoryProvider).createCrew({
+            'name': values['name'],
+            'company': values['company'],
+            'specialty': values['specialty'],
+            'contact': values['contact'],
+            'is_active': true,
+          });
+          if (!context.mounted) return;
+          final member = requireOpsInt(context, created.id, 'integrante');
+          if (member == null) return;
+          await ref.read(visitsRepositoryProvider).addCrew(visit.id, member);
+        },
       );
-      if (ok) ref.invalidate(opsCrewProvider);
+      if (ok) {
+        ref.invalidate(opsCrewProvider);
+        await _reload(ref);
+      }
       return;
     }
-    final values = await askOpsFields(
+    final picked = await askOpsEntity(
       context,
       title: 'Sumar a la visita',
-      fields: [
-        OpsField(
-          key: 'member',
-          label: 'Integrante',
-          options: {for (final member in directory) member.id: member.name},
-        ),
-      ],
+      label: 'Integrante',
+      load: OpsLookups(ref).crew,
     );
-    if (values == null || !context.mounted) return;
-    final member = requireOpsInt(context, values['member']!, 'integrante');
+    if (picked == null || !context.mounted) return;
+    final member = requireOpsInt(context, picked.id, 'integrante');
     if (member == null) return;
     final ok = await runOps(
       context,
       title: 'Sumar cuadrilla',
       message: 'El integrante queda en esta visita.',
-      action: () => ref.read(visitsRepositoryProvider).addCrew(visit.id, member),
+      action: () =>
+          ref.read(visitsRepositoryProvider).addCrew(visit.id, member),
     );
     if (ok) await _reload(ref);
   }
 
-  Future<void> _removeCrew(BuildContext context, WidgetRef ref, OpsCrewMember member) async {
+  Future<void> _removeCrew(
+    BuildContext context,
+    WidgetRef ref,
+    OpsCrewMember member,
+  ) async {
     final id = requireOpsInt(context, member.id, 'integrante');
     if (id == null) return;
     final ok = await runOps(

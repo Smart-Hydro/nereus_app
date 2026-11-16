@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:nereus_app/features/strom/domain/field_models.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
+import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -12,31 +14,70 @@ class StromRtsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final orderId = opsQuery(context, 'ot');
     return OpsBrowse<OpsRts>(
       title: 'RTS y bodega',
-      subtitle: 'La reserva descuenta el stock de la sucursal una sola vez.',
-      value: ref.watch(opsRtsProvider),
+      subtitle: 'La reserva descuenta el stock una sola vez. Sin bodega, baja la cantidad del producto.',
+      value: ref.watch(opsRtsProvider).whenData((items) {
+        if (orderId == null) return items;
+        return items.where((item) => item.workOrder == orderId).toList();
+      }),
       onRetry: () => ref.invalidate(opsRtsProvider),
-      action: FilledButton(onPressed: () => _create(context, ref), child: const Text('Crear')),
+      emptyMessage: 'No hay RTS. Crea una para la OT.',
+      action: FilledButton(
+        onPressed: () => _create(context, ref, orderId),
+        child: const Text('Crear'),
+      ),
       itemBuilder: (context, item) => OpsTile(
-        title: 'RTS ${item.id} · OT ${item.workOrder}',
-        subtitle: '${specialtyLabel(item.specialty)} · ${item.items.length} ítems',
+        title: 'RTS ${specialtyLabel(item.specialty)}',
+        subtitle: '${item.items.length} ítems · ${item.notes}',
         status: opsLabel(item.status, rtsStatusLabels),
         onTap: () => context.go('/strom/rts/${item.id}'),
       ),
     );
   }
 
-  Future<void> _create(BuildContext context, WidgetRef ref) async {
+  Future<void> _create(
+    BuildContext context,
+    WidgetRef ref,
+    String? orderId,
+  ) async {
+    final lookups = OpsLookups(ref);
     final values = await askOpsFields(
       context,
       title: 'Nueva RTS',
-      fields: const [
-        OpsField(key: 'ot', label: 'Id de la OT', required: true),
-        OpsField(key: 'product', label: 'Id del producto', required: true),
-        OpsField(key: 'qty', label: 'Cantidad', initial: '1', required: true),
-        OpsField(key: 'unit', label: 'Unidad'),
-        OpsField(key: 'notes', label: 'Notas'),
+      fields: [
+        if (orderId == null)
+          OpsField(
+            key: 'ot',
+            label: 'Orden de trabajo',
+            required: true,
+            choices: lookups.orders(),
+          )
+        else
+          OpsField(
+            key: 'ot',
+            label: 'Orden de trabajo',
+            required: true,
+            locked: true,
+            initial: orderId,
+            lockedLabel: 'OT de esta orden',
+            choices: lookups.orders(),
+          ),
+        OpsField(
+          key: 'product',
+          label: 'Producto',
+          required: true,
+          choices: lookups.products,
+        ),
+        const OpsField(
+          key: 'qty',
+          label: 'Cantidad',
+          initial: '1',
+          required: true,
+        ),
+        const OpsField(key: 'unit', label: 'Unidad'),
+        const OpsField(key: 'notes', label: 'Notas'),
       ],
     );
     if (values == null || !context.mounted) return;
@@ -46,18 +87,20 @@ class StromRtsScreen extends ConsumerWidget {
     final ok = await runOps(
       context,
       title: 'Crear RTS',
-      message: 'La bodega es la de la sucursal activa.',
-      action: () => ref.read(rtsRepositoryProvider).create(
-        workOrderId: order,
-        notes: values['notes'] ?? '',
-        items: [
-          {
-            'product_id': product,
-            'quantity': values['qty'],
-            'unit': values['unit'] ?? '',
-          },
-        ],
-      ),
+      message: 'Sin bodega elegida, el stock baja en el producto. Una bodega de otra sucursal se rechaza.',
+      action: () => ref
+          .read(rtsRepositoryProvider)
+          .create(
+            workOrderId: order,
+            notes: values['notes'] ?? '',
+            items: [
+              {
+                'product_id': product,
+                'quantity': values['qty'],
+                'unit': values['unit'] ?? '',
+              },
+            ],
+          ),
     );
     if (ok) ref.invalidate(opsRtsProvider);
   }
@@ -90,10 +133,13 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return OpsDetail(
-      title: 'RTS ${rts.id}',
+      title: 'RTS ${specialtyLabel(rts.specialty)}',
       subtitle: opsLabel(rts.status, rtsStatusLabels),
       children: [
-        const OpsNote('La reserva descuenta el stock de la sucursal una sola vez.'),
+        OpsNote(opsNextAction(rts.status)),
+        const OpsNote(
+          'La reserva descuenta el stock una sola vez. La salida no vuelve a descontar.',
+        ),
         OpsNote(rts.notes),
         Wrap(
           spacing: 8,
@@ -107,8 +153,9 @@ class _Body extends ConsumerWidget {
         ),
         for (final item in rts.items)
           OpsTile(
-            title: item.productName.isEmpty ? 'Producto ${item.product}' : item.productName,
-            subtitle: '${item.quantity} ${item.unit} · stock ${item.stockQuantity}',
+            title: item.productName.isEmpty ? 'Producto' : item.productName,
+            subtitle:
+                '${item.quantity} ${item.unit} · stock ${item.stockQuantity}',
             status: opsLabel(item.status, rtsItemLabels),
           ),
       ],
@@ -124,9 +171,11 @@ class _Body extends ConsumerWidget {
     final reserve = action == 'reserve';
     final ok = await runOps(
       context,
-      title: reserve ? 'Reservar' : (action == 'issue' ? 'Dar salida' : 'Preparar'),
+      title: reserve
+          ? 'Reservar'
+          : (action == 'issue' ? 'Dar salida' : 'Preparar'),
       message: reserve
-          ? 'La reserva descuenta el stock de la sucursal una sola vez.'
+          ? 'La reserva descuenta el stock una sola vez. La salida no vuelve a descontar.'
           : 'Se actualiza la RTS de esta OT.',
       action: () {
         final repo = ref.read(rtsRepositoryProvider);
@@ -144,21 +193,24 @@ class _Body extends ConsumerWidget {
     final values = await askOpsFields(
       context,
       title: 'Orden de compra',
-      fields: const [
-        OpsField(key: 'po', label: 'Id de la OC', required: true),
-        OpsField(key: 'reception', label: 'Id de la recepción'),
+      fields: [
+        OpsField(
+          key: 'po',
+          label: 'Orden de compra',
+          required: true,
+          choices: OpsLookups(ref).purchaseOrders,
+        ),
       ],
     );
     if (values == null || !context.mounted) return;
-    final reception = (values['reception'] ?? '').isEmpty
-        ? null
-        : requireOpsInt(context, values['reception']!, 'recepción');
-    if ((values['reception'] ?? '').isNotEmpty && reception == null) return;
+    const int? reception = null;
     final ok = await runOps(
       context,
       title: 'Vincular OC',
       message: 'La RTS queda ligada a la orden de compra.',
-      action: () => ref.read(rtsRepositoryProvider).linkPurchaseOrder(
+      action: () => ref
+          .read(rtsRepositoryProvider)
+          .linkPurchaseOrder(
             rts.id,
             purchaseOrderId: values['po']!,
             receptionId: reception,

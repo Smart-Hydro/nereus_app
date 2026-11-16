@@ -31,7 +31,10 @@ class OpsHttp {
     Map<String, dynamic>? query,
   }) {
     return _guard(() async {
-      final response = await dio.get<dynamic>(path, queryParameters: _clean(query));
+      final response = await dio.get<dynamic>(
+        path,
+        queryParameters: _clean(query),
+      );
       return parse(asMap(response.data));
     });
   }

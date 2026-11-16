@@ -58,7 +58,9 @@ class OpsProject {
       quotation: asString(json['quotation']),
       ticket: asString(json['ticket']),
       isActive: opsBool(json['is_active'], fallback: true),
-      milestones: asMapList(json['milestones']).map(OpsMilestone.fromJson).toList(),
+      milestones: asMapList(json['milestones'])
+          .map(OpsMilestone.fromJson)
+          .toList(),
       openClarifications: asMapList(json['open_clarifications'])
           .map(OpsOpenClarification.fromJson)
           .toList(),
@@ -153,6 +155,7 @@ class OpsScopePoint {
   const OpsScopePoint({
     required this.id,
     this.device = '',
+    this.deviceName = '',
     this.deviceType = '',
     this.quotationText = '',
     this.items = const [],
@@ -160,14 +163,19 @@ class OpsScopePoint {
 
   final String id;
   final String device;
+  final String deviceName;
   final String deviceType;
   final String quotationText;
   final List<OpsScopeItem> items;
+
+  String get pointLabel =>
+      deviceName.isEmpty ? 'Punto de captación' : deviceName;
 
   factory OpsScopePoint.fromJson(Map<String, dynamic> json) {
     return OpsScopePoint(
       id: asString(json['id']),
       device: asString(json['device']),
+      deviceName: asString(json['device_name']),
       deviceType: asString(json['device_type']),
       quotationText: asString(json['quotation_text']),
       items: asMapList(json['items']).map(OpsScopeItem.fromJson).toList(),
@@ -205,7 +213,9 @@ class OpsInstallation {
       client: asString(json['client']),
       location: asString(json['location']),
       accessRequirements: asString(json['access_requirements']),
-      deviceIds: rawIds is List ? [for (final id in rawIds) asString(id)] : const [],
+      deviceIds: rawIds is List
+          ? [for (final id in rawIds) asString(id)]
+          : const [],
       isActive: opsBool(json['is_active'], fallback: true),
     );
   }

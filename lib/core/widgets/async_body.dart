@@ -12,6 +12,7 @@ class AsyncBody extends StatelessWidget {
     required this.child,
     this.errorMessage = 'No pudimos cargar los datos.',
     this.emptyMessage = 'No hay información para mostrar.',
+    this.emptyAction,
     this.skeleton,
     this.isNetworkError = false,
   });
@@ -23,6 +24,7 @@ class AsyncBody extends StatelessWidget {
   final Widget child;
   final String errorMessage;
   final String emptyMessage;
+  final Widget? emptyAction;
   final Widget? skeleton;
   final bool isNetworkError;
 
@@ -44,6 +46,7 @@ class AsyncBody extends StatelessWidget {
       return _Message(
         icon: Icons.inbox_outlined,
         title: emptyMessage,
+        extra: emptyAction,
       );
     }
     return child;
@@ -55,11 +58,13 @@ class _Message extends StatelessWidget {
     required this.icon,
     required this.title,
     this.action,
+    this.extra,
   });
 
   final IconData icon;
   final String title;
   final VoidCallback? action;
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +86,10 @@ class _Message extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: muted),
                 ),
+                if (extra != null) ...[
+                  const SizedBox(height: 12),
+                  extra!,
+                ],
                 if (action != null) ...[
                   const SizedBox(height: 12),
                   OutlinedButton(

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nereus_app/features/strom/domain/field_models.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
+import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/presentation/strom_chrome.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
@@ -22,6 +24,7 @@ class StromFieldScreen extends StatelessWidget {
           child: Column(
             children: [
               TabBar(
+                isScrollable: true,
                 tabs: [
                   Tab(text: 'Checks'),
                   Tab(text: 'Evidencias'),
@@ -48,35 +51,69 @@ class _Checks extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final visitId = opsQuery(context, 'visita');
     return OpsBrowse<OpsFieldCheck>(
       title: 'Checks',
       bare: true,
-      value: ref.watch(opsFieldChecksProvider),
+      value: ref.watch(opsFieldChecksProvider).whenData((items) {
+        if (visitId == null) return items;
+        return items.where((item) => item.visit == visitId).toList();
+      }),
       onRetry: () => ref.invalidate(opsFieldChecksProvider),
+      emptyMessage: 'No hay checks. Registra el de la visita en curso.',
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const OpsNote('Registrar el check de terreno no cierra el proyecto.'),
           const SizedBox(height: 8),
-          FilledButton(onPressed: () => _create(context, ref), child: const Text('Registrar')),
+          FilledButton(
+            onPressed: () => _create(context, ref, visitId),
+            child: const Text('Registrar'),
+          ),
         ],
       ),
       itemBuilder: (context, item) => OpsTile(
-        title: 'Visita ${item.visit} · actividad ${item.activity}',
+        title: item.observation.isEmpty ? 'Check de terreno' : item.observation,
         subtitle: '${item.measurement} ${item.observation}'.trim(),
         status: opsLabel(item.result, executionLabels),
       ),
     );
   }
 
-  Future<void> _create(BuildContext context, WidgetRef ref) async {
+  Future<void> _create(
+    BuildContext context,
+    WidgetRef ref,
+    String? visitId,
+  ) async {
+    final lookups = OpsLookups(ref);
     final values = await askOpsFields(
       context,
       title: 'Check de terreno',
-      fields: const [
-        OpsField(key: 'visit', label: 'Id de la visita', required: true),
-        OpsField(key: 'activity', label: 'Id de la actividad', required: true),
+      fields: [
+        if (visitId == null)
+          OpsField(
+            key: 'visit',
+            label: 'Visita',
+            required: true,
+            choices: lookups.visits(),
+          )
+        else
+          OpsField(
+            key: 'visit',
+            label: 'Visita',
+            required: true,
+            locked: true,
+            initial: visitId,
+            lockedLabel: 'Visita de esta ficha',
+            choices: lookups.visits(),
+          ),
         OpsField(
+          key: 'activity',
+          label: 'Actividad',
+          required: true,
+          choices: lookups.activities(),
+        ),
+        const OpsField(
           key: 'result',
           label: 'Resultado',
           initial: 'completed',
@@ -86,10 +123,10 @@ class _Checks extends ConsumerWidget {
             'not_done': 'No realizada',
           },
         ),
-        OpsField(key: 'measurement', label: 'Medición'),
-        OpsField(key: 'observation', label: 'Observación'),
-        OpsField(key: 'reason', label: 'Motivo pendiente'),
-        OpsField(key: 'owner', label: 'Responsable del pendiente'),
+        const OpsField(key: 'measurement', label: 'Medición'),
+        const OpsField(key: 'observation', label: 'Observación'),
+        const OpsField(key: 'reason', label: 'Motivo pendiente'),
+        const OpsField(key: 'owner', label: 'Responsable del pendiente'),
       ],
     );
     if (values == null || !context.mounted) return;
@@ -119,20 +156,24 @@ class _Evidences extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final visitId = opsQuery(context, 'visita');
     return OpsBrowse<OpsEvidence>(
       title: 'Evidencias',
       bare: true,
-      value: ref.watch(opsEvidencesProvider),
+      value: ref.watch(opsEvidencesProvider).whenData((items) {
+        if (visitId == null) return items;
+        return items.where((item) => item.visit == visitId).toList();
+      }),
       onRetry: () => ref.invalidate(opsEvidencesProvider),
       header: Align(
         alignment: Alignment.centerLeft,
         child: FilledButton(
-          onPressed: () => _create(context, ref),
+          onPressed: () => _create(context, ref, visitId),
           child: const Text('Agregar'),
         ),
       ),
       itemBuilder: (context, item) => OpsTile(
-        title: item.caption.isEmpty ? 'Evidencia ${item.id}' : item.caption,
+        title: item.caption.isEmpty ? 'Evidencia' : item.caption,
         subtitle: item.link.isEmpty ? 'Sin enlace de Drive' : item.link,
         status: item.link.isEmpty ? 'Sin Drive' : 'Con enlace',
         onTap: () => _open(context, ref, item),
@@ -140,15 +181,40 @@ class _Evidences extends ConsumerWidget {
     );
   }
 
-  Future<void> _create(BuildContext context, WidgetRef ref) async {
+  Future<void> _create(
+    BuildContext context,
+    WidgetRef ref,
+    String? visitId,
+  ) async {
+    final lookups = OpsLookups(ref);
     final values = await askOpsFields(
       context,
       title: 'Evidencia',
-      fields: const [
-        OpsField(key: 'visit', label: 'Id de la visita', required: true),
-        OpsField(key: 'activity', label: 'Id de la actividad'),
-        OpsField(key: 'url', label: 'URL'),
-        OpsField(key: 'caption', label: 'Descripción'),
+      fields: [
+        if (visitId == null)
+          OpsField(
+            key: 'visit',
+            label: 'Visita',
+            required: true,
+            choices: lookups.visits(),
+          )
+        else
+          OpsField(
+            key: 'visit',
+            label: 'Visita',
+            required: true,
+            locked: true,
+            initial: visitId,
+            lockedLabel: 'Visita de esta ficha',
+            choices: lookups.visits(),
+          ),
+        OpsField(
+          key: 'activity',
+          label: 'Actividad',
+          choices: lookups.activities(),
+        ),
+        const OpsField(key: 'url', label: 'Enlace'),
+        const OpsField(key: 'caption', label: 'Descripción'),
       ],
     );
     if (values == null || !context.mounted) return;
@@ -162,7 +228,9 @@ class _Evidences extends ConsumerWidget {
       context,
       title: 'Guardar evidencia',
       message: 'Puedes vincular Drive después, sin copiar el archivo.',
-      action: () => ref.read(fieldRepositoryProvider).createEvidence(
+      action: () => ref
+          .read(fieldRepositoryProvider)
+          .createEvidence(
             visitId: visit,
             activityId: activity,
             url: values['url'] ?? '',
@@ -172,7 +240,11 @@ class _Evidences extends ConsumerWidget {
     if (ok) ref.invalidate(opsEvidencesProvider);
   }
 
-  Future<void> _open(BuildContext context, WidgetRef ref, OpsEvidence item) async {
+  Future<void> _open(
+    BuildContext context,
+    WidgetRef ref,
+    OpsEvidence item,
+  ) async {
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => Column(
@@ -195,14 +267,25 @@ class _Evidences extends ConsumerWidget {
       await openOpsLink(context, item.link);
       return;
     }
-    final fileId = await askOpsText(context, title: 'Drive', label: 'Id del archivo');
-    if (fileId == null || !context.mounted) return;
+    final link = await askOpsText(
+      context,
+      title: 'Drive',
+      label: 'Enlace de Drive',
+    );
+    if (link == null || !context.mounted) return;
+    final fileId = _driveFile(link);
     final ok = await runOps(
       context,
       title: 'Vincular Drive',
       message: 'Se guarda el enlace. No se copia el archivo.',
-      action: () => ref.read(fieldRepositoryProvider).linkDrive(item.id, fileId: fileId),
+      action: () =>
+          ref.read(fieldRepositoryProvider).linkDrive(item.id, fileId: fileId),
     );
     if (ok) ref.invalidate(opsEvidencesProvider);
   }
+}
+
+String _driveFile(String raw) {
+  final match = RegExp('/d/([^/?#]+)').firstMatch(raw);
+  return match?.group(1) ?? raw.trim();
 }

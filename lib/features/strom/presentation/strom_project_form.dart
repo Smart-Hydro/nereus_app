@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
+import 'package:nereus_app/features/strom/presentation/ops_choice.dart';
+import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
 import 'package:nereus_app/features/strom/presentation/strom_chrome.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
 
@@ -17,18 +19,20 @@ class StromProjectCreateScreen extends ConsumerStatefulWidget {
       _StromProjectCreateScreenState();
 }
 
-class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScreen> {
+class _StromProjectCreateScreenState
+    extends ConsumerState<StromProjectCreateScreen> {
   final _name = TextEditingController();
   final _code = TextEditingController();
   final _po = TextEditingController();
   final _poDate = TextEditingController();
   final _committed = TextEditingController();
-  final _owner = TextEditingController();
-  final _ticket = TextEditingController();
-  final _quotation = TextEditingController();
+  OpsChoice? _owner;
+  OpsChoice? _ticket;
+  OpsChoice? _quotation;
   var _service = 'project';
   var _saving = false;
   var _loaded = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -37,15 +41,13 @@ class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScr
     _po.dispose();
     _poDate.dispose();
     _committed.dispose();
-    _owner.dispose();
-    _ticket.dispose();
-    _quotation.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final id = widget.projectId;
+    final lookups = OpsLookups(ref);
     if (id != null) {
       ref.watch(opsProjectProvider(id)).whenData((project) {
         if (_loaded) return;
@@ -55,9 +57,9 @@ class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScr
         _po.text = project.clientPoNumber;
         _poDate.text = project.clientPoReceivedOn;
         _committed.text = project.committedOn;
-        _owner.text = project.owner;
-        _ticket.text = project.ticket;
-        _quotation.text = project.quotation;
+        if (project.owner.isNotEmpty) {
+          _owner = OpsChoice(id: project.owner, label: 'Responsable actual');
+        }
         if (serviceTypeLabels.containsKey(project.serviceType)) {
           _service = project.serviceType;
         }
@@ -67,6 +69,7 @@ class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScr
       backgroundColor: Colors.transparent,
       body: StromChrome(
         title: id == null ? 'Crear proyecto' : 'Editar proyecto',
+        subtitle: 'Elige personas y documentos por su nombre.',
         child: StromForm(
           saving: _saving,
           onSubmit: _save,
@@ -87,6 +90,9 @@ class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScr
             TextField(
               controller: _name,
               decoration: const InputDecoration(labelText: 'Nombre *'),
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
             ),
             const SizedBox(height: 12),
             TextField(
@@ -99,36 +105,35 @@ class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScr
               decoration: const InputDecoration(labelText: 'OC del cliente'),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _poDate,
-              decoration: const InputDecoration(
-                labelText: 'Recepción de la OC',
-                hintText: 'AAAA-MM-DD',
-              ),
-            ),
+            OpsDateField(label: 'Recepción de la OC', controller: _poDate),
             const SizedBox(height: 12),
-            TextField(
-              controller: _committed,
-              decoration: const InputDecoration(
-                labelText: 'Fecha comprometida',
-                hintText: 'AAAA-MM-DD',
-              ),
-            ),
+            OpsDateField(label: 'Fecha comprometida', controller: _committed),
             const SizedBox(height: 12),
-            TextField(
-              controller: _owner,
-              decoration: const InputDecoration(labelText: 'Responsable (id)'),
+            OpsEntityField(
+              label: 'Responsable',
+              load: lookups.users,
+              initial: _owner,
+              onChanged: (choice) => _owner = choice,
             ),
             if (id == null) ...[
               const SizedBox(height: 12),
-              TextField(
-                controller: _ticket,
-                decoration: const InputDecoration(labelText: 'Ticket (uuid)'),
+              OpsEntityField(
+                label: 'Ticket de origen',
+                load: lookups.tickets,
+                onChanged: (choice) => _ticket = choice,
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _quotation,
-                decoration: const InputDecoration(labelText: 'Cotización (uuid)'),
+              OpsEntityField(
+                label: 'Cotización de origen',
+                load: lookups.quotations,
+                onChanged: (choice) => _quotation = choice,
+              ),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
           ],
@@ -138,9 +143,14 @@ class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScr
   }
 
   Future<void> _save() async {
-    if (_name.text.trim().isEmpty) return;
-    final owner = _owner.text.trim().isEmpty ? null : requireOpsInt(context, _owner.text, 'responsable');
-    if (_owner.text.trim().isNotEmpty && owner == null) return;
+    if (_name.text.trim().isEmpty) {
+      setState(() => _error = 'Indica el nombre del proyecto.');
+      return;
+    }
+    final owner = _owner == null
+        ? null
+        : requireOpsInt(context, _owner!.id, 'responsable');
+    if (_owner != null && owner == null) return;
     setState(() => _saving = true);
     try {
       final repo = ref.read(projectsRepositoryProvider);
@@ -150,15 +160,15 @@ class _StromProjectCreateScreenState extends ConsumerState<StromProjectCreateScr
         'code': _code.text.trim(),
         'service_type': _service,
         'client_po_number': _po.text.trim(),
-        if (_poDate.text.trim().isNotEmpty) 'client_po_received_on': _poDate.text.trim(),
-        if (_committed.text.trim().isNotEmpty) 'committed_on': _committed.text.trim(),
+        if (_poDate.text.trim().isNotEmpty)
+          'client_po_received_on': _poDate.text.trim(),
+        if (_committed.text.trim().isNotEmpty)
+          'committed_on': _committed.text.trim(),
         if (owner != null) 'owner': owner,
       };
       if (id == null) {
-        if (_ticket.text.trim().isNotEmpty) body['ticket_id'] = _ticket.text.trim();
-        if (_quotation.text.trim().isNotEmpty) {
-          body['quotation_id'] = _quotation.text.trim();
-        }
+        if (_ticket != null) body['ticket_id'] = _ticket!.id;
+        if (_quotation != null) body['quotation_id'] = _quotation!.id;
         final created = await repo.create(body);
         ref.invalidate(opsProjectsProvider);
         if (mounted) context.go('/strom/${created.id}');
