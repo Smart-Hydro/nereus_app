@@ -7,31 +7,19 @@ class StromDevScreen extends StatelessWidget {
   const StromDevScreen({super.key});
 
   static const steps = [
-    _Step('Proyecto', 'Se muestra. Nace de un ticket.', '/strom'),
-    _Step('Visita', 'Se muestra. Es la orden de trabajo.', '/strom/visitas'),
-    _Step('Actividad', 'Se muestra. Checklist.', '/strom/actividades'),
-    _Step(
-      'Check de terreno',
-      'Se muestra. No cierra el proyecto.',
-      '/strom/terreno',
-    ),
-    _Step(
-      'Check técnico',
-      'Se muestra. El líder confirma.',
-      '/strom/tecnico',
-    ),
-    _Step('Aclaración', 'Se muestra. Comentario interno.', '/strom/aclaraciones'),
-    _Step('Indicadores', 'Se muestra. Cuatro conteos.', '/strom/indicadores'),
-    _Step(
-      'Instalación y punto de captación',
-      'En la API. Todavía no en esta demo.',
-      null,
-    ),
-    _Step(
-      'OT técnica distinta de la visita',
-      'Pendiente. La visita sigue siendo la orden de trabajo.',
-      null,
-    ),
+    _Step('Proyectos', 'Alta, estado, alcance, hitos, costo y cierre.', '/strom'),
+    _Step('Instalaciones', 'Punto de captación, equipo y requisitos.', '/strom/instalaciones'),
+    _Step('OT técnica', 'Distinta de la visita. Por especialidad.', '/strom/ordenes'),
+    _Step('Visitas', 'La primera nace planificada.', '/strom/visitas'),
+    _Step('Actividades', 'Por punto. Ejecución y validación.', '/strom/actividades'),
+    _Step('Check de terreno', 'No cierra el proyecto.', '/strom/terreno'),
+    _Step('Check técnico', 'Lo valida el líder de la especialidad.', '/strom/tecnico'),
+    _Step('RTS', 'La reserva descuenta el stock una sola vez.', '/strom/rts'),
+    _Step('Informes', 'Versión, Drive y aprobación del líder.', '/strom/informes'),
+    _Step('Aclaraciones', 'Preguntas y trabajo fuera de alcance.', '/strom/aclaraciones'),
+    _Step('Costos', 'Costo diario vigente de la cuadrilla.', '/strom/costos'),
+    _Step('Indicadores', 'KPI-1 a KPI-9. La meta de KPI-9 es un rango.', '/strom/indicadores'),
+    _Step('Auditoría', 'Transiciones de negocio.', '/strom/auditoria'),
   ];
 
   @override
@@ -45,13 +33,12 @@ class StromDevScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       body: StromChrome(
         title: 'Dev',
-        subtitle: 'Strøm — Operaciones. Flujo del MVP para validar.',
+        subtitle: 'Strøm — Operaciones sobre /api/operations/.',
         child: ListView.separated(
           itemCount: steps.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final step = steps[index];
-            final pending = step.path == null;
             return Material(
               color: panel,
               shape: RoundedRectangleBorder(
@@ -59,7 +46,7 @@ class StromDevScreen extends StatelessWidget {
                 side: BorderSide(color: line),
               ),
               child: InkWell(
-                onTap: pending ? null : () => context.go(step.path!),
+                onTap: () => context.go(step.path),
                 splashFactory: NoSplash.splashFactory,
                 hoverColor: Colors.transparent,
                 highlightColor: Colors.transparent,
@@ -69,8 +56,8 @@ class StromDevScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: pending ? line : NereusTokens.hydroOlive,
-                        foregroundColor: pending ? muted : Colors.white,
+                        backgroundColor: NereusTokens.hydroOlive,
+                        foregroundColor: Colors.white,
                         child: Text('${index + 1}'),
                       ),
                       const SizedBox(width: 12),
@@ -80,28 +67,13 @@ class StromDevScreen extends StatelessWidget {
                           children: [
                             Text(
                               step.title,
-                              style: TextStyle(
-                                color: ink,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: TextStyle(color: ink, fontWeight: FontWeight.w600),
                             ),
-                            Text(
-                              step.detail,
-                              style: TextStyle(color: muted),
-                            ),
+                            Text(step.detail, style: TextStyle(color: muted)),
                           ],
                         ),
                       ),
-                      if (pending)
-                        Text(
-                          'Pendiente',
-                          style: TextStyle(
-                            color: muted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        )
-                      else
-                        Icon(Icons.chevron_right, color: muted),
+                      Icon(Icons.chevron_right, color: muted),
                     ],
                   ),
                 ),
@@ -119,5 +91,5 @@ class _Step {
 
   final String title;
   final String detail;
-  final String? path;
+  final String path;
 }

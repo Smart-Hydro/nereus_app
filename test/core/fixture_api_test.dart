@@ -18,9 +18,20 @@ void main() {
       queryParameters: {'ticket': 't-norte'},
     );
 
-    expect(overview.data?['devices']['online'], 3);
-    expect((tickets.data?['results'] as List).length, 2);
-    expect((visits.data?['results'] as List).single['work_order_number'], 'OT-18');
+    final operations = await dio.get<Map<String, dynamic>>(
+      '/api/operations/projects/',
+    );
+
+    final devices = Map<String, dynamic>.from(overview.data?['devices'] as Map);
+    final ticketRows = tickets.data?['results'] as List;
+    final visitRows = visits.data?['results'] as List;
+    final visit = Map<String, dynamic>.from(visitRows.single as Map);
+    final projectRows = operations.data?['results'] as List;
+    final project = Map<String, dynamic>.from(projectRows.first as Map);
+    expect(devices['online'], 3);
+    expect(ticketRows.length, 2);
+    expect(visit['work_order_number'], 'OT-18');
+    expect(project['name'], 'Instalación Norte');
   });
 
   test('a real token is not answered by the demo', () async {

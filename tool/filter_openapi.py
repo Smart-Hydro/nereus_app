@@ -23,6 +23,7 @@ WANTED_TAGS = {
     "equipment",
     "branches",
     "surveys",
+    "operations",
 }
 ALERT_PATH_PREFIX = "/api/iot-telemetry/alert-"
 

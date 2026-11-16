@@ -15,11 +15,16 @@ void main() {
     expect(labels, [
       'Dev',
       'Proyectos',
+      'Instalaciones',
+      'Órdenes',
       'Visitas',
       'Actividades',
       'Check de terreno',
       'Check técnico',
+      'RTS',
+      'Informes',
       'Aclaraciones',
+      'Costos',
       'Auditoría',
       'Indicadores',
       'Configuración',
@@ -92,9 +97,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Dev'), findsWidgets);
-    expect(find.text('OT técnica distinta de la visita'), findsOneWidget);
-    expect(find.text('Pendiente'), findsNWidgets(2));
-    await tester.tap(find.text('Proyecto'));
+    expect(find.text('OT técnica'), findsOneWidget);
+    expect(find.text('Distinta de la visita. Por especialidad.'), findsOneWidget);
+    expect(find.text('Pendiente'), findsNothing);
+    await tester.tap(find.text('Proyectos'));
     await tester.pumpAndSettle();
     expect(find.text('Pantalla de proyectos'), findsOneWidget);
   });
