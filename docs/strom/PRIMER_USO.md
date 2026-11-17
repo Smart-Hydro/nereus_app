@@ -68,9 +68,12 @@ Hasta que el backend publique `GET /projects/{id}/scope/`, la ficha muestra el a
 
 1. Desde el proyecto, **Informes**.
 2. **Generar**. El proyecto queda fijo. La especialidad nace en Hidráulica. También puedes dejarla en **Sin especialidad**. Nace en borrador.
-3. Ábrelo. **Enviar a revisión**.
-4. **Aprobar**. Con especialidad lo aprueba Operaciones o el líder de esa especialidad. Sin especialidad, Operaciones o cualquier líder. El botón sigue disponible: el backend rechaza a quien no corresponde.
-5. **Enviar**.
+3. Ábrelo. Ves el texto y, si hay datos validados, las listas: actividades validadas, pruebas realizadas, evidencias y pendientes del cliente. Si no hay texto ni listas, dice **Sin cuerpo.**
+4. **Editar** cambia solo el texto. Las listas validadas siguen. Se puede en borrador o en revisión.
+5. **Enviar a revisión**.
+6. En revisión, **Devolver** lo vuelve a borrador en la misma versión. **Aprobar** sigue disponible. Con especialidad lo aprueba Operaciones o el líder de esa especialidad. Sin especialidad, Operaciones o cualquier líder. El botón sigue visible: el backend rechaza a quien no corresponde.
+7. **Enviar**. Esa versión queda bloqueada.
+8. En un informe enviado, **Nueva versión** abre un borrador nuevo. El enviado no se modifica. Pasar a revisión, aprobar y enviar queda en **Auditoría** como Informe.
 
 ## 9. Costos
 

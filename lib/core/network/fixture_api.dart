@@ -75,13 +75,27 @@ class FixtureApiInterceptor extends Interceptor {
       handler.next(options);
       return;
     }
-    handler.resolve(
-      Response<dynamic>(
-        requestOptions: options,
-        statusCode: 200,
-        data: _answer(options),
-      ),
-    );
+    try {
+      handler.resolve(
+        Response<dynamic>(
+          requestOptions: options,
+          statusCode: 200,
+          data: _answer(options),
+        ),
+      );
+    } on FixtureRejected catch (error) {
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(
+            requestOptions: options,
+            statusCode: error.statusCode,
+            data: error.body,
+          ),
+        ),
+      );
+    }
   }
 
   dynamic _answer(RequestOptions options) {

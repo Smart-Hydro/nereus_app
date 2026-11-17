@@ -68,13 +68,20 @@ Future<String?> askOpsText(
   required String title,
   required String label,
   String hint = '',
+  String initial = '',
   bool required = true,
 }) async {
   final values = await askOpsFields(
     context,
     title: title,
     fields: [
-      OpsField(key: 'value', label: label, hint: hint, required: required),
+      OpsField(
+        key: 'value',
+        label: label,
+        hint: hint,
+        initial: initial,
+        required: required,
+      ),
     ],
   );
   return values?['value'];

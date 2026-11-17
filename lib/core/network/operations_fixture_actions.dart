@@ -257,28 +257,287 @@ extension OperationsFixtureActions on OperationsFixture {
     Map<String, dynamic> body,
   ) {
     if (id == 'generate') {
+      final project = body['project_id'];
       final created = {
         'id': ++_seq,
-        'project': body['project_id'],
-        'version': 1,
+        'project': project,
+        'version': _nextReportVersion(project),
         'status': 'draft',
         'kind': 'project',
         'specialty': body['specialty'] ?? '',
-        'body': {'text': ''},
+        'body': _reportSnapshot(project),
         'drive_url': '',
       };
       reports.insert(0, created);
+      _recordReportTransition(
+        created,
+        from: '',
+        to: 'draft',
+        reason: 'Alta de informe',
+      );
+      transitions.add({
+        'id': ++_seq,
+        'entity_type': 'project',
+        'entity_id': project,
+        'from_value': '',
+        'to_value': 'report_v${created['version']}_draft',
+        'reason': 'Alta de informe',
+        'scope_version': null,
+        'actor': 'Demostración',
+        'occurred_at': DateTime.now().toUtc().toIso8601String(),
+      });
       return created;
     }
     if (id == null) return _page(reports);
     final row = _find(reports, id);
     if (row == null) return {};
-    if (method == 'PATCH') row['body'] = body['body'] ?? row['body'];
-    if (action == 'submit-review') row['status'] = 'review';
-    if (action == 'revise') row['status'] = 'draft';
-    if (action == 'approve') row['status'] = 'approved';
-    if (action == 'send') row['status'] = 'sent';
+    if (method == 'PATCH') return _patchReport(row, body);
+    if (action == 'submit-review') {
+      final status = '${row['status']}';
+      if (status == 'review') return row;
+      if (status == 'approved') {
+        _rejectReport(
+          'status',
+          'El informe aprobado no se edita. Envíalo para cerrar esta versión.',
+        );
+      }
+      _requireReportStatus(
+        row,
+        'draft',
+        'La versión enviada es inmutable. Un cambio crea otra versión.',
+      );
+      _auditReport(row, 'review', 'Pasó a revisión');
+      return row;
+    }
+    if (action == 'return-draft') {
+      _requireReportStatus(
+        row,
+        'review',
+        'Solo un informe en revisión vuelve a borrador.',
+      );
+      _auditReport(row, 'draft', 'Devuelto a borrador');
+      return row;
+    }
+    if (action == 'approve') {
+      final status = '${row['status']}';
+      if (status != 'draft' && status != 'review') {
+        _rejectReport(
+          'status',
+          'Solo se aprueba un informe en borrador o revisión.',
+        );
+      }
+      _auditReport(row, 'approved', 'Informe aprobado');
+      return row;
+    }
+    if (action == 'send') {
+      _requireReportStatus(
+        row,
+        'approved',
+        'Solo se envía un informe aprobado.',
+      );
+      _auditReport(row, 'sent', 'Informe enviado');
+      return row;
+    }
+    if (action == 'revise') return _reviseReport(row);
     return row;
+  }
+
+  Map<String, dynamic> _patchReport(
+    Map<String, dynamic> row,
+    Map<String, dynamic> body,
+  ) {
+    _requireReportEditable(row);
+    if (body.containsKey('specialty')) {
+      row['specialty'] = body['specialty'] ?? '';
+    }
+    if (!body.containsKey('body')) return row;
+    final incoming = body['body'];
+    if (incoming is! Map) {
+      _rejectReport(
+        'body',
+        'Solo se puede editar el texto. Las actividades, pruebas, evidencias y pendientes validados no se reemplazan.',
+      );
+    }
+    final keys = incoming.keys.map((key) => '$key').toSet();
+    if (keys.length != 1 || !keys.contains('text')) {
+      _rejectReport(
+        'body',
+        'Solo se puede editar el texto. Las actividades, pruebas, evidencias y pendientes validados no se reemplazan.',
+      );
+    }
+    final text = incoming['text'];
+    if (text is! String) {
+      _rejectReport('body', 'El texto del informe tiene que ser un texto.');
+    }
+    final current = row['body'] is Map
+        ? Map<String, dynamic>.from(row['body'] as Map)
+        : <String, dynamic>{};
+    current['text'] = text;
+    row['body'] = current;
+    return row;
+  }
+
+  Map<String, dynamic> _reviseReport(Map<String, dynamic> row) {
+    _requireReportStatus(
+      row,
+      'sent',
+      'Solo se revisa una versión ya enviada.',
+    );
+    final snapshot = _reportSnapshot(row['project']);
+    final previous = row['body'];
+    final previousText = previous is Map ? previous['text'] : null;
+    snapshot['text'] = previousText is String ? previousText : '';
+    final created = {
+      'id': ++_seq,
+      'project': row['project'],
+      'version': _nextReportVersion(row['project']),
+      'status': 'draft',
+      'kind': row['kind'] ?? 'project',
+      'specialty': row['specialty'] ?? '',
+      'body': snapshot,
+      'drive_url': '',
+    };
+    reports.insert(0, created);
+    _recordReportTransition(
+      created,
+      from: '',
+      to: 'draft',
+      reason: 'Nueva versión del informe enviado',
+    );
+    return created;
+  }
+
+  void _requireReportEditable(Map<String, dynamic> row) {
+    switch ('${row['status']}') {
+      case 'draft':
+      case 'review':
+        return;
+      case 'approved':
+        _rejectReport(
+          'status',
+          'El informe aprobado no se edita. Envíalo para cerrar esta versión.',
+        );
+      default:
+        _rejectReport(
+          'status',
+          'La versión enviada es inmutable. Un cambio crea otra versión.',
+        );
+    }
+  }
+
+  void _requireReportStatus(
+    Map<String, dynamic> row,
+    String expected,
+    String message,
+  ) {
+    if ('${row['status']}' == expected) return;
+    _rejectReport('status', message);
+  }
+
+  Never _rejectReport(String field, String message) {
+    throw FixtureRejected(400, {field: message});
+  }
+
+  void _auditReport(Map<String, dynamic> row, String to, String reason) {
+    _recordReportTransition(
+      row,
+      from: '${row['status']}',
+      to: to,
+      reason: reason,
+    );
+    row['status'] = to;
+  }
+
+  void _recordReportTransition(
+    Map<String, dynamic> row, {
+    required String from,
+    required String to,
+    required String reason,
+  }) {
+    transitions.add({
+      'id': ++_seq,
+      'entity_type': 'report',
+      'entity_id': row['id'],
+      'from_value': from,
+      'to_value': to,
+      'reason': reason,
+      'scope_version': null,
+      'actor': 'Demostración',
+      'occurred_at': DateTime.now().toUtc().toIso8601String(),
+    });
+  }
+
+  int _nextReportVersion(dynamic project) {
+    var maxVersion = 0;
+    for (final row in reports) {
+      if ('${row['project']}' != '$project') continue;
+      final version = int.tryParse('${row['version']}') ?? 0;
+      if (version > maxVersion) maxVersion = version;
+    }
+    return maxVersion + 1;
+  }
+
+  Map<String, dynamic> _reportSnapshot(dynamic project) {
+    final orderIds = orders
+        .where((row) => '${row['project']}' == '$project')
+        .map((row) => '${row['id']}')
+        .toSet();
+    bool onProject(Map<String, dynamic> row) =>
+        orderIds.contains('${row['work_order']}');
+    final validated = activities.where((row) {
+      if (!onProject(row)) return false;
+      final status = '${row['validation_status']}';
+      return status == 'approved' || status == 'approved_with_observations';
+    }).toList();
+    final validatedIds = validated.map((row) => '${row['id']}').toSet();
+    return {
+      'text': '',
+      'activities': [
+        for (final row in validated)
+          {
+            'id': row['id'],
+            'activity_type': row['description'] ?? '',
+            'description': row['description'] ?? '',
+            'specialty': row['specialty'] ?? '',
+            'execution_status': row['execution_status'] ?? '',
+            'validation_status': row['validation_status'] ?? '',
+            'validation_notes': row['validation_notes'] ?? '',
+          },
+      ],
+      'tests_performed': [
+        for (final row in checks)
+          if (validatedIds.contains('${row['activity']}') &&
+              '${row['result']}' == 'completed')
+            {
+              'id': row['id'],
+              'activity_id': row['activity'],
+              'result': row['result'],
+              'measurement': row['measurement'] ?? '',
+              'observation': row['observation'] ?? '',
+            },
+      ],
+      'evidences': [
+        for (final row in evidences)
+          if (onProject(row))
+            {
+              'id': row['id'],
+              'url': row['url'] ?? '',
+              'file': row['file'] ?? '',
+              'caption': row['caption'] ?? '',
+              'activity_id': row['activity'],
+            },
+      ],
+      'pending_client_work': [
+        for (final row in obligations)
+          if (onProject(row))
+            {
+              'id': row['id'],
+              'description': row['description'] ?? '',
+              'status': row['status'] ?? '',
+              'responsible': row['responsible'] ?? '',
+            },
+      ],
+    };
   }
 
   dynamic handleClarifications(

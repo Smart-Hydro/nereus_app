@@ -5,6 +5,17 @@ import 'package:nereus_app/core/network/operations_fixture_seed.dart';
 part 'operations_fixture_actions.dart';
 part 'operations_fixture_projects.dart';
 
+/// El modo demostración rechaza una operación igual que la API (400).
+class FixtureRejected implements Exception {
+  FixtureRejected(this.statusCode, this.body);
+
+  final int statusCode;
+  final Map<String, dynamic> body;
+
+  @override
+  String toString() => 'FixtureRejected($statusCode, $body)';
+}
+
 /// Datos de ejemplo de `/api/operations/` para `NEREUS_DATA_MODE=fixture`.
 class OperationsFixture {
   var _seq = 80;

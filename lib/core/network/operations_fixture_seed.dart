@@ -224,7 +224,44 @@ List<Map<String, dynamic>> stromSeedReports() => [
     'status': 'draft',
     'kind': 'project',
     'specialty': 'hydraulic',
-    'body': {'text': 'Borrador del informe de puesta en marcha.'},
+    'body': {
+      'text': 'Borrador del informe de puesta en marcha.',
+      'activities': [
+        {
+          'id': 21,
+          'activity_type': 'Medir caudal del pozo',
+          'description': 'Medir caudal del pozo',
+          'specialty': 'hydraulic',
+          'execution_status': 'completed',
+          'validation_status': 'approved',
+          'validation_notes': '',
+        },
+      ],
+      'tests_performed': [
+        {
+          'id': 6,
+          'activity_id': 21,
+          'result': 'completed',
+          'measurement': '12 l/s',
+          'observation': 'Caudal estable',
+        },
+      ],
+      'evidences': [
+        {
+          'id': 11,
+          'url': 'https://drive.google.com/file/d/demo-tablero',
+          'caption': 'Tablero del pozo',
+        },
+      ],
+      'pending_client_work': [
+        {
+          'id': 1,
+          'description': 'Dejar energizado el tablero',
+          'status': 'pending',
+          'responsible': 'Cliente',
+        },
+      ],
+    },
     'drive_url': 'https://drive.google.com/file/d/demo-informe',
   },
 ];
