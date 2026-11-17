@@ -148,6 +148,7 @@ const entityLabels = {
   'activity': 'Actividad',
   'validation': 'Validación',
   'scope': 'Alcance',
+  'report': 'Informe',
 };
 
 const eventLabels = {

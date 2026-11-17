@@ -119,6 +119,53 @@ void main() {
     expect(specialtyLabel(report.specialty), 'Eléctrica');
     expect(report.driveUrl, contains('drive.google.com'));
 
+    final snapshot = OpsReport.fromJson({
+      'id': 3,
+      'status': 'draft',
+      'body': {
+        'activities': [
+          {
+            'activity_type': 'Medir caudal del pozo',
+            'specialty': 'hydraulic',
+            'execution_status': 'completed',
+            'validation_status': 'approved',
+            'validation_notes': '',
+          },
+        ],
+        'tests_performed': [
+          {
+            'result': 'completed',
+            'measurement': '12 l/s',
+            'observation': 'Caudal estable',
+          },
+        ],
+        'evidences': [
+          {
+            'caption': 'Tablero del pozo',
+            'url': 'https://drive.google.com/file/d/demo-tablero',
+          },
+        ],
+        'pending_client_work': [
+          {
+            'description': 'Dejar energizado el tablero',
+            'status': 'pending',
+            'responsible': 'Cliente',
+          },
+        ],
+      },
+    });
+    expect(snapshot.bodyText, isEmpty);
+    expect(snapshot.hasSnapshot, isTrue);
+    expect(snapshot.activities.single.title, 'Medir caudal del pozo');
+    expect(snapshot.activities.single.specialty, 'hydraulic');
+    expect(snapshot.activities.single.validationStatus, 'approved');
+    expect(snapshot.testsPerformed.single.measurement, '12 l/s');
+    expect(snapshot.evidences.single.caption, 'Tablero del pozo');
+    expect(
+      snapshot.pendingClientWork.single.description,
+      'Dejar energizado el tablero',
+    );
+
     final order = OpsWorkOrder.fromJson({
       'id': 8,
       'specialty': 'hydraulic',

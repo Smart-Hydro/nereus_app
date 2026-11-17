@@ -139,7 +139,7 @@ class _Body extends ConsumerWidget {
               : opsNextAction(report.status),
         ),
         OpsNote(reportApproverNote(report.specialty)),
-        OpsNote(report.bodyText.isEmpty ? 'Sin cuerpo.' : report.bodyText),
+        ..._reportNotes(report),
         if (report.driveUrl.isNotEmpty)
           OpsButton('Abrir Drive', () => openOpsLink(context, report.driveUrl)),
         Wrap(
@@ -154,11 +154,13 @@ class _Body extends ConsumerWidget {
                 () => _act(context, ref, 'review'),
               ),
             if (report.status == 'review') ...[
-              OpsButton('Devolver', () => _act(context, ref, 'revise')),
+              OpsButton('Devolver', () => _act(context, ref, 'return-draft')),
               OpsButton('Aprobar', () => _act(context, ref, 'approve')),
             ],
             if (report.status == 'approved')
               OpsButton('Enviar', () => _act(context, ref, 'send')),
+            if (report.status == 'sent')
+              OpsButton('Nueva versión', () => _revise(context, ref)),
           ],
         ),
       ],
@@ -175,6 +177,7 @@ class _Body extends ConsumerWidget {
       context,
       title: 'Cuerpo del informe',
       label: 'Texto',
+      initial: report.bodyText,
       required: false,
     );
     if (text == null || !context.mounted) return;
@@ -194,20 +197,91 @@ class _Body extends ConsumerWidget {
       context,
       title: switch (action) {
         'review' => 'Enviar a revisión',
-        'revise' => 'Devolver a borrador',
+        'return-draft' => 'Devolver a borrador',
         'approve' => 'Aprobar informe',
         _ => 'Enviar informe',
       },
-      message: action == 'approve'
-          ? reportApproverNote(report.specialty)
-          : 'Se actualiza la versión del informe.',
+      message: switch (action) {
+        'approve' => reportApproverNote(report.specialty),
+        'return-draft' => 'Vuelve a borrador, en la misma versión.',
+        'review' => 'Pasa a revisión. Queda en la misma versión.',
+        'send' => 'Queda enviado y bloqueado. Un cambio abre otra versión.',
+        _ => 'Se actualiza el informe.',
+      },
       action: () => switch (action) {
         'review' => repo.submitReview(report.id),
-        'revise' => repo.revise(report.id),
+        'return-draft' => repo.returnToDraft(report.id),
         'approve' => repo.approve(report.id),
         _ => repo.send(report.id),
       },
     );
     if (ok) await _reload(ref);
   }
+
+  Future<void> _revise(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(reportsRepositoryProvider);
+    OpsReport? created;
+    final ok = await runOps(
+      context,
+      title: 'Nueva versión',
+      message: 'La versión enviada queda bloqueada. Se abre un borrador nuevo.',
+      action: () async {
+        created = await repo.revise(report.id);
+      },
+    );
+    if (!ok || !context.mounted || created == null) return;
+    ref.invalidate(opsReportsProvider);
+    context.go('/strom/informes/${created!.id}');
+  }
+}
+
+List<Widget> _reportNotes(OpsReport report) {
+  final notes = <Widget>[
+    if (report.bodyText.isNotEmpty)
+      OpsNote(report.bodyText)
+    else if (!report.hasSnapshot)
+      const OpsNote('Sin cuerpo.'),
+  ];
+  void section(String title, List<String> rows) {
+    if (rows.isEmpty) return;
+    notes
+      ..add(OpsNote(title))
+      ..add(OpsNote(rows.join('\n')));
+  }
+
+  section('Actividades validadas', [
+    for (final row in report.activities) _activityLine(row),
+  ]);
+  section('Pruebas realizadas', [
+    for (final row in report.testsPerformed) _testLine(row),
+  ]);
+  section('Evidencias', [
+    for (final row in report.evidences)
+      if (row.caption.isNotEmpty) row.caption else row.url,
+  ]);
+  section('Pendientes del cliente', [
+    for (final row in report.pendingClientWork) _pendingLine(row),
+  ]);
+  return notes;
+}
+
+String _activityLine(OpsReportActivity row) {
+  final name = row.title.isEmpty ? 'Actividad' : row.title;
+  return '$name · ${specialtyLabel(row.specialty)} · ${opsLabel(row.validationStatus, validationLabels)}';
+}
+
+String _testLine(OpsReportPerformedTest row) {
+  return [
+    if (row.result.isNotEmpty) opsLabel(row.result, executionLabels),
+    if (row.measurement.isNotEmpty) row.measurement,
+    if (row.observation.isNotEmpty) row.observation,
+  ].join(' · ');
+}
+
+String _pendingLine(OpsReportPendingWork row) {
+  return [
+    row.description,
+    if (row.status.isNotEmpty) opsLabel(row.status, obligationLabels),
+    if (row.responsible.isNotEmpty) row.responsible,
+  ].where((part) => part.isNotEmpty).join(' · ');
 }

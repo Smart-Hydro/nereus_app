@@ -44,7 +44,7 @@ class _StromAuditScreenState extends ConsumerState<StromAuditScreen> {
       itemBuilder: (context, item) => OpsTile(
         title: opsLabel(item.entityType, entityLabels),
         subtitle:
-            '${_valueLabel(item.fromValue)} → ${_valueLabel(item.toValue)}. ${item.reason}',
+            '${_valueLabel(item.fromValue, entity: item.entityType)} → ${_valueLabel(item.toValue, entity: item.entityType)}. ${item.reason}',
         status: item.occurredAt.length >= 16
             ? item.occurredAt.substring(0, 16)
             : item.occurredAt,
@@ -73,8 +73,9 @@ class StromTransitionScreen extends ConsumerWidget {
   }
 }
 
-String _valueLabel(String value) {
+String _valueLabel(String value, {String entity = ''}) {
   if (value.isEmpty) return '—';
+  if (entity == 'report') return reportStatusLabels[value] ?? value;
   for (final known in [
     projectStatusLabels,
     workOrderStatusLabels,
@@ -100,7 +101,7 @@ class _Body extends StatelessWidget {
       subtitle: row.occurredAt,
       children: [
         OpsNote(
-          'De ${row.fromValue.isEmpty ? '—' : _valueLabel(row.fromValue)} a ${_valueLabel(row.toValue)}\n'
+          'De ${row.fromValue.isEmpty ? '—' : _valueLabel(row.fromValue, entity: row.entityType)} a ${_valueLabel(row.toValue, entity: row.entityType)}\n'
           'Motivo: ${row.reason.isEmpty ? '—' : row.reason}\n'
           'Alcance: ${row.scopeVersion.isEmpty ? '—' : row.scopeVersion}\n'
           'Quién: ${row.actor.isEmpty ? '—' : row.actor}',

@@ -234,6 +234,89 @@ _LinkedPurchaseOrder _linkedPurchaseOrder(Map<String, dynamic> json) {
   );
 }
 
+class OpsReportActivity {
+  const OpsReportActivity({
+    this.title = '',
+    this.specialty = '',
+    this.executionStatus = '',
+    this.validationStatus = '',
+    this.validationNotes = '',
+  });
+
+  final String title;
+  final String specialty;
+  final String executionStatus;
+  final String validationStatus;
+  final String validationNotes;
+
+  factory OpsReportActivity.fromJson(Map<String, dynamic> json) {
+    final description = asString(json['description']);
+    return OpsReportActivity(
+      title: description.isNotEmpty
+          ? description
+          : asString(json['activity_type']),
+      specialty: asString(json['specialty']),
+      executionStatus: asString(json['execution_status']),
+      validationStatus: asString(json['validation_status']),
+      validationNotes: asString(json['validation_notes']),
+    );
+  }
+}
+
+class OpsReportPerformedTest {
+  const OpsReportPerformedTest({
+    this.result = '',
+    this.measurement = '',
+    this.observation = '',
+  });
+
+  final String result;
+  final String measurement;
+  final String observation;
+
+  factory OpsReportPerformedTest.fromJson(Map<String, dynamic> json) {
+    return OpsReportPerformedTest(
+      result: asString(json['result']),
+      measurement: asString(json['measurement']),
+      observation: asString(json['observation']),
+    );
+  }
+}
+
+class OpsReportEvidenceRow {
+  const OpsReportEvidenceRow({this.caption = '', this.url = ''});
+
+  final String caption;
+  final String url;
+
+  factory OpsReportEvidenceRow.fromJson(Map<String, dynamic> json) {
+    return OpsReportEvidenceRow(
+      caption: asString(json['caption']),
+      url: asString(json['url']),
+    );
+  }
+}
+
+class OpsReportPendingWork {
+  const OpsReportPendingWork({
+    this.description = '',
+    this.status = '',
+    this.responsible = '',
+  });
+
+  final String description;
+  final String status;
+  final String responsible;
+
+  factory OpsReportPendingWork.fromJson(Map<String, dynamic> json) {
+    return OpsReportPendingWork(
+      description: asString(json['description']),
+      status: asString(json['status']),
+      responsible: asString(json['responsible']),
+    );
+  }
+}
+
 class OpsReport {
   const OpsReport({
     required this.id,
@@ -243,6 +326,10 @@ class OpsReport {
     this.kind = 'project',
     this.specialty = '',
     this.bodyText = '',
+    this.activities = const [],
+    this.testsPerformed = const [],
+    this.evidences = const [],
+    this.pendingClientWork = const [],
     this.approvedAt = '',
     this.sentAt = '',
     this.driveUrl = '',
@@ -255,9 +342,19 @@ class OpsReport {
   final String kind;
   final String specialty;
   final String bodyText;
+  final List<OpsReportActivity> activities;
+  final List<OpsReportPerformedTest> testsPerformed;
+  final List<OpsReportEvidenceRow> evidences;
+  final List<OpsReportPendingWork> pendingClientWork;
   final String approvedAt;
   final String sentAt;
   final String driveUrl;
+
+  bool get hasSnapshot =>
+      activities.isNotEmpty ||
+      testsPerformed.isNotEmpty ||
+      evidences.isNotEmpty ||
+      pendingClientWork.isNotEmpty;
 
   factory OpsReport.fromJson(Map<String, dynamic> json) {
     return OpsReport(
@@ -268,6 +365,26 @@ class OpsReport {
       kind: asString(json['kind'], fallback: 'project'),
       specialty: asString(json['specialty']),
       bodyText: _body(json['body']),
+      activities: _reportRows(
+        json['body'],
+        'activities',
+        OpsReportActivity.fromJson,
+      ),
+      testsPerformed: _reportRows(
+        json['body'],
+        'tests_performed',
+        OpsReportPerformedTest.fromJson,
+      ),
+      evidences: _reportRows(
+        json['body'],
+        'evidences',
+        OpsReportEvidenceRow.fromJson,
+      ),
+      pendingClientWork: _reportRows(
+        json['body'],
+        'pending_client_work',
+        OpsReportPendingWork.fromJson,
+      ),
       approvedAt: asString(json['approved_at']),
       sentAt: asString(json['sent_at']),
       driveUrl: asString(json['drive_url']),
@@ -282,5 +399,14 @@ String _body(dynamic value) {
     final text = asString(value['text'] ?? value['body'] ?? value['resumen']);
     if (text.isNotEmpty) return text;
   }
-  return asString(value);
+  return '';
+}
+
+List<T> _reportRows<T>(
+  dynamic body,
+  String key,
+  T Function(Map<String, dynamic> json) parse,
+) {
+  final map = asMap(body);
+  return [for (final row in asMapList(map[key])) parse(row)];
 }
