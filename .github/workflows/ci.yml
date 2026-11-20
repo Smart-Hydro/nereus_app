@@ -5,11 +5,14 @@ on:
   push:
     branches: [main, dev, staging]
 
+permissions:
+  contents: read
+
 jobs:
   analyze-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.47.6"
@@ -30,7 +33,7 @@ jobs:
     needs: analyze-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.47.6"
@@ -44,7 +47,7 @@ jobs:
     needs: analyze-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.47.6"
