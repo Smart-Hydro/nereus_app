@@ -298,4 +298,3 @@ class KildeQuotesScreen extends ConsumerWidget {
     }
   }
 }
-

@@ -8,7 +8,7 @@ import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 
 void main() {
   test('indicadores leen el snapshot de la API', () {
-    final data = KildeIndicators.fromJson({
+    final data = KildeIndicators.fromJson(const {
       'prospects': {
         'contacted': 4,
         'with_requirement': 3,
@@ -36,7 +36,7 @@ void main() {
   });
 
   test('la próxima acción sale en la tarjeta del embudo', () {
-    final item = OpportunityItem.fromJson({
+    final item = OpportunityItem.fromJson(const {
       'id': '1',
       'title': 'Pozo Sur',
       'next_action': {'at': '2026-11-22T15:00:00Z', 'type': 'CALL'},
