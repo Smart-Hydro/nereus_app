@@ -4,23 +4,80 @@ import 'package:nereus_app/core/theme/tokens.dart';
 
 /// Etapas del flujo comercial Kilde. El API las siembra por sucursal;
 /// la app las crea por la misma API solo si el tablero está vacío.
-const defaultWaterStages = <({
-  String name,
-  int probability,
-  String color,
-  bool closed,
-  bool won,
-})>[
-  (name: 'Prospección', probability: 10, color: '#0F766E', closed: false, won: false),
-  (name: 'Captación', probability: 20, color: '#0284C7', closed: false, won: false),
-  (name: 'Levantamiento', probability: 35, color: '#0369A1', closed: false, won: false),
-  (name: 'Cotización', probability: 50, color: '#D97706', closed: false, won: false),
-  (name: 'Negociación/Cierre', probability: 70, color: '#C2410C', closed: false, won: false),
-  (name: 'Reunión técnico-comercial', probability: 85, color: '#7C3AED', closed: false, won: false),
-  (name: 'Reunión de programación', probability: 95, color: '#4F46E5', closed: false, won: false),
-  (name: 'Ganada', probability: 100, color: '#15803D', closed: true, won: true),
-  (name: 'Perdida', probability: 0, color: '#E11D48', closed: true, won: false),
-];
+const defaultWaterStages =
+    <
+      ({
+        String name,
+        int probability,
+        String color,
+        bool closed,
+        bool won,
+      })
+    >[
+      (
+        name: 'Prospección',
+        probability: 10,
+        color: '#0F766E',
+        closed: false,
+        won: false,
+      ),
+      (
+        name: 'Captación',
+        probability: 20,
+        color: '#0284C7',
+        closed: false,
+        won: false,
+      ),
+      (
+        name: 'Levantamiento',
+        probability: 35,
+        color: '#0369A1',
+        closed: false,
+        won: false,
+      ),
+      (
+        name: 'Cotización',
+        probability: 50,
+        color: '#D97706',
+        closed: false,
+        won: false,
+      ),
+      (
+        name: 'Negociación/Cierre',
+        probability: 70,
+        color: '#C2410C',
+        closed: false,
+        won: false,
+      ),
+      (
+        name: 'Reunión técnico-comercial',
+        probability: 85,
+        color: '#7C3AED',
+        closed: false,
+        won: false,
+      ),
+      (
+        name: 'Reunión de programación',
+        probability: 95,
+        color: '#4F46E5',
+        closed: false,
+        won: false,
+      ),
+      (
+        name: 'Ganada',
+        probability: 100,
+        color: '#15803D',
+        closed: true,
+        won: true,
+      ),
+      (
+        name: 'Perdida',
+        probability: 0,
+        color: '#E11D48',
+        closed: true,
+        won: false,
+      ),
+    ];
 
 const leadStatusLabels = <String, String>{
   'NEW': 'Nuevo',
@@ -233,27 +290,32 @@ class OpportunityItem {
       id: asString(json['id']),
       title: asString(json['title'], fallback: 'Oportunidad'),
       description: asStringOrNull(json['description'] ?? json['notes']),
-      stageId:
-          stage is Map ? asStringOrNull(stage['id']) : asStringOrNull(stage),
-      stageName: asStringOrNull(json['stage_name']) ??
+      stageId: stage is Map
+          ? asStringOrNull(stage['id'])
+          : asStringOrNull(stage),
+      stageName:
+          asStringOrNull(json['stage_name']) ??
           (stage is Map ? asStringOrNull(stage['name']) : null),
       clientId: client is Map
           ? asStringOrNull(client['id'])
           : asStringOrNull(client),
-      clientName: asStringOrNull(json['client_name']) ??
+      clientName:
+          asStringOrNull(json['client_name']) ??
           (client is Map ? asStringOrNull(client['name']) : null),
       leadId: lead is Map ? asStringOrNull(lead['id']) : asStringOrNull(lead),
-      leadName: asStringOrNull(json['lead_name']) ??
+      leadName:
+          asStringOrNull(json['lead_name']) ??
           (lead is Map ? asStringOrNull(lead['full_name']) : null),
       estimatedValue: asDoubleOrNull(json['estimated_value']) ?? 0,
       actualValue: asDoubleOrNull(json['actual_value']) ?? 0,
       weightedValue: asDoubleOrNull(json['weighted_value']) ?? 0,
       expectedCloseDate: asStringOrNull(json['expected_close_date']),
       closedAt: asDateTime(json['closed_at']),
-      assignedToName: asStringOrNull(json['assigned_to_name']) ??
+      assignedToName:
+          asStringOrNull(json['assigned_to_name']) ??
           (assigned is Map
               ? (asStringOrNull(assigned['full_name']) ??
-                  asStringOrNull(assigned['username']))
+                    asStringOrNull(assigned['username']))
               : null),
       nextActionAt: json['next_action'] is Map
           ? asStringOrNull((json['next_action'] as Map)['at'])
@@ -344,13 +406,15 @@ class LeadItem {
       sourceId: source is Map
           ? asStringOrNull(source['id'])
           : asStringOrNull(source),
-      sourceName: asStringOrNull(json['source_name']) ??
+      sourceName:
+          asStringOrNull(json['source_name']) ??
           (source is Map ? asStringOrNull(source['name']) : null),
       sourceDetail: asStringOrNull(json['source_detail']),
-      assignedToName: asStringOrNull(json['assigned_to_name']) ??
+      assignedToName:
+          asStringOrNull(json['assigned_to_name']) ??
           (assigned is Map
               ? (asStringOrNull(assigned['full_name']) ??
-                  asStringOrNull(assigned['username']))
+                    asStringOrNull(assigned['username']))
               : null),
       notes: asStringOrNull(json['notes']),
       convertedClientId: converted is Map
@@ -447,8 +511,9 @@ class ProposalItem {
     final srv = json['service'];
     return ProposalItem(
       id: asString(json['id']),
-      productId:
-          prod is Map ? asStringOrNull(prod['id']) : asStringOrNull(prod),
+      productId: prod is Map
+          ? asStringOrNull(prod['id'])
+          : asStringOrNull(prod),
       productName: asStringOrNull(json['product_name']),
       serviceId: srv is Map ? asStringOrNull(srv['id']) : asStringOrNull(srv),
       serviceName: asStringOrNull(json['service_name']),
@@ -636,7 +701,8 @@ class KildeMember {
     final agenda = json['today_agenda'];
     return KildeMember(
       userId: asString(json['user_id'], fallback: '—'),
-      name: asStringOrNull(json['name']) ??
+      name:
+          asStringOrNull(json['name']) ??
           asStringOrNull(json['username']) ??
           asStringOrNull(json['full_name']),
       openOpportunities: asInt(json['open_opportunities']),
@@ -685,9 +751,11 @@ class KildeRenewal {
     return KildeRenewal(
       id: asString(json['id']),
       title: asString(json['title'], fallback: 'Contrato'),
-      clientName: asStringOrNull(json['client_name']) ??
+      clientName:
+          asStringOrNull(json['client_name']) ??
           (client is Map ? asStringOrNull(client['name']) : null),
-      clientId: asStringOrNull(json['client_id']) ??
+      clientId:
+          asStringOrNull(json['client_id']) ??
           (client is Map ? asStringOrNull(client['id']) : null),
       endDate: asStringOrNull(json['end_date']),
       contractNumber: asStringOrNull(json['contract_number']),
@@ -739,6 +807,44 @@ class KildeRfi {
 }
 
 @immutable
+class QuoteLine {
+  const QuoteLine({
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  final String name;
+  final double quantity;
+  final double unitPrice;
+
+  double get total => quantity * unitPrice;
+}
+
+@immutable
+class QuoteDraft {
+  const QuoteDraft({
+    required this.clientId,
+    required this.clientName,
+    required this.glosa,
+    required this.quantity,
+    required this.unitPrice,
+    this.productId,
+    this.validUntil,
+  });
+
+  final String clientId;
+  final String clientName;
+  final String glosa;
+  final double quantity;
+  final double unitPrice;
+  final String? productId;
+  final String? validUntil;
+
+  double get total => quantity * unitPrice;
+}
+
+@immutable
 class KildeQuote {
   const KildeQuote({
     required this.id,
@@ -759,6 +865,9 @@ class KildeQuote {
     this.poReceivedOn,
     this.poNet,
     this.poFile,
+    this.clientName,
+    this.observation,
+    this.lines = const [],
   });
 
   final String id;
@@ -779,6 +888,9 @@ class KildeQuote {
   final String? poReceivedOn;
   final double? poNet;
   final String? poFile;
+  final String? clientName;
+  final String? observation;
+  final List<QuoteLine> lines;
 
   bool get acceptedWithPo =>
       status == 'accepted' &&
@@ -789,13 +901,17 @@ class KildeQuote {
   factory KildeQuote.fromJson(Map<String, dynamic> json) {
     final opportunity = json['opportunity'];
     final parent = json['parent_quotation'];
+    final client = json['client'];
+    final lines = _quoteLines(json['products']);
+    final parsedTotal = asDoubleOrNull(json['total_amount']) ?? 0;
+    final lineTotal = lines.fold<double>(0, (sum, line) => sum + line.total);
     return KildeQuote(
       id: asString(json['id']),
       number: asString(json['order_number'], fallback: 'Cotización'),
       status: asString(json['kilde_quote_status']),
       discountStatus: asString(json['discount_approval_status']),
       poNumber: asStringOrNull(json['client_po_number']),
-      total: asDoubleOrNull(json['total_amount']) ?? 0,
+      total: parsedTotal == 0 && lineTotal > 0 ? lineTotal : parsedTotal,
       version: asInt(json['version']) == 0 ? 1 : asInt(json['version']),
       validUntil: asStringOrNull(json['valid_until']),
       objection: asStringOrNull(json['objection']),
@@ -805,13 +921,39 @@ class KildeQuote {
       opportunityId: opportunity is Map
           ? asStringOrNull(opportunity['id'])
           : asStringOrNull(opportunity),
-      parentId: parent is Map ? asStringOrNull(parent['id']) : asStringOrNull(parent),
+      parentId: parent is Map
+          ? asStringOrNull(parent['id'])
+          : asStringOrNull(parent),
       immutable: json['is_immutable'] == true,
       poReceivedOn: asStringOrNull(json['client_po_received_on']),
       poNet: asDoubleOrNull(json['client_po_net_amount']),
       poFile: asStringOrNull(json['client_po_file']),
+      clientName: client is Map
+          ? asStringOrNull(client['name'])
+          : asStringOrNull(json['client_name']),
+      observation: asStringOrNull(json['observation']),
+      lines: lines,
     );
   }
+}
+
+List<QuoteLine> _quoteLines(Object? raw) {
+  if (raw is! List) return const [];
+  final lines = <QuoteLine>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    lines.add(
+      QuoteLine(
+        name: asString(
+          item['product_name'] ?? item['name'] ?? item['notes'],
+          fallback: 'Ítem',
+        ),
+        quantity: asDoubleOrNull(item['quantity']) ?? 1,
+        unitPrice: asDoubleOrNull(item['unit_price']) ?? 0,
+      ),
+    );
+  }
+  return lines;
 }
 
 @immutable

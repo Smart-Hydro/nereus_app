@@ -152,9 +152,15 @@ class CrmRepository {
     }
   }
 
-  Future<void> setLeadStatus({required String id, required String status}) async {
+  Future<void> setLeadStatus({
+    required String id,
+    required String status,
+  }) async {
     try {
-      await _dio.patch<dynamic>('/api/crm/leads/$id/', data: {'status': status});
+      await _dio.patch<dynamic>(
+        '/api/crm/leads/$id/',
+        data: {'status': status},
+      );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }
@@ -177,7 +183,9 @@ class CrmRepository {
         '/api/crm/opportunity-stages/',
         queryParameters: {'page_size': 100, 'ordering': 'order'},
       );
-      return asResults(response.data).map(OpportunityStageItem.fromJson).toList()
+      return asResults(response.data)
+          .map(OpportunityStageItem.fromJson)
+          .toList()
         ..sort((a, b) => a.order.compareTo(b.order));
     } on Object catch (error, stack) {
       _rethrow(error, stack);
@@ -322,8 +330,9 @@ class CrmRepository {
           if (estimatedValue != null) 'estimated_value': estimatedValue,
           if (actualValue != null) 'actual_value': actualValue,
           if (expectedCloseDate != null)
-            'expected_close_date':
-                expectedCloseDate.isEmpty ? null : expectedCloseDate,
+            'expected_close_date': expectedCloseDate.isEmpty
+                ? null
+                : expectedCloseDate,
         },
       );
       return OpportunityItem.fromJson(response.data ?? {});
@@ -682,7 +691,11 @@ class CrmRepository {
     }
   }
 
-  Future<void> quoteAction(String id, String action, [Map<String, dynamic>? body]) async {
+  Future<void> quoteAction(
+    String id,
+    String action, [
+    Map<String, dynamic>? body,
+  ]) async {
     try {
       await _dio.post<dynamic>(
         '/api/sales/quotations/$id/$action/',
@@ -691,6 +704,69 @@ class CrmRepository {
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }
+  }
+
+  Future<KildeQuote> quotation(String id) async {
+    try {
+      final response = await _dio.get<dynamic>('/api/sales/quotations/$id/');
+      return KildeQuote.fromJson(_quoteMap(response.data));
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<KildeQuote> createQuotation(QuoteDraft draft) async {
+    try {
+      final clientId = int.tryParse(draft.clientId);
+      final productId = int.tryParse(draft.productId ?? '');
+      final response = await _dio.post<dynamic>(
+        '/api/sales/quotations/',
+        data: {
+          if (clientId != null) 'client_id': clientId,
+          'observation': draft.glosa,
+          if ((draft.validUntil ?? '').isNotEmpty)
+            'valid_until': draft.validUntil,
+          'order_type': 'SALE',
+          'status': 'DRAFT',
+          if (productId != null)
+            'items': [
+              {
+                'product': productId,
+                'quantity': draft.quantity.round().clamp(1, 1000000),
+                'unit_price': draft.unitPrice,
+                'notes': draft.glosa,
+              },
+            ],
+        },
+      );
+      return KildeQuote.fromJson(_quoteMap(response.data));
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<int>> quotationPdf(String id) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        '/api/sales/quotations/$id/generate-pdf/',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) {
+        throw const ApiError(message: 'El PDF de la cotización vino vacío.');
+      }
+      return bytes;
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Map<String, dynamic> _quoteMap(Object? data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    throw const ApiError(
+      message: 'La cotización no volvió en el formato esperado.',
+    );
   }
 
   Future<List<LostReasonItem>> lostReasons() async {

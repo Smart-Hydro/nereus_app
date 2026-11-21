@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/features/crm/data/crm_repository.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
+import 'package:nereus_app/features/crm/domain/quote_share.dart';
 
 class FixtureCrmRepository extends CrmRepository {
   FixtureCrmRepository() : super(dio: Dio());
@@ -753,6 +757,16 @@ class FixtureCrmRepository extends CrmRepository {
       version: 2,
       validUntil: '2026-12-15',
       opportunityId: 'opp-1',
+      clientName: 'APR Valle del Itata',
+      observation: 'Telemetría de pozo y puesta en marcha.',
+      lines: [
+        QuoteLine(
+          name: 'Datalogger de pozo',
+          quantity: 2,
+          unitPrice: 9800000,
+        ),
+        QuoteLine(name: 'Puesta en marcha', quantity: 1, unitPrice: 9000000),
+      ],
     ),
     const KildeQuote(
       id: 'q-1051',
@@ -763,6 +777,11 @@ class FixtureCrmRepository extends CrmRepository {
       version: 1,
       validUntil: '2026-11-30',
       opportunityId: 'opp-2',
+      clientName: 'Viña Lonquén',
+      observation: 'Caudalímetro y tablero.',
+      lines: [
+        QuoteLine(name: 'Caudalímetro', quantity: 1, unitPrice: 9600000),
+      ],
     ),
     const KildeQuote(
       id: 'q-1033',
@@ -1101,6 +1120,40 @@ class FixtureCrmRepository extends CrmRepository {
   Future<List<KildeQuote>> quotations() async => List.unmodifiable(_quotes);
 
   @override
+  Future<KildeQuote> quotation(String id) async {
+    for (final row in _quotes) {
+      if (row.id == id) return row;
+    }
+    throw const ApiError(message: 'No encontramos esta cotización.');
+  }
+
+  @override
+  Future<KildeQuote> createQuotation(QuoteDraft draft) async {
+    final quote = KildeQuote(
+      id: 'q-${++_seq}',
+      number: 'COT-$_seq · ${draft.clientName}',
+      clientName: draft.clientName,
+      observation: draft.glosa,
+      total: draft.total,
+      validUntil: draft.validUntil,
+      lines: [
+        QuoteLine(
+          name: draft.glosa,
+          quantity: draft.quantity,
+          unitPrice: draft.unitPrice,
+        ),
+      ],
+    );
+    _quotes.insert(0, quote);
+    return quote;
+  }
+
+  @override
+  Future<List<int>> quotationPdf(String id) async {
+    return utf8.encode(quoteDocument(await quotation(id)));
+  }
+
+  @override
   Future<void> quoteAction(
     String id,
     String action, [
@@ -1241,6 +1294,9 @@ class FixtureCrmRepository extends CrmRepository {
       poReceivedOn: poReceivedOn ?? current.poReceivedOn,
       poNet: poNet ?? current.poNet,
       poFile: poFile ?? current.poFile,
+      clientName: current.clientName,
+      observation: current.observation,
+      lines: current.lines,
     );
   }
 

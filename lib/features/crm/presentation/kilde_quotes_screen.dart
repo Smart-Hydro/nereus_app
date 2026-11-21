@@ -1,15 +1,17 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nereus_app/core/config/app_config.dart';
 import 'package:nereus_app/core/network/api_error.dart';
-import 'package:nereus_app/core/theme/tokens.dart';
+import 'package:nereus_app/core/providers.dart';
 import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
-import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
+import 'package:nereus_app/features/crm/presentation/quote_create_dialog.dart';
+import 'package:nereus_app/features/crm/presentation/quote_seller_card.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 
@@ -22,22 +24,32 @@ class KildeQuotesScreen extends ConsumerWidget {
     final rows = snap.value ?? const <KildeQuote>[];
     final rfis = ref.watch(kildeRfisProvider).value ?? const <KildeRfi>[];
     final role = ref.watch(sessionProvider).value?.currentBranch?.roleCode;
+    final demo = ref.watch(dataModeProvider) == NereusDataMode.fixture;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
         children: [
-          const PageHeader(
+          PageHeader(
             kicker: 'Kilde',
             title: 'Cotizaciones',
-            subtitle: 'Envío, descuento del líder y orden de compra',
+            subtitle: 'Crea la cotización y comparte el enlace público.',
+            actions: [
+              FilledButton(
+                onPressed: () => showQuoteCreateDialog(context, ref),
+                child: const Text('Nueva cotización'),
+              ),
+            ],
           ),
           Expanded(
             child: AsyncBody(
               isLoading: snap.isLoading,
               hasError: snap.hasError,
               isEmpty: rows.isEmpty && !snap.isLoading && !snap.hasError,
-              emptyMessage: 'No hay cotizaciones.',
-              errorMessage: userFacingErrorMessage(snap.error ?? 'Error'),
+              emptyMessage:
+                  'No hay cotizaciones. Crea la primera con Nueva cotización.',
+              errorMessage: snap.hasError
+                  ? userFacingErrorMessage(snap.error ?? 'Error')
+                  : 'No pudimos cargar las cotizaciones.',
               isNetworkError: isNetworkFailure(snap.error ?? 'Error'),
               onRetry: () => ref.invalidate(kildeQuotesProvider),
               child: ListView.separated(
@@ -58,176 +70,22 @@ class KildeQuotesScreen extends ConsumerWidget {
                     discountStatus: row.discountStatus,
                     blockingRfiOpen: blocking,
                   );
-                  final pending = row.discountStatus == 'pending';
-                  final ink = NereusTokens.text(context);
-                  return Card(
-                    color: NereusTokens.panel(context),
-                    elevation: 0,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: NereusTokens.hairline(context)),
+                  return QuoteSellerCard(
+                    quote: row,
+                    demo: demo,
+                    roleCode: role,
+                    sendBlocked: sendBlocked,
+                    blocking: blocking,
+                    onAction: (action) => _run(context, ref, row.id, action),
+                    onText: (action, label, field) => _textAction(
+                      context,
+                      ref,
+                      row.id,
+                      action,
+                      label,
+                      field,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            row.number,
-                            style: TextStyle(
-                              color: ink,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            [
-                              'v${row.version}',
-                              if (row.status.isNotEmpty)
-                                quoteStatusLabel(row.status),
-                              clp(row.total),
-                              if (row.validUntil != null)
-                                'vigente hasta ${row.validUntil}',
-                              if (pending) 'pendiente del Líder',
-                              if (row.discountStatus == 'approved')
-                                'descuento aprobado',
-                              if (row.discountStatus == 'rejected')
-                                'descuento rechazado',
-                              if (row.receptionConfirmed)
-                                'recepción confirmada',
-                              if (row.responseOn != null)
-                                'respuesta ${row.responseOn}',
-                              if (row.poNumber != null) 'OC ${row.poNumber}',
-                            ].join(' · '),
-                            style: TextStyle(
-                              color: ink,
-                              fontSize: 13.5,
-                              height: 1.4,
-                            ),
-                          ),
-                          if ((row.objection ?? '').isNotEmpty)
-                            Text(
-                              'Objeción: ${row.objection}',
-                              style: TextStyle(
-                                color: ink,
-                                fontSize: 13.5,
-                              ),
-                            ),
-                          if ((row.rejectionReason ?? '').isNotEmpty)
-                            Text(
-                              'Rechazo: ${row.rejectionReason}',
-                              style: TextStyle(
-                                color: ink,
-                                fontSize: 13.5,
-                              ),
-                            ),
-                          if (row.parentId != null)
-                            Text(
-                              'Versión anterior: ${row.parentId}',
-                              style: TextStyle(
-                                color: ink,
-                                fontSize: 13.5,
-                              ),
-                            ),
-                          if (blocking)
-                            Text(
-                              'RFI bloqueante abierta: no se puede enviar.',
-                              style: TextStyle(
-                                color: ink,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              OutlinedButton(
-                                onPressed: sendBlocked || row.immutable
-                                    ? null
-                                    : () => _run(context, ref, row.id, 'send'),
-                                child: const Text('Enviar'),
-                              ),
-                              OutlinedButton(
-                                onPressed: row.immutable
-                                    ? null
-                                    : () => _run(
-                                        context,
-                                        ref,
-                                        row.id,
-                                        'confirm_reception',
-                                      ),
-                                child: const Text('Recepción'),
-                              ),
-                              OutlinedButton(
-                                onPressed: sendBlocked || row.immutable
-                                    ? null
-                                    : () =>
-                                          _run(context, ref, row.id, 'accept'),
-                                child: const Text('Aceptar'),
-                              ),
-                              OutlinedButton(
-                                onPressed: row.immutable
-                                    ? null
-                                    : () => _textAction(
-                                        context,
-                                        ref,
-                                        row.id,
-                                        'object',
-                                        'Objeción',
-                                        'objection',
-                                      ),
-                                child: const Text('Objetar'),
-                              ),
-                              OutlinedButton(
-                                onPressed: row.immutable
-                                    ? null
-                                    : () => _textAction(
-                                        context,
-                                        ref,
-                                        row.id,
-                                        'reject',
-                                        'Motivo de rechazo',
-                                        'rejection_reason',
-                                      ),
-                                child: const Text('Rechazar'),
-                              ),
-                              if (showDiscountDecision(
-                                roleCode: role,
-                                discountStatus: row.discountStatus,
-                              )) ...[
-                                OutlinedButton(
-                                  onPressed: () => _run(
-                                    context,
-                                    ref,
-                                    row.id,
-                                    'approve_discount',
-                                  ),
-                                  child: const Text('Aprobar descuento'),
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => _run(
-                                    context,
-                                    ref,
-                                    row.id,
-                                    'reject_discount',
-                                  ),
-                                  child: const Text('Rechazar descuento'),
-                                ),
-                              ],
-                              OutlinedButton(
-                                onPressed: row.immutable
-                                    ? null
-                                    : () => _po(context, ref, row.id),
-                                child: const Text('Registrar OC'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    onPo: () => _po(context, ref, row.id),
                   );
                 },
               ),

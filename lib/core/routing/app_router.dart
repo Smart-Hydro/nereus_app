@@ -9,6 +9,7 @@ import 'package:nereus_app/features/auth/presentation/reset_password_screen.dart
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/catalog/presentation/catalog_screen.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_screens.dart';
+import 'package:nereus_app/features/crm/presentation/cotizacion_public_screen.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_quotes_screen.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_screen.dart';
 import 'package:nereus_app/features/crm/presentation/pipeline_screen.dart';
@@ -72,9 +73,10 @@ GoRouter appRouter(Ref ref) {
       final session = ref.read(sessionProvider).value;
       final loc = state.matchedLocation;
       final isReset = loc.startsWith('/reset-password');
-      final isPublicSurvey = loc.startsWith('/encuesta');
+      final isPublicLink =
+          loc.startsWith('/encuesta') || loc.startsWith('/cotizacion');
       final loggingIn = loc == '/login' || loc == '/forgot-password';
-      if (session == null || isPublicSurvey) return null;
+      if (session == null || isPublicLink) return null;
       if (isReset) return null;
       if (!session.isAuthenticated) {
         return loggingIn ? null : '/login';
@@ -104,6 +106,13 @@ GoRouter appRouter(Ref ref) {
         path: '/encuesta/:slug',
         builder: (context, state) => EncuestaPublicScreen(
           slug: state.pathParameters['slug'] ?? '',
+          demo: state.uri.queryParameters['demo'] == '1',
+        ),
+      ),
+      GoRoute(
+        path: '/cotizacion/:id',
+        builder: (context, state) => CotizacionPublicScreen(
+          id: state.pathParameters['id'] ?? '',
           demo: state.uri.queryParameters['demo'] == '1',
         ),
       ),
