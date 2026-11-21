@@ -52,11 +52,25 @@ abstract class LevantamientoRepository {
     String? description,
   });
 
+  Future<LevantamientoTemplate> saveTemplate({
+    required String id,
+    required String name,
+    required List<LevantamientoQuestion> questions,
+  });
+
   Future<List<Levantamiento>> list();
 
   Future<Levantamiento> retrieve(String id);
 
+  Future<Levantamiento> bySlug(String slug);
+
   Future<Levantamiento> publish({
+    required String title,
+    required List<LevantamientoQuestion> questions,
+  });
+
+  Future<Levantamiento> save({
+    required String id,
     required String title,
     required List<LevantamientoQuestion> questions,
   });
@@ -65,6 +79,11 @@ abstract class LevantamientoRepository {
     required String surveyId,
     required Map<String, Object?> answers,
     String? clientId,
+  });
+
+  Future<void> respondPublic({
+    required String slug,
+    required Map<String, Object?> answers,
   });
 
   Future<List<LevantamientoRespuesta>> responses({

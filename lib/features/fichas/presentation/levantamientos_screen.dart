@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nereus_app/core/config/app_config.dart';
 import 'package:nereus_app/core/providers.dart';
 import 'package:nereus_app/core/theme/glass.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
@@ -9,6 +10,7 @@ import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/fichas/domain/ficha_models.dart';
 import 'package:nereus_app/features/fichas/presentation/ficha_ui.dart';
+import 'package:nereus_app/features/fichas/presentation/levantamiento_share_card.dart';
 import 'package:nereus_app/features/fichas/providers/fichas_provider.dart';
 
 class LevantamientosScreen extends ConsumerWidget {
@@ -19,6 +21,7 @@ class LevantamientosScreen extends ConsumerWidget {
     final templates = ref.watch(levantamientoTemplatesProvider);
     final published = ref.watch(levantamientosProvider);
     final text = Theme.of(context).textTheme;
+    final demo = ref.watch(dataModeProvider) == NereusDataMode.fixture;
     final plantillas = templates.value ?? const <LevantamientoTemplate>[];
     final listos = published.value ?? const <Levantamiento>[];
 
@@ -137,10 +140,25 @@ class LevantamientosScreen extends ConsumerWidget {
                                   style: text.bodyMedium,
                                 ),
                                 const SizedBox(height: 14),
-                                FilledButton(
-                                  onPressed: () =>
-                                      _usarPlantilla(context, ref, template),
-                                  child: const Text('Usar en terreno'),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    FilledButton(
+                                      onPressed: () => _usarPlantilla(
+                                        context,
+                                        ref,
+                                        template,
+                                      ),
+                                      child: const Text('Usar en terreno'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () => context.go(
+                                        '/levantamientos/plantilla/${template.id}/editar',
+                                      ),
+                                      child: const Text('Editar'),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -148,12 +166,17 @@ class LevantamientosScreen extends ConsumerWidget {
                       ],
                     ),
                   const SizedBox(height: 24),
-                  Text('Listos para completar', style: text.titleLarge),
+                  Text('Enlaces para compartir', style: text.titleLarge),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Copia el enlace, abre la vista previa o edita las preguntas.',
+                    style: text.bodyMedium,
+                  ),
                   const SizedBox(height: 12),
                   if (listos.isEmpty)
                     const GlassCard(
                       child: Text(
-                        'Cuando publiques una plantilla, aparece acá para llenarla con el cliente.',
+                        'Cuando publiques una plantilla, aparece acá el enlace público.',
                       ),
                     )
                   else
@@ -161,36 +184,7 @@ class LevantamientosScreen extends ConsumerWidget {
                       maxColumns: 2,
                       children: [
                         for (final item in listos)
-                          GlassCard(
-                            onTap: () =>
-                                context.go('/levantamientos/fill/${item.id}'),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(item.title, style: text.titleMedium),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${item.questions.length} pregunta${item.questions.length == 1 ? '' : 's'}',
-                                        style: text.bodyMedium,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                StatusChip(
-                                  label: levantamientoEstado(item.status),
-                                  tone: item.isActive
-                                      ? NereusTokens.emerald
-                                      : NereusTokens.inkMuted,
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.chevron_right, size: 18),
-                              ],
-                            ),
-                          ),
+                          LevantamientoShareCard(item: item, demo: demo),
                       ],
                     ),
                 ],

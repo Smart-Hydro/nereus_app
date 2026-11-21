@@ -28,7 +28,9 @@ class YggdraLevantamientoRepository implements LevantamientoRepository {
         '/api/surveys/templates/',
         queryParameters: {'page_size': 100},
       );
-      return asResults(response.data).map(LevantamientoTemplate.fromJson).toList();
+      return asResults(response.data)
+          .map(LevantamientoTemplate.fromJson)
+          .toList();
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }
@@ -47,6 +49,26 @@ class YggdraLevantamientoRepository implements LevantamientoRepository {
           'name': name,
           'description': description,
           'survey_type': 'CUSTOM',
+          'questions': [for (final question in questions) question.toJson()],
+        },
+      );
+      return LevantamientoTemplate.fromJson(response.data ?? {});
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  @override
+  Future<LevantamientoTemplate> saveTemplate({
+    required String id,
+    required String name,
+    required List<LevantamientoQuestion> questions,
+  }) async {
+    try {
+      final response = await _dio.patch<Map<String, dynamic>>(
+        '/api/surveys/templates/$id/',
+        data: {
+          'name': name,
           'questions': [for (final question in questions) question.toJson()],
         },
       );
@@ -82,6 +104,18 @@ class YggdraLevantamientoRepository implements LevantamientoRepository {
   }
 
   @override
+  Future<Levantamiento> bySlug(String slug) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/surveys/public/$slug/',
+      );
+      return Levantamiento.fromJson(response.data ?? {});
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  @override
   Future<Levantamiento> publish({
     required String title,
     required List<LevantamientoQuestion> questions,
@@ -94,6 +128,26 @@ class YggdraLevantamientoRepository implements LevantamientoRepository {
           'survey_type': 'CUSTOM',
           'status': 'ACTIVE',
           'slug': _slug(title),
+          'questions': [for (final question in questions) question.toJson()],
+        },
+      );
+      return Levantamiento.fromJson(response.data ?? {});
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  @override
+  Future<Levantamiento> save({
+    required String id,
+    required String title,
+    required List<LevantamientoQuestion> questions,
+  }) async {
+    try {
+      final response = await _dio.patch<Map<String, dynamic>>(
+        '/api/surveys/surveys/$id/',
+        data: {
+          'title': title,
           'questions': [for (final question in questions) question.toJson()],
         },
       );
@@ -141,6 +195,21 @@ class YggdraLevantamientoRepository implements LevantamientoRepository {
       return asResults(response.data)
           .map(LevantamientoRespuesta.fromJson)
           .toList();
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  @override
+  Future<void> respondPublic({
+    required String slug,
+    required Map<String, Object?> answers,
+  }) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/api/surveys/public/$slug/respond/',
+        data: {'answers': answers, 'channel': 'web'},
+      );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }

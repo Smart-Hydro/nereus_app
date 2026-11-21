@@ -92,6 +92,7 @@ void main() {
 
   test('slugify strips punctuation and edges', () {
     expect(slugify('Ficha de tenencias'), 'ficha-de-tenencias');
+    expect(slugify('Levantamiento de captación'), 'levantamiento-de-captacion');
     expect(slugify('  --Hola--  '), 'hola');
   });
 }

@@ -35,6 +35,21 @@ class FixtureLevantamientoRepository implements LevantamientoRepository {
   }
 
   @override
+  Future<LevantamientoTemplate> saveTemplate({
+    required String id,
+    required String name,
+    required List<LevantamientoQuestion> questions,
+  }) async {
+    final row = _store.templates[id];
+    if (row == null) {
+      throw StateError('Plantilla no encontrada');
+    }
+    row['name'] = name;
+    row['questions'] = [for (final question in questions) question.toJson()];
+    return LevantamientoTemplate.fromJson(row);
+  }
+
+  @override
   Future<List<Levantamiento>> list() async {
     return [
       for (final row in _store.surveys.values) Levantamiento.fromJson(row),
@@ -48,6 +63,14 @@ class FixtureLevantamientoRepository implements LevantamientoRepository {
       throw StateError('Levantamiento no encontrado');
     }
     return Levantamiento.fromJson(row);
+  }
+
+  @override
+  Future<Levantamiento> bySlug(String slug) async {
+    for (final row in _store.surveys.values) {
+      if (row['slug'] == slug) return Levantamiento.fromJson(row);
+    }
+    throw StateError('Enlace no encontrado');
   }
 
   @override
@@ -70,6 +93,21 @@ class FixtureLevantamientoRepository implements LevantamientoRepository {
   }
 
   @override
+  Future<Levantamiento> save({
+    required String id,
+    required String title,
+    required List<LevantamientoQuestion> questions,
+  }) async {
+    final row = _store.surveys[id];
+    if (row == null) {
+      throw StateError('Levantamiento no encontrado');
+    }
+    row['title'] = title;
+    row['questions'] = [for (final question in questions) question.toJson()];
+    return Levantamiento.fromJson(row);
+  }
+
+  @override
   Future<LevantamientoRespuesta> submit({
     required String surveyId,
     required Map<String, Object?> answers,
@@ -85,6 +123,15 @@ class FixtureLevantamientoRepository implements LevantamientoRepository {
     };
     _store.responses[id] = row;
     return LevantamientoRespuesta.fromJson(row);
+  }
+
+  @override
+  Future<void> respondPublic({
+    required String slug,
+    required Map<String, Object?> answers,
+  }) async {
+    final survey = await bySlug(slug);
+    await submit(surveyId: survey.id, answers: answers);
   }
 
   @override

@@ -181,12 +181,12 @@ class LevantamientoQuestion {
   final List<String> options;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'label': label,
-        'required': required,
-        if (options.isNotEmpty) 'options': options,
-      };
+    'id': id,
+    'type': type.name,
+    'label': label,
+    'required': required,
+    if (options.isNotEmpty) 'options': options,
+  };
 
   factory LevantamientoQuestion.fromJson(Map<String, dynamic> json) {
     final rawType = asString(json['type'], fallback: 'text').toLowerCase();
@@ -195,13 +195,20 @@ class LevantamientoQuestion {
       label: asString(json['label']),
       type: _parseQuestionType(rawType),
       required: json['required'] == true,
-      options: [
-        if (json['options'] is List)
-          for (final item in json['options'] as List)
-            if (item is String) item,
-      ],
+      options: _questionOptions(json['options']),
     );
   }
+}
+
+List<String> _questionOptions(dynamic raw) {
+  if (raw is! List) return const [];
+  return [
+    for (final item in raw)
+      if (item is String)
+        item
+      else if (item is Map)
+        asString(item['label'] ?? item['value']),
+  ].where((value) => value.isNotEmpty).toList();
 }
 
 LevantamientoQuestionType _parseQuestionType(String rawType) {
@@ -289,9 +296,7 @@ class LevantamientoRespuesta {
       id: asString(json['id']),
       surveyId: asString(json['survey']),
       clientId: asStringOrNull(json['client']),
-      answers: raw is Map
-          ? Map<String, Object?>.from(raw)
-          : const {},
+      answers: raw is Map ? Map<String, Object?>.from(raw) : const {},
       createdAt: asDateTime(json['created'] ?? json['created_at']),
     );
   }

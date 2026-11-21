@@ -63,8 +63,22 @@ bool isBlank(Object? value) {
 }
 
 String slugify(String title) {
-  return title
-      .toLowerCase()
+  const fold = {
+    'á': 'a',
+    'é': 'e',
+    'í': 'i',
+    'ó': 'o',
+    'ú': 'u',
+    'ü': 'u',
+    'ñ': 'n',
+  };
+  final buffer = StringBuffer();
+  for (final rune in title.toLowerCase().runes) {
+    final char = String.fromCharCode(rune);
+    buffer.write(fold[char] ?? char);
+  }
+  return buffer
+      .toString()
       .replaceAll(RegExp('[^a-z0-9]+'), '-')
       .replaceAll(RegExp(r'^-+|-+$'), '');
 }

@@ -17,6 +17,8 @@ import 'package:nereus_app/features/customers/presentation/clients_screen.dart';
 import 'package:nereus_app/features/fichas/presentation/client_360_screen.dart';
 import 'package:nereus_app/features/fichas/presentation/ficha_admin_screen.dart';
 import 'package:nereus_app/features/fichas/presentation/fichas_screen.dart';
+import 'package:nereus_app/features/fichas/presentation/encuesta_public_screen.dart';
+import 'package:nereus_app/features/fichas/presentation/levantamiento_edit_screen.dart';
 import 'package:nereus_app/features/fichas/presentation/levantamiento_fill_screen.dart';
 import 'package:nereus_app/features/fichas/presentation/levantamientos_screen.dart';
 import 'package:nereus_app/features/devices/presentation/device_detail_screen.dart';
@@ -70,8 +72,9 @@ GoRouter appRouter(Ref ref) {
       final session = ref.read(sessionProvider).value;
       final loc = state.matchedLocation;
       final isReset = loc.startsWith('/reset-password');
+      final isPublicSurvey = loc.startsWith('/encuesta');
       final loggingIn = loc == '/login' || loc == '/forgot-password';
-      if (session == null) return null;
+      if (session == null || isPublicSurvey) return null;
       if (isReset) return null;
       if (!session.isAuthenticated) {
         return loggingIn ? null : '/login';
@@ -97,6 +100,13 @@ GoRouter appRouter(Ref ref) {
         ),
       ),
       GoRoute(path: '/branch', builder: (_, __) => const BranchPickerScreen()),
+      GoRoute(
+        path: '/encuesta/:slug',
+        builder: (context, state) => EncuestaPublicScreen(
+          slug: state.pathParameters['slug'] ?? '',
+          demo: state.uri.queryParameters['demo'] == '1',
+        ),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return HomeShell(navigationShell: navigationShell);
@@ -106,12 +116,18 @@ GoRouter appRouter(Ref ref) {
             routes: [
               GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
               GoRoute(path: '/tour', builder: (_, __) => const TourScreen()),
-              GoRoute(path: '/alerts', builder: (_, __) => const AlertsScreen()),
+              GoRoute(
+                path: '/alerts',
+                builder: (_, __) => const AlertsScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/catalog', builder: (_, __) => const CatalogScreen()),
+              GoRoute(
+                path: '/catalog',
+                builder: (_, __) => const CatalogScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
@@ -178,7 +194,10 @@ GoRouter appRouter(Ref ref) {
                   ),
                 ],
               ),
-              GoRoute(path: '/fichas', builder: (_, __) => const FichasScreen()),
+              GoRoute(
+                path: '/fichas',
+                builder: (_, __) => const FichasScreen(),
+              ),
               GoRoute(
                 path: '/fichas/admin',
                 builder: (_, __) => const FichaAdminScreen(),
@@ -194,13 +213,29 @@ GoRouter appRouter(Ref ref) {
                       clientId: state.uri.queryParameters['client'],
                     ),
                   ),
+                  GoRoute(
+                    path: 'editar/:id',
+                    builder: (context, state) => LevantamientoEditScreen.survey(
+                      surveyId: state.pathParameters['id'] ?? '',
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'plantilla/:id/editar',
+                    builder: (context, state) =>
+                        LevantamientoEditScreen.template(
+                          templateId: state.pathParameters['id'] ?? '',
+                        ),
+                  ),
                 ],
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/points', builder: (_, __) => const PointsScreen()),
+              GoRoute(
+                path: '/points',
+                builder: (_, __) => const PointsScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
@@ -261,17 +296,24 @@ GoRouter appRouter(Ref ref) {
                     path: '/strom',
                     builder: (_, __) => const StromProjectsScreen(),
                     routes: [
-                      GoRoute(path: 'dev', builder: (_, __) => const StromDevScreen()),
-                      GoRoute(path: 'nuevo', builder: (_, __) => const StromProjectCreateScreen()),
+                      GoRoute(
+                        path: 'dev',
+                        builder: (_, __) => const StromDevScreen(),
+                      ),
+                      GoRoute(
+                        path: 'nuevo',
+                        builder: (_, __) => const StromProjectCreateScreen(),
+                      ),
                       GoRoute(
                         path: 'instalaciones',
                         builder: (_, __) => const StromInstallationsScreen(),
                         routes: [
                           GoRoute(
                             path: ':id',
-                            builder: (context, state) => StromInstallationScreen(
-                              installationId: state.pathParameters['id']!,
-                            ),
+                            builder: (context, state) =>
+                                StromInstallationScreen(
+                                  installationId: state.pathParameters['id']!,
+                                ),
                           ),
                         ],
                       ),
@@ -317,8 +359,14 @@ GoRouter appRouter(Ref ref) {
                           ),
                         ],
                       ),
-                      GoRoute(path: 'terreno', builder: (_, __) => const StromFieldScreen()),
-                      GoRoute(path: 'tecnico', builder: (_, __) => const StromTechnicalScreen()),
+                      GoRoute(
+                        path: 'terreno',
+                        builder: (_, __) => const StromFieldScreen(),
+                      ),
+                      GoRoute(
+                        path: 'tecnico',
+                        builder: (_, __) => const StromTechnicalScreen(),
+                      ),
                       GoRoute(
                         path: 'rts',
                         builder: (_, __) => const StromRtsScreen(),
@@ -347,7 +395,10 @@ GoRouter appRouter(Ref ref) {
                         path: 'aclaraciones',
                         builder: (_, __) => const StromClarificationsScreen(),
                       ),
-                      GoRoute(path: 'costos', builder: (_, __) => const StromCostsScreen()),
+                      GoRoute(
+                        path: 'costos',
+                        builder: (_, __) => const StromCostsScreen(),
+                      ),
                       GoRoute(
                         path: 'auditoria',
                         builder: (_, __) => const StromAuditScreen(),
@@ -376,9 +427,10 @@ GoRouter appRouter(Ref ref) {
                         routes: [
                           GoRoute(
                             path: 'editar',
-                            builder: (context, state) => StromProjectCreateScreen(
-                              projectId: state.pathParameters['projectId'],
-                            ),
+                            builder: (context, state) =>
+                                StromProjectCreateScreen(
+                                  projectId: state.pathParameters['projectId'],
+                                ),
                           ),
                         ],
                       ),

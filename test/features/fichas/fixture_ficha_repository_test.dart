@@ -26,8 +26,14 @@ void main() {
     expect(fields.where((f) => f.key == 'tipo_punto'), hasLength(1));
 
     final templates = await levantamientos.templates();
-    expect(templates.where((t) => t.name == tenenciasTemplateName), hasLength(1));
-    expect(templates.where((t) => t.name == captacionTemplateName), hasLength(1));
+    expect(
+      templates.where((t) => t.name == tenenciasTemplateName),
+      hasLength(1),
+    );
+    expect(
+      templates.where((t) => t.name == captacionTemplateName),
+      hasLength(1),
+    );
   });
 
   test('ensureWaterTemplates still seeds sections if surveys fail', () async {
@@ -93,8 +99,7 @@ class _BrokenLevantamientos implements LevantamientoRepository {
     required String name,
     required List<LevantamientoQuestion> questions,
     String? description,
-  }) async =>
-      _fail();
+  }) async => _fail();
 
   @override
   Future<List<Levantamiento>> list() async => _fail();
@@ -106,21 +111,41 @@ class _BrokenLevantamientos implements LevantamientoRepository {
   Future<Levantamiento> publish({
     required String title,
     required List<LevantamientoQuestion> questions,
-  }) async =>
-      _fail();
+  }) async => _fail();
 
   @override
   Future<LevantamientoRespuesta> submit({
     required String surveyId,
     required Map<String, Object?> answers,
     String? clientId,
-  }) async =>
-      _fail();
+  }) async => _fail();
 
   @override
   Future<List<LevantamientoRespuesta>> responses({
     String? surveyId,
     String? clientId,
-  }) async =>
-      _fail();
+  }) async => _fail();
+
+  @override
+  Future<LevantamientoTemplate> saveTemplate({
+    required String id,
+    required String name,
+    required List<LevantamientoQuestion> questions,
+  }) async => _fail();
+
+  @override
+  Future<Levantamiento> bySlug(String slug) async => _fail();
+
+  @override
+  Future<Levantamiento> save({
+    required String id,
+    required String title,
+    required List<LevantamientoQuestion> questions,
+  }) async => _fail();
+
+  @override
+  Future<void> respondPublic({
+    required String slug,
+    required Map<String, Object?> answers,
+  }) async => _fail();
 }
