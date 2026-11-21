@@ -5,7 +5,9 @@ import 'package:nereus_app/core/providers.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
 import 'package:nereus_app/core/widgets/form_fields.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
+import 'package:nereus_app/features/customers/domain/chile_places.dart';
 import 'package:nereus_app/features/customers/domain/client_models.dart';
+import 'package:nereus_app/features/customers/presentation/place_field.dart';
 import 'package:nereus_app/features/devices/providers/devices_provider.dart';
 import 'package:nereus_app/features/tickets/domain/ticket_models.dart';
 
@@ -30,6 +32,7 @@ class _ClientFormState extends ConsumerState<ClientForm> {
   final _commune = TextEditingController();
   final _sector = TextEditingController();
   final _tags = TextEditingController();
+  final _communeFocus = FocusNode();
   String _receiver = 'PERSONA_NATURAL';
   String _document = 'BOLETA';
   String? _region;
@@ -76,6 +79,7 @@ class _ClientFormState extends ConsumerState<ClientForm> {
     ]) {
       controller.dispose();
     }
+    _communeFocus.dispose();
     super.dispose();
   }
 
@@ -85,13 +89,20 @@ class _ClientFormState extends ConsumerState<ClientForm> {
   }
 
   List<String> _regionItems() {
+    final names = chileRegionNames;
     final current = _region;
-    if (current != null &&
-        current.isNotEmpty &&
-        !chileRegions.contains(current)) {
-      return [current, ...chileRegions];
+    if (current != null && current.isNotEmpty && !names.contains(current)) {
+      return [current, ...names];
     }
-    return chileRegions;
+    return names;
+  }
+
+  void _applyPlace(ChilePlace place) {
+    setState(() {
+      _region = place.region;
+      _province.text = place.province;
+      _commune.text = place.commune;
+    });
   }
 
   Future<void> _save() async {
@@ -214,19 +225,34 @@ class _ClientFormState extends ConsumerState<ClientForm> {
         _section('Ubicación'),
         SelectField<String>(
           label: 'Región',
-          value: _region != null && _regionItems().contains(_region)
-              ? _region
-              : null,
-          items: _regionItems(),
-          onChanged: (value) => setState(() => _region = value),
+          value: _region ?? '',
+          items: ['', ..._regionItems()],
+          itemLabel: (value) => value.isEmpty ? 'Todas las regiones' : value,
+          onChanged: (value) {
+            final next = (value == null || value.isEmpty) ? null : value;
+            setState(() {
+              _region = next;
+              final current = placeForCommune(_commune.text);
+              if (current != null && current.region != next) {
+                _commune.clear();
+                _province.clear();
+              }
+            });
+          },
+        ),
+        PlaceField(
+          commune: _commune,
+          focusNode: _communeFocus,
+          region: _region,
+          onPlace: _applyPlace,
         ),
         TextField(
           controller: _province,
-          decoration: const InputDecoration(labelText: 'Provincia'),
-        ),
-        TextField(
-          controller: _commune,
-          decoration: const InputDecoration(labelText: 'Comuna'),
+          readOnly: true,
+          decoration: const InputDecoration(
+            labelText: 'Provincia',
+            helperText: 'Queda lista al elegir la comuna.',
+          ),
         ),
         TextField(
           controller: _address,

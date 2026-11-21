@@ -1,25 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:nereus_app/core/json_util.dart';
 
-const chileRegions = [
-  'Arica y Parinacota',
-  'Tarapacá',
-  'Antofagasta',
-  'Atacama',
-  'Coquimbo',
-  'Valparaíso',
-  'Metropolitana de Santiago',
-  "O'Higgins",
-  'Maule',
-  'Ñuble',
-  'Biobío',
-  'La Araucanía',
-  'Los Ríos',
-  'Los Lagos',
-  'Aysén',
-  'Magallanes',
-];
-
 const receiverTypes = ['PERSONA_NATURAL', 'EMPRESA'];
 const documentTypes = ['BOLETA', 'FACTURA'];
 

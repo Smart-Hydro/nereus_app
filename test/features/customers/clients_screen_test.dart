@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nereus_app/core/theme/app_theme.dart';
 import 'package:nereus_app/features/auth/domain/session_models.dart';
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
+import 'package:nereus_app/features/customers/domain/chile_places.dart';
 import 'package:nereus_app/features/customers/presentation/clients_screen.dart';
 import 'package:nereus_app/features/devices/providers/devices_provider.dart';
 import 'package:nereus_app/features/tickets/domain/ticket_models.dart';
@@ -54,6 +55,24 @@ void main() {
     expect(item.tags, ['APR', 'telemetría']);
   });
 
+  test('escribir pemuco sugiere la comuna y su provincia', () {
+    expect(chilePlaces, hasLength(346));
+    expect(chileRegionNames, hasLength(16));
+    expect(
+      chilePlaces.map((place) => place.commune).toSet(),
+      hasLength(chilePlaces.length),
+    );
+    final pemuco = suggestPlaces('pem').single;
+    expect(pemuco.commune, 'Pemuco');
+    expect(pemuco.province, 'Diguillín');
+    expect(pemuco.region, 'Ñuble');
+    expect(
+      suggestPlaces('chillan', region: 'Ñuble').map((place) => place.commune),
+      containsAll(['Chillán', 'Chillán Viejo']),
+    );
+    expect(suggestPlaces('santiago', region: 'Ñuble'), isEmpty);
+  });
+
   testWidgets('el alta de cliente muestra giro, comuna y documento', (
     tester,
   ) async {
@@ -87,6 +106,18 @@ void main() {
     expect(find.text('Tipo de receptor'), findsOneWidget);
     expect(find.text('Documento por defecto'), findsOneWidget);
     expect(find.text('Comuna'), findsOneWidget);
+    final formList = find.descendant(
+      of: find.byType(Dialog),
+      matching: find.byType(ListView),
+    );
+    await tester.drag(formList, const Offset(0, -280));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Comuna'), 'Pemu');
+    await tester.pumpAndSettle();
+    expect(find.text('Diguillín · Ñuble'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ListTile, 'Pemuco'));
+    await tester.pumpAndSettle();
+    expect(find.text('Diguillín'), findsWidgets);
     await tester.drag(
       find.descendant(
         of: find.byType(Dialog),
