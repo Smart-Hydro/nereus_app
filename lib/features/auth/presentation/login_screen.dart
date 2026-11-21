@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nereus_app/core/config/app_config.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/core/providers.dart';
 import 'package:nereus_app/core/theme/glass.dart';
@@ -45,7 +44,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       ref.read(dataModeProvider.notifier).useFixture();
       await ref.read(sessionProvider.future);
-      await ref.read(sessionProvider.notifier).login(
+      await ref
+          .read(sessionProvider.notifier)
+          .login(
             'demo@smarthydro.app',
             'demo',
           );
@@ -71,7 +72,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     try {
-      await ref.read(sessionProvider.notifier).login(
+      await ref
+          .read(sessionProvider.notifier)
+          .login(
             _email.text,
             _password.text,
           );
@@ -91,9 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final wide = width >= 960;
-    final showDemo = ref.watch(appConfigProvider).debug ||
-        ref.watch(dataModeProvider) == NereusDataMode.fixture ||
-        wide;
+    final showDemo = true;
 
     final loginStage = _LoginStageCard(
       formKey: _form,
@@ -138,7 +139,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             flex: 9,
                             child: Center(
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 380),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 380,
+                                ),
                                 child: loginStage,
                               ),
                             ),

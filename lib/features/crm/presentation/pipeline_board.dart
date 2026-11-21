@@ -145,7 +145,7 @@ class _EmptyStages extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'El pipeline usa las etapas de la sucursal: contacto, visita, propuesta, ganada y perdida.',
+                'El pipeline usa las etapas de la sucursal, de Prospección a Perdida.',
               ),
               if (canWrite) ...[
                 const SizedBox(height: 16),
@@ -272,6 +272,12 @@ class _Column extends StatelessWidget {
   }
 }
 
+TextStyle _dealMeta(bool dark) => TextStyle(
+  fontSize: 13,
+  height: 1.35,
+  color: dark ? NereusTokens.darkInk : NereusTokens.navy,
+);
+
 /// Deal card styled 1:1 after `nereus_smarthydro/src/routes/crm.tsx`
 /// (`rounded-xl border border-line bg-surface p-3 shadow-sm`).
 class _DealCard extends StatelessWidget {
@@ -330,32 +336,37 @@ class _DealCard extends StatelessWidget {
             Text(
               who,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: muted),
+              style: _dealMeta(dark),
             ),
           ],
           if (item.assignedToName != null && item.assignedToName!.isNotEmpty)
             Text(
               item.assignedToName!,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: muted),
+              style: _dealMeta(dark),
             ),
           if (item.probability > 0)
             Text(
               '${item.probability.round()}%',
-              style: TextStyle(fontSize: 12, color: muted),
+              style: _dealMeta(dark),
             ),
           if (item.nextActionLabel != null) ...[
             const SizedBox(height: 2),
             Text(
               'Próxima: ${item.nextActionLabel}',
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: muted),
+              style: _dealMeta(dark),
             ),
           ] else ...[
             const SizedBox(height: 2),
-            Text(
+            const Text(
               'Sin próxima acción',
-              style: TextStyle(fontSize: 12, color: muted),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+                color: NereusTokens.amber,
+              ),
             ),
           ],
           const SizedBox(height: 8),
@@ -372,7 +383,7 @@ class _DealCard extends StatelessWidget {
               if (item.expectedCloseDate != null)
                 Text(
                   'Cierre ${item.expectedCloseDate}',
-                  style: TextStyle(fontSize: 11, color: muted),
+                  style: _dealMeta(dark),
                 ),
             ],
           ),

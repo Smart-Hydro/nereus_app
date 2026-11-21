@@ -88,7 +88,8 @@ class _LeadCard extends ConsumerWidget {
                   DropdownMenuItem(value: 'MEETING', child: Text('Reunión')),
                   DropdownMenuItem(value: 'OTHER', child: Text('Otro')),
                 ],
-                onChanged: (value) => setLocal(() => channel = value ?? channel),
+                onChanged: (value) =>
+                    setLocal(() => channel = value ?? channel),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
@@ -149,7 +150,7 @@ class _LeadCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(crmRepositoryProvider);
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final muted = dark ? NereusTokens.darkMuted : NereusTokens.inkMuted;
+    final ink = dark ? NereusTokens.darkInk : NereusTokens.navy;
     final detail = [
       if (lead.company != null && lead.company!.isNotEmpty) lead.company!,
       if (lead.phone != null && lead.phone!.isNotEmpty) lead.phone!,
@@ -175,7 +176,7 @@ class _LeadCard extends ConsumerWidget {
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
                     lead.sourceName!,
-                    style: TextStyle(fontSize: 11.5, color: muted),
+                    style: TextStyle(fontSize: 13, color: ink),
                   ),
                 ),
               StatusChip(
@@ -186,24 +187,40 @@ class _LeadCard extends ConsumerWidget {
           ),
           if (detail.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(detail, style: TextStyle(fontSize: 12.5, color: muted)),
+            Text(
+              detail,
+              style: TextStyle(fontSize: 13, height: 1.35, color: ink),
+            ),
           ],
           if (lead.requirementOutcome == 'with_requirement' &&
               (lead.requirementText ?? '').isNotEmpty)
             Text(
               'Requerimiento: ${lead.requirementText}',
-              style: TextStyle(fontSize: 12.5, color: muted),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: ink,
+              ),
             ),
           if (lead.requirementOutcome == 'without_requirement')
             Text(
               'Sin requerimiento: ${lead.noRequirementReason ?? lead.requirementText ?? ''}',
-              style: TextStyle(fontSize: 12.5, color: muted),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+                color: ink,
+              ),
             ),
           if (lead.notes != null && lead.notes!.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               lead.notes!,
-              style: TextStyle(fontSize: 12, color: muted),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: ink,
+              ),
             ),
           ],
           if (canWrite) ...[
@@ -309,12 +326,15 @@ class LeadForm extends ConsumerStatefulWidget {
 }
 
 class _LeadFormState extends ConsumerState<LeadForm> {
-  late final _first =
-      TextEditingController(text: widget.initial?.firstName ?? '');
-  late final _last =
-      TextEditingController(text: widget.initial?.lastName ?? '');
-  late final _company =
-      TextEditingController(text: widget.initial?.company ?? '');
+  late final _first = TextEditingController(
+    text: widget.initial?.firstName ?? '',
+  );
+  late final _last = TextEditingController(
+    text: widget.initial?.lastName ?? '',
+  );
+  late final _company = TextEditingController(
+    text: widget.initial?.company ?? '',
+  );
   late final _phone = TextEditingController(text: widget.initial?.phone ?? '');
   late final _email = TextEditingController(text: widget.initial?.email ?? '');
   late final _notes = TextEditingController(text: widget.initial?.notes ?? '');
@@ -396,8 +416,9 @@ class _LeadFormState extends ConsumerState<LeadForm> {
         ),
         TextField(
           controller: _company,
-          decoration:
-              const InputDecoration(labelText: 'Empresa u organización'),
+          decoration: const InputDecoration(
+            labelText: 'Empresa u organización',
+          ),
         ),
         if (sources.isNotEmpty)
           DropdownButtonFormField<String?>(

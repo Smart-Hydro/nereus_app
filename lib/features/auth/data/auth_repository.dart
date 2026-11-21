@@ -16,10 +16,10 @@ class AuthRepository {
     required SessionController session,
     required ReadCache cache,
     this.isFixture = false,
-  })  : _dio = dio,
-        _store = store,
-        _session = session,
-        _cache = cache;
+  }) : _dio = dio,
+       _store = store,
+       _session = session,
+       _cache = cache;
 
   final Dio _dio;
   final SecureStore _store;
@@ -33,15 +33,15 @@ class AuthRepository {
       'user': {
         'id': 1,
         'email': 'demo@smarthydro.app',
-        'full_name': 'Demo Nereus',
+        'full_name': 'Josefa Lagos',
         'is_superuser': true,
       },
       'branches': [
         {
           'branch_id': 1,
-          'branch_name': 'Sucursal demo',
-          'role_code': 'ADM',
-          'role_name': 'Administrador',
+          'branch_name': 'Sucursal Ñuble',
+          'role_code': 'KILDE_SALES_LEAD',
+          'role_name': 'Líder comercial',
           'is_active': true,
         },
       ],
@@ -83,15 +83,15 @@ class AuthRepository {
         'user': {
           'id': 1,
           'email': 'demo@smarthydro.app',
-          'full_name': 'Demo Nereus',
+          'full_name': 'Josefa Lagos',
           'is_superuser': true,
         },
         'branches': [
           {
             'branch_id': 1,
-            'branch_name': 'Sucursal demo',
-            'role_code': 'ADM',
-            'role_name': 'Administrador',
+            'branch_name': 'Sucursal Ñuble',
+            'role_code': 'KILDE_SALES_LEAD',
+            'role_name': 'Líder comercial',
             'is_active': true,
           },
         ],

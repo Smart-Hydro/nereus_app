@@ -51,7 +51,7 @@ class OpportunityScreen extends ConsumerWidget {
     final canDerive = deriveEnabled(
       roleCode: role,
       hasSurvey: (deal?.surveyId ?? '').isNotEmpty,
-      hasAcceptedQuoteWithPo: hasPo || quotes.isLoading,
+      hasAcceptedQuoteWithPo: hasPo,
     );
 
     Future<void> reload() async {
@@ -71,7 +71,9 @@ class OpportunityScreen extends ConsumerWidget {
         if (lostReasonId == null || lostReasonId.isEmpty) return;
       }
       try {
-        await ref.read(crmRepositoryProvider).move(
+        await ref
+            .read(crmRepositoryProvider)
+            .move(
               id: opportunityId,
               stageId: stageId,
               lostReasonId: lostReasonId,
@@ -156,7 +158,9 @@ class OpportunityScreen extends ConsumerWidget {
                 ),
               if (kildeIsLead(role) && deal != null)
                 OutlinedButton.icon(
-                  onPressed: canDerive ? () => _derive(context, ref, deal) : null,
+                  onPressed: canDerive
+                      ? () => _derive(context, ref, deal)
+                      : null,
                   icon: const Icon(Icons.alt_route, size: 16),
                   label: const Text('Derivar a Strøm'),
                 ),
@@ -185,6 +189,21 @@ class OpportunityScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 children: [
+                  if (kildeIsLead(role) && deal != null && !canDerive)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Derivar a Strøm se habilita con la ficha de '
+                        'levantamiento y una cotización aceptada que tenga '
+                        'orden de compra.',
+                        style: TextStyle(
+                          color: NereusTokens.navy,
+                          fontSize: 14,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   if (deal != null)
                     _StagePicker(
                       stages: stages.value ?? const [],
@@ -234,7 +253,9 @@ class OpportunityScreen extends ConsumerWidget {
   ) async {
     final existing = deal.surveyId;
     if (existing != null && existing.isNotEmpty) {
-      context.go('/levantamientos/fill/$existing?client=${deal.clientId ?? ''}');
+      context.go(
+        '/levantamientos/fill/$existing?client=${deal.clientId ?? ''}',
+      );
       return;
     }
     final questions = TextEditingController();
@@ -255,7 +276,9 @@ class OpportunityScreen extends ConsumerWidget {
             ),
             TextField(
               controller: questions,
-              decoration: const InputDecoration(labelText: 'Dudas u objeciones'),
+              decoration: const InputDecoration(
+                labelText: 'Dudas u objeciones',
+              ),
               maxLines: 3,
             ),
             TextField(
@@ -286,7 +309,9 @@ class OpportunityScreen extends ConsumerWidget {
     meetingOn.dispose();
     if (ok != true) return;
     try {
-      final id = await ref.read(crmRepositoryProvider).openLevantamiento(
+      final id = await ref
+          .read(crmRepositoryProvider)
+          .openLevantamiento(
             opportunityId: deal.id,
             title: 'Levantamiento ${deal.title}',
             quoteResponseOn: response.isEmpty ? null : response,
@@ -352,8 +377,9 @@ class OpportunityScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
     try {
-      final projectId =
-          await ref.read(crmRepositoryProvider).deriveToStrom(deal.id);
+      final projectId = await ref
+          .read(crmRepositoryProvider)
+          .deriveToStrom(deal.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

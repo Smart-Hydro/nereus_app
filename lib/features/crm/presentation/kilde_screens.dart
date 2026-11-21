@@ -2,12 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nereus_app/core/network/api_error.dart';
+import 'package:nereus_app/core/theme/tokens.dart';
 import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
+
+const _kildeLabel = TextStyle(
+  color: NereusTokens.navy,
+  fontSize: 14,
+  fontWeight: FontWeight.w700,
+  height: 1.3,
+);
+
+const _kildeValue = TextStyle(
+  color: NereusTokens.navy,
+  fontSize: 22,
+  fontWeight: FontWeight.w700,
+  height: 1.2,
+);
+
+const _kildeMeta = TextStyle(
+  color: NereusTokens.navy,
+  fontSize: 13.5,
+  height: 1.45,
+);
+
+Card _panel({required Widget child}) {
+  return Card(
+    color: NereusTokens.surface,
+    elevation: 0,
+    margin: EdgeInsets.zero,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: const BorderSide(color: NereusTokens.line),
+    ),
+    child: child,
+  );
+}
 
 class KildeIndicatorsScreen extends ConsumerWidget {
   const KildeIndicatorsScreen({super.key});
@@ -39,7 +73,9 @@ class KildeIndicatorsScreen extends ConsumerWidget {
               errorMessage: userFacingErrorMessage(snap.error ?? 'Error'),
               isNetworkError: isNetworkFailure(snap.error ?? 'Error'),
               onRetry: () => ref.invalidate(kildeIndicatorsProvider),
-              child: _IndicatorGrid(data: snap.value ?? const KildeIndicators()),
+              child: _IndicatorGrid(
+                data: snap.value ?? const KildeIndicators(),
+              ),
             ),
           ),
         ],
@@ -78,7 +114,14 @@ class _IndicatorGrid extends StatelessWidget {
         if (data.periodLabel != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text('Período ${data.periodLabel}'),
+            child: Text(
+              'Período ${data.periodLabel}',
+              style: const TextStyle(
+                color: NereusTokens.navy,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         Wrap(
           spacing: 12,
@@ -87,15 +130,15 @@ class _IndicatorGrid extends StatelessWidget {
             for (final tile in tiles)
               SizedBox(
                 width: 220,
-                child: Card(
+                child: _panel(
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(tile.$1, style: Theme.of(context).textTheme.bodySmall),
-                        const SizedBox(height: 6),
-                        Text(tile.$2, style: Theme.of(context).textTheme.titleLarge),
+                        Text(tile.$1, style: _kildeLabel),
+                        const SizedBox(height: 8),
+                        Text(tile.$2, style: _kildeValue),
                       ],
                     ),
                   ),
@@ -139,17 +182,19 @@ class KildeTeamScreen extends ConsumerWidget {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final row = rows[index];
-                  return Card(
+                  return _panel(
                     child: ListTile(
                       title: Text(
                         row.missingNext > 0
                             ? '${row.label} · sin próxima acción'
                             : row.label,
+                        style: _kildeLabel,
                       ),
                       subtitle: Text(
                         '${row.openOpportunities} abiertas · ${clp(row.weightedValue)} ponderado\n'
                         '${row.weekActivities} de la semana · ${row.overdue} atrasadas · ${row.wonPeriod} ganadas'
                         '${row.todayAgenda.isEmpty ? '' : '\nAgenda: ${row.todayAgenda.join(' · ')}'}',
+                        style: _kildeMeta,
                       ),
                       isThreeLine: true,
                     ),
@@ -195,9 +240,9 @@ class KildeRenewalsScreen extends ConsumerWidget {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final row = rows[index];
-                  return Card(
+                  return _panel(
                     child: ListTile(
-                      title: Text(row.title),
+                      title: Text(row.title, style: _kildeLabel),
                       subtitle: Text(
                         [
                           if (row.clientName != null) row.clientName!,
@@ -207,38 +252,41 @@ class KildeRenewalsScreen extends ConsumerWidget {
                           if (!row.autoRenewal) 'Sin renovación automática',
                           if (row.contractNumber != null) row.contractNumber!,
                         ].join(' · '),
+                        style: _kildeMeta,
                       ),
                       trailing: Wrap(
                         spacing: 8,
                         children: [
                           FilledButton(
-                        onPressed: () async {
-                          try {
-                            await ref
-                                .read(crmRepositoryProvider)
-                                .openRenewal(row.id);
-                            ref.invalidate(kildeRenewalsProvider);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Oportunidad de renovación abierta.'),
-                                ),
-                              );
-                            }
-                          } on Object catch (error) {
-                            if (context.mounted) {
-                              showFriendlyError(context, error);
-                            }
-                          }
-                        },
-                        child: const Text('Renovación'),
-                      ),
+                            onPressed: () async {
+                              try {
+                                await ref
+                                    .read(crmRepositoryProvider)
+                                    .openRenewal(row.id);
+                                ref.invalidate(kildeRenewalsProvider);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Oportunidad de renovación abierta.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } on Object catch (error) {
+                                if (context.mounted) {
+                                  showFriendlyError(context, error);
+                                }
+                              }
+                            },
+                            child: const Text('Renovación'),
+                          ),
                           OutlinedButton(
                             onPressed: row.clientId == null
                                 ? null
                                 : () => context.go(
-                                      '/pipeline?client=${row.clientId}',
-                                    ),
+                                    '/pipeline?client=${row.clientId}',
+                                  ),
                             child: const Text('Ampliación'),
                           ),
                         ],
@@ -276,7 +324,9 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
     final text = _question.text.trim();
     if (text.isEmpty) return;
     try {
-      await ref.read(crmRepositoryProvider).createRfi(
+      await ref
+          .read(crmRepositoryProvider)
+          .createRfi(
             question: text,
             blocking: _blocking,
           );
@@ -338,17 +388,20 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final row = rows[index];
-                  return Card(
+                  return _panel(
                     child: ListTile(
-                      title: Text(row.question),
+                      title: Text(row.question, style: _kildeLabel),
                       subtitle: Text(
                         [
                           if (row.number != null) row.number!,
-                          row.status,
-                          if (row.assignedToId != null) 'asignada a ${row.assignedToId}',
+                          if (row.isOpen) 'Abierta',
+                          if (!row.isOpen) 'Respondida',
+                          if (row.assignedToId != null)
+                            'asignada a ${row.assignedToId}',
                           if (row.blocking) 'bloqueante',
                           if (row.answer != null) row.answer!,
                         ].join(' · '),
+                        style: _kildeMeta,
                       ),
                       trailing: row.answer == null
                           ? TextButton(
@@ -393,7 +446,9 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
     controller.dispose();
     if (answer == null || answer.isEmpty || !mounted) return;
     try {
-      await ref.read(crmRepositoryProvider).answerRfi(id: row.id, answer: answer);
+      await ref
+          .read(crmRepositoryProvider)
+          .answerRfi(id: row.id, answer: answer);
       ref.invalidate(kildeRfisProvider);
     } on Object catch (error) {
       if (mounted) showFriendlyError(context, error);
@@ -409,7 +464,8 @@ class KildeLostReasonsScreen extends ConsumerStatefulWidget {
       _KildeLostReasonsScreenState();
 }
 
-class _KildeLostReasonsScreenState extends ConsumerState<KildeLostReasonsScreen> {
+class _KildeLostReasonsScreenState
+    extends ConsumerState<KildeLostReasonsScreen> {
   final _name = TextEditingController();
 
   @override
@@ -447,7 +503,9 @@ class _KildeLostReasonsScreenState extends ConsumerState<KildeLostReasonsScreen>
                     final name = _name.text.trim();
                     if (name.isEmpty) return;
                     try {
-                      await ref.read(crmRepositoryProvider).createLostReason(name);
+                      await ref
+                          .read(crmRepositoryProvider)
+                          .createLostReason(name);
                       _name.clear();
                       ref.invalidate(lostReasonsProvider);
                     } on Object catch (error) {
@@ -472,7 +530,14 @@ class _KildeLostReasonsScreenState extends ConsumerState<KildeLostReasonsScreen>
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 children: [
                   for (final row in rows)
-                    ListTile(title: Text(row.name)),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _panel(
+                        child: ListTile(
+                          title: Text(row.name, style: _kildeLabel),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

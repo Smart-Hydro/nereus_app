@@ -79,7 +79,10 @@ class FixtureCrmRepository extends CrmRepository {
       sourceId: 'src-4',
       sourceName: 'Sitio Web Smart Hydro',
       assignedToName: 'Martín Soto',
-      notes: 'Solicita telemetría para 3 pozos profundos y nivel freático.',
+      notes: 'Tres pozos profundos en Los Niches. Quiere partir en diciembre.',
+      requirementOutcome: 'with_requirement',
+      requirementText:
+          'Telemetría de nivel y caudal en 3 pozos, con alerta de freático.',
     ),
     const LeadItem(
       id: 'lead-2',
@@ -89,11 +92,14 @@ class FixtureCrmRepository extends CrmRepository {
       email: 'comite@aprsannicolas.cl',
       phone: '+56 9 7654 1190',
       status: 'CONTACTED',
-      score: 70,
+      score: 40,
       sourceId: 'src-1',
       sourceName: 'Referido APR',
       assignedToName: 'Josefa Lagos',
-      notes: 'Requiere automatización de cloración y telemetría de estanque.',
+      notes: 'Llamada del 12 de noviembre. El directorio no tiene presupuesto.',
+      requirementOutcome: 'without_requirement',
+      noRequirementReason:
+          'Solo pidió precios. El proyecto queda para el próximo año.',
     ),
     const LeadItem(
       id: 'lead-3',
@@ -107,62 +113,139 @@ class FixtureCrmRepository extends CrmRepository {
       sourceId: 'src-3',
       sourceName: 'Terreno / Feria Hídrica',
       assignedToName: 'Martín Soto',
-      notes: 'Cumplimiento MEE DGA caudal mayor en dos bocatomas.',
+      notes: 'Dejó tarjeta en la feria de Chillán. Nadie lo ha llamado.',
+      requirementOutcome: 'not_contacted',
     ),
   ];
 
   final List<OpportunityItem> _opportunities = [
     const OpportunityItem(
+      id: 'opp-4',
+      title: 'Estación meteorológica y aforo',
+      description: 'Sensores de nivel y transmisión en la cuenca del Ñuble.',
+      stageId: 'st-1',
+      stageName: 'Prospección',
+      clientId: 'cli-3',
+      clientName: 'Consorcio Riego Ñuble',
+      estimatedValue: 11800000,
+      weightedValue: 1180000,
+      probability: 10,
+      expectedCloseDate: '2026-12-20',
+      assignedToName: 'Josefa Lagos',
+    ),
+    const OpportunityItem(
+      id: 'opp-5',
+      title: 'Cloración y estanque elevado',
+      description: 'Automatizar la dosificación y avisar nivel bajo.',
+      stageId: 'st-2',
+      stageName: 'Captación',
+      clientId: 'cli-4',
+      clientName: 'APR San Nicolás Sur',
+      estimatedValue: 6400000,
+      weightedValue: 1280000,
+      probability: 20,
+      expectedCloseDate: '2026-12-05',
+      nextActionAt: '2026-11-24T15:00:00',
+      nextActionType: 'CALL',
+      assignedToName: 'Josefa Lagos',
+    ),
+    const OpportunityItem(
       id: 'opp-1',
       title: 'Ampliación 18 puntos de captación',
       description: 'Red de telemetría APR y monitoreo continuo de caudal.',
       stageId: 'st-3',
-      stageName: 'Propuesta',
+      stageName: 'Levantamiento',
       clientId: 'cli-1',
       clientName: 'APR Valle del Itata',
       estimatedValue: 28600000,
-      weightedValue: 17160000,
-      expectedCloseDate: '2026-11-15',
+      weightedValue: 10010000,
+      probability: 35,
+      expectedCloseDate: '2026-12-15',
+      nextActionAt: '2026-11-26T11:00:00',
+      nextActionType: 'MEETING',
       assignedToName: 'Josefa Lagos',
     ),
     const OpportunityItem(
       id: 'opp-2',
-      title: 'SLA Oro sobre riego y telemetría',
-      description: 'Mantención preventiva, calibración y soporte 8h.',
-      stageId: 'st-2',
-      stageName: 'Visita',
+      title: 'SLA Oro de riego y telemetría',
+      description: 'Mantención preventiva, calibración y soporte en 8 horas.',
+      stageId: 'st-4',
+      stageName: 'Cotización',
       clientId: 'cli-2',
       clientName: 'Viña Lonquén',
       estimatedValue: 9600000,
-      weightedValue: 2880000,
-      expectedCloseDate: '2026-11-05',
+      weightedValue: 4800000,
+      probability: 50,
+      expectedCloseDate: '2026-11-30',
+      nextActionAt: '2026-11-22T10:00:00',
+      nextActionType: 'QUOTE',
+      assignedToName: 'Martín Soto',
+    ),
+    const OpportunityItem(
+      id: 'opp-6',
+      title: 'Pivote norte y caudal compartido',
+      description:
+          'El comité comparó con un proveedor local. Falta cerrar alcance.',
+      stageId: 'st-5',
+      stageName: 'Negociación/Cierre',
+      clientId: 'cli-5',
+      clientName: 'Agrícola Los Aromos',
+      estimatedValue: 22100000,
+      weightedValue: 15470000,
+      probability: 70,
+      expectedCloseDate: '2026-11-28',
+      nextActionAt: '2026-11-25T16:30:00',
+      nextActionType: 'MEETING',
       assignedToName: 'Martín Soto',
     ),
     const OpportunityItem(
       id: 'opp-3',
-      title: 'Segunda etapa pivotes + datalogger x12',
-      description: 'Instalación completa en caseta de bombeo.',
-      stageId: 'st-4',
-      stageName: 'Ganada',
+      title: 'Segunda etapa pivotes y datalogger',
+      description: 'Doce equipos en la caseta de bombeo. OC recibida.',
+      stageId: 'st-7',
+      stageName: 'Reunión de programación',
       clientId: 'cli-1',
-      clientName: 'Fundo El Boldo',
+      clientName: 'APR Valle del Itata',
       estimatedValue: 15400000,
-      actualValue: 15400000,
-      weightedValue: 15400000,
-      expectedCloseDate: '2026-10-20',
-      assignedToName: 'Héctor Muñoz',
+      weightedValue: 14630000,
+      probability: 95,
+      expectedCloseDate: '2026-11-21',
+      surveyId: 'sv-opp-3',
+      nextActionAt: '2026-11-23T09:00:00',
+      nextActionType: 'install_planning',
+      assignedToName: 'Josefa Lagos',
     ),
     const OpportunityItem(
-      id: 'opp-4',
-      title: 'Estación meteorológica y aforo de cuenca',
-      description: 'Integración de sensores de nivel y transmisión satelital.',
-      stageId: 'st-1',
-      stageName: 'Contacto',
-      clientId: 'cli-2',
-      clientName: 'Consorcio Riego Ñuble',
-      estimatedValue: 11800000,
-      weightedValue: 1180000,
-      expectedCloseDate: '2026-12-01',
+      id: 'opp-7',
+      title: 'Pozos Los Niches, etapa 1',
+      description: 'Vendido en octubre. La instalación ya está en Strøm.',
+      stageId: 'st-8',
+      stageName: 'Ganada',
+      clientId: 'cli-5',
+      clientName: 'Agrícola Los Aromos',
+      estimatedValue: 8900000,
+      actualValue: 8900000,
+      weightedValue: 8900000,
+      probability: 100,
+      expectedCloseDate: '2026-10-18',
+      surveyId: 'sv-opp-7',
+      assignedToName: 'Martín Soto',
+    ),
+    const OpportunityItem(
+      id: 'opp-8',
+      title: 'Aforo satelital Río Cato',
+      description: 'El directorio eligió otra oferta por precio.',
+      stageId: 'st-9',
+      stageName: 'Perdida',
+      clientId: 'cli-6',
+      clientName: 'Frutícola Río Cato',
+      estimatedValue: 7300000,
+      weightedValue: 0,
+      probability: 0,
+      expectedCloseDate: '2026-10-30',
+      lostReasonId: 'lr-1',
+      lostReasonName: 'Precio',
+      lostReasonText: 'Quedaron 18% sobre la oferta local.',
       assignedToName: 'Josefa Lagos',
     ),
   ];
@@ -241,6 +324,7 @@ class FixtureCrmRepository extends CrmRepository {
       wonCount: wonCount,
       wonValue: wonVal,
       completedActivities: 4,
+      overdueActivities: 1,
       todayActivities: 2,
       totalCustomers: 12,
     );
@@ -264,13 +348,15 @@ class FixtureCrmRepository extends CrmRepository {
       if (status != null && status.isNotEmpty && lead.status != status) {
         return false;
       }
-      if (sourceId != null && sourceId.isNotEmpty && lead.sourceId != sourceId) {
+      if (sourceId != null &&
+          sourceId.isNotEmpty &&
+          lead.sourceId != sourceId) {
         return false;
       }
       if (search != null && search.trim().isNotEmpty) {
         final q = search.toLowerCase();
-        final hay =
-            '${lead.name} ${lead.company ?? ''} ${lead.email ?? ''}'.toLowerCase();
+        final hay = '${lead.name} ${lead.company ?? ''} ${lead.email ?? ''}'
+            .toLowerCase();
         if (!hay.contains(q)) return false;
       }
       return true;
@@ -346,7 +432,10 @@ class FixtureCrmRepository extends CrmRepository {
       _leads.removeWhere((l) => l.id == id);
 
   @override
-  Future<void> setLeadStatus({required String id, required String status}) async {
+  Future<void> setLeadStatus({
+    required String id,
+    required String status,
+  }) async {
     final prev = _leads.where((l) => l.id == id).firstOrNull;
     if (prev != null) {
       await updateLead(id: id, firstName: prev.firstName, status: status);
@@ -407,8 +496,8 @@ class FixtureCrmRepository extends CrmRepository {
   }
 
   @override
-  Future<OpportunityItem> retrieve(String id) async =>
-      _opportunities.firstWhere((o) => o.id == id, orElse: () => _opportunities.first);
+  Future<OpportunityItem> retrieve(String id) async => _opportunities
+      .firstWhere((o) => o.id == id, orElse: () => _opportunities.first);
 
   @override
   Future<OpportunityItem> createOpportunity({
@@ -458,19 +547,18 @@ class FixtureCrmRepository extends CrmRepository {
     final nextStageId = stageId ?? prev.stageId;
     final stage = _stages.where((s) => s.id == nextStageId).firstOrNull;
     final nextVal = estimatedValue ?? prev.estimatedValue;
-    final updated = OpportunityItem(
-      id: prev.id,
+    final updated = _touch(
+      prev,
       title: title,
       description: description ?? notes ?? prev.description,
       stageId: nextStageId,
       stageName: stage?.name ?? prev.stageName,
       clientId: clientId ?? prev.clientId,
-      clientName: prev.clientName,
       estimatedValue: nextVal,
       actualValue: actualValue ?? prev.actualValue,
-      weightedValue: nextVal * ((stage?.probability ?? 20) / 100.0),
+      weightedValue: nextVal * ((stage?.probability ?? prev.probability) / 100),
+      probability: stage?.probability ?? prev.probability,
       expectedCloseDate: expectedCloseDate ?? prev.expectedCloseDate,
-      assignedToName: prev.assignedToName,
     );
     _opportunities[idx] = updated;
     return updated;
@@ -487,15 +575,32 @@ class FixtureCrmRepository extends CrmRepository {
     String? lostReasonId,
     String? lostReasonText,
   }) async {
-    final opp = await retrieve(id);
+    final index = _opportunities.indexWhere((item) => item.id == id);
+    if (index < 0) return;
+    final opp = _opportunities[index];
     final stage = _stages.where((item) => item.id == stageId).firstOrNull;
     if (stage != null &&
         stage.isLost &&
         (lostReasonId == null || lostReasonId.isEmpty)) {
       throw StateError('Marcar Perdida exige un motivo.');
     }
-    await updateOpportunity(id: id, title: opp.title, stageId: stageId);
-    _activities.putIfAbsent(id, () => []).insert(
+    final reason = _lost.where((item) => item.id == lostReasonId).firstOrNull;
+    _opportunities[index] = _touch(
+      opp,
+      stageId: stageId,
+      stageName: stage?.name ?? opp.stageName,
+      probability: stage?.probability ?? opp.probability,
+      weightedValue: opp.estimatedValue * ((stage?.probability ?? 0) / 100),
+      actualValue: (stage?.isWon ?? false)
+          ? opp.estimatedValue
+          : opp.actualValue,
+      lostReasonId: lostReasonId ?? opp.lostReasonId,
+      lostReasonName: reason?.name ?? opp.lostReasonName,
+      lostReasonText: lostReasonText ?? opp.lostReasonText,
+    );
+    _activities
+        .putIfAbsent(id, () => [])
+        .insert(
           0,
           FollowUpItem(
             id: 'act-${++_seq}',
@@ -522,7 +627,9 @@ class FixtureCrmRepository extends CrmRepository {
     String? installRequirements,
   }) async {
     final cat = _categories.where((c) => c.id == categoryId).firstOrNull;
-    _activities.putIfAbsent(opportunityId, () => []).insert(
+    _activities
+        .putIfAbsent(opportunityId, () => [])
+        .insert(
           0,
           FollowUpItem(
             id: 'act-${++_seq}',
@@ -578,7 +685,9 @@ class FixtureCrmRepository extends CrmRepository {
     double discount = 0,
     String? notes,
   }) async {
-    _proposals.putIfAbsent(opportunityId, () => []).add(
+    _proposals
+        .putIfAbsent(opportunityId, () => [])
+        .add(
           ProposalItem(
             id: 'prop-${++_seq}',
             productId: productId,
@@ -634,67 +743,291 @@ class FixtureCrmRepository extends CrmRepository {
     return next;
   }
 
-  @override
-  Future<KildeIndicators> kildeIndicators() async => const KildeIndicators(
-        contacted: 2,
-        withRequirement: 1,
-        quotesAccepted: 1,
-        salesCount: 1,
-        salesNet: 4500000,
-        weighted: 1200000,
-      );
+  final List<KildeQuote> _quotes = [
+    const KildeQuote(
+      id: 'q-1042',
+      number: 'COT-1042 · APR Valle del Itata',
+      status: 'draft',
+      discountStatus: 'approved',
+      total: 28600000,
+      version: 2,
+      validUntil: '2026-12-15',
+      opportunityId: 'opp-1',
+    ),
+    const KildeQuote(
+      id: 'q-1051',
+      number: 'COT-1051 · Viña Lonquén',
+      status: 'draft',
+      discountStatus: 'pending',
+      total: 9600000,
+      version: 1,
+      validUntil: '2026-11-30',
+      opportunityId: 'opp-2',
+    ),
+    const KildeQuote(
+      id: 'q-1033',
+      number: 'COT-1033 · Segunda etapa pivotes',
+      status: 'accepted',
+      total: 15400000,
+      version: 3,
+      validUntil: '2026-11-30',
+      receptionConfirmed: true,
+      responseOn: '2026-10-12',
+      poNumber: 'OC-4412',
+      poReceivedOn: '2026-10-18',
+      poNet: 15400000,
+      immutable: true,
+      opportunityId: 'opp-3',
+    ),
+    const KildeQuote(
+      id: 'q-1020',
+      number: 'COT-1020 · Pivote norte',
+      status: 'objected',
+      objection: 'El comité pide bajar la puesta en marcha.',
+      total: 22100000,
+      version: 1,
+      opportunityId: 'opp-6',
+    ),
+  ];
+
+  final List<KildeRfi> _rfis = [
+    const KildeRfi(
+      id: 'rfi-1',
+      number: 'RFI-14',
+      question: '¿La caseta de Lonquén tiene energía trifásica estable?',
+      blocking: true,
+      status: 'open',
+      quotationId: 'q-1051',
+      opportunityId: 'opp-2',
+    ),
+    const KildeRfi(
+      id: 'rfi-2',
+      number: 'RFI-9',
+      question: '¿El estanque de San Nicolás tiene tapa visitable?',
+      blocking: false,
+      status: 'answered',
+      answer: 'Sí, tapa de 60 cm al lado norte.',
+      opportunityId: 'opp-5',
+    ),
+  ];
+
+  final List<LostReasonItem> _lost = [
+    const LostReasonItem(id: 'lr-1', name: 'Precio'),
+    const LostReasonItem(id: 'lr-2', name: 'Plazo de entrega'),
+    const LostReasonItem(id: 'lr-3', name: 'Competencia local'),
+  ];
+
+  final Set<String> _derived = {};
 
   @override
-  Future<List<KildeMember>> kildeTeam() async => const [
-        KildeMember(
-          userId: 'ejecutivo',
-          openOpportunities: 3,
-          weightedValue: 1200000,
-          missingNext: 1,
-        ),
-      ];
+  Future<KildeIndicators> kildeIndicators() async {
+    final open = _opportunities.where((item) => !item.isWon && !item.isLost);
+    final sales = _quotes.where((item) => item.acceptedWithPo);
+    return KildeIndicators(
+      contacted: _leads.where((lead) => !lead.notContacted).length,
+      withRequirement: _leads
+          .where((lead) => lead.requirementOutcome == 'with_requirement')
+          .length,
+      withoutRequirement: _leads
+          .where((lead) => lead.requirementOutcome == 'without_requirement')
+          .length,
+      notContacted: _leads.where((lead) => lead.notContacted).length,
+      quotesWithResponse: _quotes
+          .where(
+            (item) => const {
+              'accepted',
+              'objected',
+              'rejected',
+            }.contains(item.status),
+          )
+          .length,
+      quotesWithoutResponse: _quotes
+          .where((item) => item.status == 'sent')
+          .length,
+      quotesAccepted: _quotes.where((item) => item.status == 'accepted').length,
+      quotesObjected: _quotes.where((item) => item.status == 'objected').length,
+      quotesRejected: _quotes.where((item) => item.status == 'rejected').length,
+      salesCount: sales.length,
+      salesNet: sales.fold<double>(0, (sum, item) => sum + (item.poNet ?? 0)),
+      weighted: open.fold<double>(0, (sum, item) => sum + item.weightedValue),
+      missingNext: open
+          .where((item) => (item.nextActionType ?? '').isEmpty)
+          .length,
+      overdue: 1,
+      openRfis: _rfis.where((item) => item.isOpen).length,
+      periodLabel: '1 nov 2026 – 30 nov 2026',
+    );
+  }
+
+  @override
+  Future<List<KildeMember>> kildeTeam() async {
+    return [
+      _member(
+        'Josefa Lagos',
+        overdue: 0,
+        week: 6,
+        agenda: const ['Reunión · Junta APR Valle del Itata, 11:00'],
+      ),
+      _member(
+        'Martín Soto',
+        overdue: 1,
+        week: 3,
+        agenda: const ['Llamada · Viña Lonquén, confirmar energía trifásica'],
+      ),
+    ];
+  }
+
+  KildeMember _member(
+    String name, {
+    required int overdue,
+    required int week,
+    required List<String> agenda,
+  }) {
+    final mine = _opportunities.where((item) => item.assignedToName == name);
+    final open = mine.where((item) => !item.isWon && !item.isLost);
+    return KildeMember(
+      userId: name,
+      name: name,
+      openOpportunities: open.length,
+      weightedValue: open.fold<double>(
+        0,
+        (sum, item) => sum + item.weightedValue,
+      ),
+      missingNext: open
+          .where((item) => (item.nextActionType ?? '').isEmpty)
+          .length,
+      overdue: overdue,
+      wonPeriod: mine.where((item) => item.isWon).length,
+      weekActivities: week,
+      todayAgenda: agenda,
+    );
+  }
 
   @override
   Future<List<KildeRenewal>> kildeRenewals() async => const [
-        KildeRenewal(
-          id: 'ct-1',
-          title: 'Mantención anual',
-          clientName: 'APR Demo',
-          endDate: '2026-12-31',
+    KildeRenewal(
+      id: 'ct-1',
+      title: 'Mantención anual de telemetría',
+      clientName: 'APR Valle del Itata',
+      clientId: 'cli-1',
+      endDate: '2026-12-15',
+      contractNumber: 'CT-2024-18',
+      contractType: 'Mantención',
+      autoRenewal: true,
+    ),
+    KildeRenewal(
+      id: 'ct-2',
+      title: 'SLA de calibración de caudal',
+      clientName: 'Viña Lonquén',
+      clientId: 'cli-2',
+      endDate: '2026-11-30',
+      contractNumber: 'CT-2025-04',
+      contractType: 'Servicio',
+    ),
+  ];
+
+  @override
+  Future<String> openRenewal(String contractId) async {
+    final id = 'opp-ren-$contractId';
+    if (_opportunities.every((item) => item.id != id)) {
+      _opportunities.insert(
+        0,
+        OpportunityItem(
+          id: id,
+          title: 'Renovación $contractId',
+          description: 'Oportunidad abierta desde el aviso de vencimiento.',
+          stageId: 'st-1',
+          stageName: 'Prospección',
+          clientName: contractId == 'ct-2'
+              ? 'Viña Lonquén'
+              : 'APR Valle del Itata',
+          clientId: contractId == 'ct-2' ? 'cli-2' : 'cli-1',
+          estimatedValue: 4200000,
+          weightedValue: 420000,
+          probability: 10,
+          expectedCloseDate: '2026-12-31',
+          nextActionAt: '2026-11-27T10:00:00',
+          nextActionType: 'CALL',
+          assignedToName: 'Josefa Lagos',
         ),
-      ];
+      );
+    }
+    return id;
+  }
 
   @override
-  Future<String> openRenewal(String contractId) async => 'opp-renovacion';
-
-  @override
-  Future<Map<String, dynamic>> client360(String clientId) async => {
-        'client': {'id': clientId, 'name': 'APR Demo'},
-        'opportunities': [
-          {'id': 'opp-1', 'title': 'Pozo Sur', 'stage_name': 'Cotización'},
-        ],
-        'quotations': [
-          {'id': 'q-1', 'status': 'accepted', 'version': 1},
-        ],
-        'purchase_orders': [
-          {'client_po_number': 'OC-1'},
-        ],
-        'surveys': [
-          {'id': 'sv-1', 'title': 'Levantamiento'},
-        ],
-        'rfis': const [],
-        'derivation': {'status': 'pending_derivation'},
-        'milestones': [
+  Future<Map<String, dynamic>> client360(String clientId) async {
+    final opps = _opportunities
+        .where((item) => item.clientId == clientId)
+        .toList();
+    final name = opps.isEmpty
+        ? 'Cliente $clientId'
+        : (opps.first.clientName ?? clientId);
+    final ids = opps.map((item) => item.id).toSet();
+    const quoteLabels = {
+      'draft': 'Borrador',
+      'sent': 'Enviada',
+      'accepted': 'Aceptada',
+      'objected': 'Objetada',
+      'rejected': 'Rechazada',
+    };
+    final quotes = _quotes.where((item) => ids.contains(item.opportunityId));
+    final derived = opps.any((item) => _derived.contains(item.id));
+    return {
+      'client': {'id': clientId, 'name': name},
+      'opportunities': [
+        for (final item in opps)
+          {'id': item.id, 'title': item.title, 'stage_name': item.stageName},
+      ],
+      'quotations': [
+        for (final item in quotes)
           {
-            'channel': 'strom_install',
-            'at': '2026-11-01',
-            'description': 'Instalación',
+            'id': item.id,
+            'status': quoteLabels[item.status] ?? item.status,
+            'version': item.version,
           },
-        ],
-        'follow_up': const [],
-        'contracts': const [],
-        'nps': {'latest_score': 9, 'count': 1},
-      };
+      ],
+      'purchase_orders': [
+        for (final item in quotes)
+          if ((item.poNumber ?? '').isNotEmpty)
+            {'client_po_number': item.poNumber},
+      ],
+      'surveys': [
+        for (final item in opps)
+          if ((item.surveyId ?? '').isNotEmpty)
+            {'id': item.surveyId, 'title': 'Levantamiento ${item.title}'},
+      ],
+      'rfis': [
+        for (final item in _rfis)
+          if (ids.contains(item.opportunityId)) {'question': item.question},
+      ],
+      'derivation': {
+        'status': derived ? 'derived' : 'pending_derivation',
+      },
+      'milestones': derived
+          ? [
+              {
+                'channel': 'strom_install',
+                'at': '2026-11-21',
+                'description': 'Proyecto creado en Strøm',
+              },
+            ]
+          : const <Map<String, String>>[],
+      'follow_up': [
+        for (final item in opps)
+          if (item.nextActionLabel != null)
+            {'description': '${item.title}: ${item.nextActionLabel}'},
+      ],
+      'contracts': [
+        if (clientId == 'cli-1') {'title': 'CT-2024-18 · Mantención anual'},
+        if (clientId == 'cli-2')
+          {'title': 'CT-2025-04 · Calibración de caudal'},
+      ],
+      'nps': clientId == 'cli-1'
+          ? {'latest_score': 9, 'count': 2}
+          : {'latest_score': 7, 'count': 1},
+    };
+  }
 
   @override
   Future<String> openLevantamiento({
@@ -704,61 +1037,217 @@ class FixtureCrmRepository extends CrmRepository {
     String? openQuestions,
     String? resolutionMeetingOn,
     bool? resolutionMeetingDone,
-  }) async =>
-      'sv-demo';
+  }) async {
+    final index = _opportunities.indexWhere((item) => item.id == opportunityId);
+    final surveyId = 'sv-$opportunityId';
+    if (index >= 0) {
+      _opportunities[index] = _touch(
+        _opportunities[index],
+        surveyId: surveyId,
+      );
+    }
+    return surveyId;
+  }
 
   @override
   Future<void> uploadClientPoFile({
     required String quotationId,
     required List<int> bytes,
     required String filename,
-  }) async {}
+  }) async {
+    final index = _quotes.indexWhere((item) => item.id == quotationId);
+    if (index < 0) return;
+    _quotes[index] = _retouch(_quotes[index], poFile: filename);
+  }
 
   @override
-  Future<List<KildeRfi>> rfis() async => const [
-        KildeRfi(
-          id: 'rfi-1',
-          number: 'RFI-1',
-          question: '¿El pozo tiene energía trifásica?',
-          blocking: true,
-          status: 'open',
-        ),
-      ];
+  Future<List<KildeRfi>> rfis() async => List.unmodifiable(_rfis);
 
   @override
   Future<void> createRfi({
     required String question,
     required bool blocking,
-  }) async {}
+  }) async {
+    _rfis.insert(
+      0,
+      KildeRfi(
+        id: 'rfi-${++_seq}',
+        number: 'RFI-$_seq',
+        question: question,
+        blocking: blocking,
+        status: 'open',
+      ),
+    );
+  }
 
   @override
-  Future<void> answerRfi({required String id, required String answer}) async {}
+  Future<void> answerRfi({required String id, required String answer}) async {
+    final index = _rfis.indexWhere((item) => item.id == id);
+    if (index < 0) return;
+    final current = _rfis[index];
+    _rfis[index] = KildeRfi(
+      id: current.id,
+      question: current.question,
+      number: current.number,
+      status: 'answered',
+      blocking: current.blocking,
+      answer: answer,
+      quotationId: current.quotationId,
+      opportunityId: current.opportunityId,
+    );
+  }
 
   @override
-  Future<List<KildeQuote>> quotations() async => const [
-        KildeQuote(
-          id: 'q-1',
-          number: 'COT-1',
-          status: 'draft',
-          total: 4500000,
-        ),
-      ];
+  Future<List<KildeQuote>> quotations() async => List.unmodifiable(_quotes);
 
   @override
   Future<void> quoteAction(
     String id,
     String action, [
     Map<String, dynamic>? body,
-  ]) async {}
+  ]) async {
+    final index = _quotes.indexWhere((item) => item.id == id);
+    if (index < 0) return;
+    final current = _quotes[index];
+    final today = _today();
+    _quotes[index] = switch (action) {
+      'send' => _retouch(current, status: 'sent'),
+      'confirm_reception' => _retouch(current, receptionConfirmed: true),
+      'accept' => _retouch(current, status: 'accepted', responseOn: today),
+      'object' => _retouch(
+        current,
+        status: 'objected',
+        objection: '${body?['objection'] ?? ''}',
+        responseOn: today,
+      ),
+      'reject' => _retouch(
+        current,
+        status: 'rejected',
+        rejectionReason: '${body?['rejection_reason'] ?? ''}',
+        responseOn: today,
+      ),
+      'approve_discount' => _retouch(current, discountStatus: 'approved'),
+      'reject_discount' => _retouch(current, discountStatus: 'rejected'),
+      'register_client_po' => _retouch(
+        current,
+        status: 'accepted',
+        poNumber: '${body?['client_po_number'] ?? ''}',
+        poReceivedOn: '${body?['client_po_received_on'] ?? today}',
+        poNet:
+            double.tryParse('${body?['client_po_net_amount']}') ??
+            current.poNet,
+      ),
+      _ => current,
+    };
+  }
 
   @override
-  Future<List<LostReasonItem>> lostReasons() async => const [
-        LostReasonItem(id: 'lr-1', name: 'Precio'),
-      ];
+  Future<List<LostReasonItem>> lostReasons() async => List.unmodifiable(_lost);
 
   @override
-  Future<void> createLostReason(String name) async {}
+  Future<void> createLostReason(String name) async {
+    _lost.add(LostReasonItem(id: 'lr-${++_seq}', name: name));
+  }
 
   @override
-  Future<String> deriveToStrom(String opportunityId) async => 'proy-demo';
+  Future<String> deriveToStrom(String opportunityId) async {
+    _derived.add(opportunityId);
+    _activities
+        .putIfAbsent(opportunityId, () => [])
+        .insert(
+          0,
+          FollowUpItem(
+            id: 'act-${++_seq}',
+            description: 'Derivada a Strøm. Proyecto proy-$opportunityId.',
+            activityType: 'NOTE',
+            createdByName: 'Josefa Lagos',
+          ),
+        );
+    return 'proy-$opportunityId';
+  }
+
+  OpportunityItem _touch(
+    OpportunityItem prev, {
+    String? title,
+    String? description,
+    String? stageId,
+    String? stageName,
+    String? clientId,
+    double? estimatedValue,
+    double? actualValue,
+    double? weightedValue,
+    double? probability,
+    String? expectedCloseDate,
+    String? surveyId,
+    String? lostReasonId,
+    String? lostReasonName,
+    String? lostReasonText,
+  }) {
+    return OpportunityItem(
+      id: prev.id,
+      title: title ?? prev.title,
+      description: description ?? prev.description,
+      stageId: stageId ?? prev.stageId,
+      stageName: stageName ?? prev.stageName,
+      clientId: clientId ?? prev.clientId,
+      clientName: prev.clientName,
+      leadId: prev.leadId,
+      leadName: prev.leadName,
+      estimatedValue: estimatedValue ?? prev.estimatedValue,
+      actualValue: actualValue ?? prev.actualValue,
+      weightedValue: weightedValue ?? prev.weightedValue,
+      expectedCloseDate: expectedCloseDate ?? prev.expectedCloseDate,
+      closedAt: prev.closedAt,
+      assignedToName: prev.assignedToName,
+      nextActionAt: prev.nextActionAt,
+      nextActionType: prev.nextActionType,
+      surveyId: surveyId ?? prev.surveyId,
+      lostReasonId: lostReasonId ?? prev.lostReasonId,
+      lostReasonName: lostReasonName ?? prev.lostReasonName,
+      lostReasonText: lostReasonText ?? prev.lostReasonText,
+      probability: probability ?? prev.probability,
+    );
+  }
+
+  KildeQuote _retouch(
+    KildeQuote current, {
+    String? status,
+    String? discountStatus,
+    String? poNumber,
+    double? poNet,
+    String? poReceivedOn,
+    String? poFile,
+    String? objection,
+    String? rejectionReason,
+    bool? receptionConfirmed,
+    String? responseOn,
+  }) {
+    return KildeQuote(
+      id: current.id,
+      number: current.number,
+      status: status ?? current.status,
+      discountStatus: discountStatus ?? current.discountStatus,
+      poNumber: poNumber ?? current.poNumber,
+      total: current.total,
+      version: current.version,
+      validUntil: current.validUntil,
+      objection: objection ?? current.objection,
+      rejectionReason: rejectionReason ?? current.rejectionReason,
+      receptionConfirmed: receptionConfirmed ?? current.receptionConfirmed,
+      responseOn: responseOn ?? current.responseOn,
+      opportunityId: current.opportunityId,
+      parentId: current.parentId,
+      immutable: current.immutable,
+      poReceivedOn: poReceivedOn ?? current.poReceivedOn,
+      poNet: poNet ?? current.poNet,
+      poFile: poFile ?? current.poFile,
+    );
+  }
+
+  String _today() {
+    final today = DateTime.now();
+    final month = today.month.toString().padLeft(2, '0');
+    final day = today.day.toString().padLeft(2, '0');
+    return '${today.year}-$month-$day';
+  }
 }

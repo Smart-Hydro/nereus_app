@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nereus_app/core/network/api_error.dart';
+import 'package:nereus_app/core/theme/tokens.dart';
 import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
@@ -59,34 +60,85 @@ class KildeQuotesScreen extends ConsumerWidget {
                   );
                   final pending = row.discountStatus == 'pending';
                   return Card(
+                    color: NereusTokens.surface,
+                    elevation: 0,
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: NereusTokens.line),
+                    ),
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(row.number, style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            row.number,
+                            style: const TextStyle(
+                              color: NereusTokens.navy,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           Text(
                             [
                               'v${row.version}',
-                              if (row.status.isNotEmpty) quoteStatusLabel(row.status),
+                              if (row.status.isNotEmpty)
+                                quoteStatusLabel(row.status),
                               clp(row.total),
-                              if (row.validUntil != null) 'vigente hasta ${row.validUntil}',
+                              if (row.validUntil != null)
+                                'vigente hasta ${row.validUntil}',
                               if (pending) 'pendiente del Líder',
-                              if (row.discountStatus == 'approved') 'descuento aprobado',
-                              if (row.discountStatus == 'rejected') 'descuento rechazado',
-                              if (row.receptionConfirmed) 'recepción confirmada',
-                              if (row.responseOn != null) 'respuesta ${row.responseOn}',
+                              if (row.discountStatus == 'approved')
+                                'descuento aprobado',
+                              if (row.discountStatus == 'rejected')
+                                'descuento rechazado',
+                              if (row.receptionConfirmed)
+                                'recepción confirmada',
+                              if (row.responseOn != null)
+                                'respuesta ${row.responseOn}',
                               if (row.poNumber != null) 'OC ${row.poNumber}',
                             ].join(' · '),
+                            style: const TextStyle(
+                              color: NereusTokens.navy,
+                              fontSize: 13.5,
+                              height: 1.4,
+                            ),
                           ),
                           if ((row.objection ?? '').isNotEmpty)
-                            Text('Objeción: ${row.objection}'),
+                            Text(
+                              'Objeción: ${row.objection}',
+                              style: const TextStyle(
+                                color: NereusTokens.navy,
+                                fontSize: 13.5,
+                              ),
+                            ),
                           if ((row.rejectionReason ?? '').isNotEmpty)
-                            Text('Rechazo: ${row.rejectionReason}'),
+                            Text(
+                              'Rechazo: ${row.rejectionReason}',
+                              style: const TextStyle(
+                                color: NereusTokens.navy,
+                                fontSize: 13.5,
+                              ),
+                            ),
                           if (row.parentId != null)
-                            Text('Versión anterior: ${row.parentId}'),
+                            Text(
+                              'Versión anterior: ${row.parentId}',
+                              style: const TextStyle(
+                                color: NereusTokens.navy,
+                                fontSize: 13.5,
+                              ),
+                            ),
                           if (blocking)
-                            const Text('RFI bloqueante abierta: no se puede enviar.'),
+                            const Text(
+                              'RFI bloqueante abierta: no se puede enviar.',
+                              style: TextStyle(
+                                color: NereusTokens.navy,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
@@ -100,39 +152,45 @@ class KildeQuotesScreen extends ConsumerWidget {
                               OutlinedButton(
                                 onPressed: row.immutable
                                     ? null
-                                    : () => _run(context, ref, row.id, 'confirm_reception'),
+                                    : () => _run(
+                                        context,
+                                        ref,
+                                        row.id,
+                                        'confirm_reception',
+                                      ),
                                 child: const Text('Recepción'),
                               ),
                               OutlinedButton(
                                 onPressed: sendBlocked || row.immutable
                                     ? null
-                                    : () => _run(context, ref, row.id, 'accept'),
+                                    : () =>
+                                          _run(context, ref, row.id, 'accept'),
                                 child: const Text('Aceptar'),
                               ),
                               OutlinedButton(
                                 onPressed: row.immutable
                                     ? null
                                     : () => _textAction(
-                                          context,
-                                          ref,
-                                          row.id,
-                                          'object',
-                                          'Objeción',
-                                          'objection',
-                                        ),
+                                        context,
+                                        ref,
+                                        row.id,
+                                        'object',
+                                        'Objeción',
+                                        'objection',
+                                      ),
                                 child: const Text('Objetar'),
                               ),
                               OutlinedButton(
                                 onPressed: row.immutable
                                     ? null
                                     : () => _textAction(
-                                          context,
-                                          ref,
-                                          row.id,
-                                          'reject',
-                                          'Motivo de rechazo',
-                                          'rejection_reason',
-                                        ),
+                                        context,
+                                        ref,
+                                        row.id,
+                                        'reject',
+                                        'Motivo de rechazo',
+                                        'rejection_reason',
+                                      ),
                                 child: const Text('Rechazar'),
                               ),
                               if (showDiscountDecision(
@@ -223,7 +281,9 @@ class KildeQuotesScreen extends ConsumerWidget {
     controller.dispose();
     if (ok != true || text.isEmpty) return;
     try {
-      await ref.read(crmRepositoryProvider).quoteAction(id, action, {field: text});
+      await ref.read(crmRepositoryProvider).quoteAction(id, action, {
+        field: text,
+      });
       ref.invalidate(kildeQuotesProvider);
     } on Object catch (error) {
       if (context.mounted) showFriendlyError(context, error);
@@ -287,7 +347,9 @@ class KildeQuotesScreen extends ConsumerWidget {
       final file = picked?.files.singleOrNull;
       final bytes = file?.bytes;
       if (bytes == null || file == null) return;
-      await ref.read(crmRepositoryProvider).uploadClientPoFile(
+      await ref
+          .read(crmRepositoryProvider)
+          .uploadClientPoFile(
             quotationId: id,
             bytes: bytes,
             filename: file.name,
