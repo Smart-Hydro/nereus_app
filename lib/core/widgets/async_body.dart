@@ -262,24 +262,27 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ink = NereusTokens.readable(context, tone);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: tone.withValues(alpha: 0.14),
+        color: ink.withValues(alpha: dark ? 0.16 : 0.14),
         borderRadius: BorderRadius.circular(NereusTokens.radiusPill),
+        border: dark ? Border.all(color: ink.withValues(alpha: 0.55)) : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (dot) ...[
-            _StatusDot(color: tone, pulse: pulse),
+            _StatusDot(color: ink, pulse: pulse),
             const SizedBox(width: 6),
           ],
           Text(
             label,
             style: TextStyle(
-              color: tone,
-              fontSize: 11.5,
+              color: ink,
+              fontSize: dark ? 12.5 : 11.5,
               fontWeight: FontWeight.w600,
             ),
           ),

@@ -5,8 +5,7 @@ import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/features/fichas/domain/ficha_models.dart';
 import 'package:nereus_app/features/fichas/domain/water_templates.dart';
 
-bool fichaWide(BuildContext context) =>
-    MediaQuery.sizeOf(context).width >= 960;
+bool fichaWide(BuildContext context) => MediaQuery.sizeOf(context).width >= 960;
 
 int fichaColumns(double width, {int max = 3}) {
   if (width >= 1280) return max;
@@ -156,9 +155,9 @@ class FichaKpi extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: tone,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: NereusTokens.readable(context, tone),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -173,11 +172,75 @@ class FichaFieldChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ink = NereusTokens.text(context);
     final unit = field.unit;
-    return StatusChip(
-      label:
-          unit == null || unit.isEmpty ? field.name : '${field.name} ($unit)',
-      tone: NereusTokens.navy,
+    final meta = [
+      tipoCampo(field.fieldType),
+      if (unit != null && unit.isNotEmpty) unit,
+      if (field.required) 'Obligatorio',
+    ].join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            field.name,
+            style: TextStyle(
+              color: ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              height: 1.3,
+            ),
+          ),
+          Text(
+            meta,
+            style: TextStyle(
+              color: ink,
+              fontSize: 12.5,
+              height: 1.35,
+            ),
+          ),
+          if (field.options.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final option in field.options)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: dark
+                          ? NereusTokens.darkPanel
+                          : NereusTokens.surface2,
+                      borderRadius: BorderRadius.circular(
+                        NereusTokens.radiusPill,
+                      ),
+                      border: Border.all(
+                        color: dark
+                            ? NereusTokens.darkMuted
+                            : NereusTokens.navy,
+                      ),
+                    ),
+                    child: Text(
+                      option,
+                      style: TextStyle(
+                        color: ink,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -197,7 +260,7 @@ class FichaFieldLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final muted = dark ? NereusTokens.darkMuted : NereusTokens.inkMuted;
+    final ink = NereusTokens.text(context);
     final line = dark ? NereusTokens.darkLine : NereusTokens.line;
     final unit = field.unit;
     final filled = value != null && value!.trim().isNotEmpty;
@@ -217,14 +280,18 @@ class FichaFieldLine extends StatelessWidget {
               children: [
                 Text(
                   field.name,
-                  style: TextStyle(fontSize: 13, color: muted),
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: ink,
+                  ),
                 ),
                 Text(
                   [
                     tipoCampo(field.fieldType),
                     if (unit != null && unit.isNotEmpty) unit,
                   ].join(' · '),
-                  style: TextStyle(fontSize: 11, color: muted),
+                  style: TextStyle(fontSize: 12.5, color: ink),
                 ),
               ],
             ),
@@ -237,9 +304,7 @@ class FichaFieldLine extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: filled
-                    ? Theme.of(context).colorScheme.onSurface
-                    : muted,
+                color: ink,
               ),
             ),
           ),
@@ -275,8 +340,8 @@ class FichaSectionCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final line = dark ? NereusTokens.darkLine : NereusTokens.line;
-    final muted = dark ? NereusTokens.darkMuted : NereusTokens.inkMuted;
-    final tone = tonoSeccion(section.key);
+    final muted = NereusTokens.text(context);
+    final tone = NereusTokens.readable(context, tonoSeccion(section.key));
     final filled = values == null ? null : camposConDato(fields, values!);
 
     return GlassCard(
@@ -334,13 +399,7 @@ class FichaSectionCard extends StatelessWidget {
                     style: text.bodyMedium,
                   )
                 else if (values == null)
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final field in fields) FichaFieldChip(field: field),
-                    ],
-                  )
+                  for (final field in fields) FichaFieldChip(field: field)
                 else
                   for (final field in fields)
                     FichaFieldLine(
@@ -416,10 +475,8 @@ class ContactoLine extends StatelessWidget {
             child: Text(
               filled ? value! : '$label no informado',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: filled
-                        ? Theme.of(context).colorScheme.onSurface
-                        : muted,
-                  ),
+                color: filled ? Theme.of(context).colorScheme.onSurface : muted,
+              ),
             ),
           ),
         ],

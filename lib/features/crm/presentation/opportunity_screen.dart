@@ -190,14 +190,14 @@ class OpportunityScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 children: [
                   if (kildeIsLead(role) && deal != null && !canDerive)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         'Derivar a Strøm se habilita con la ficha de '
                         'levantamiento y una cotización aceptada que tenga '
                         'orden de compra.',
                         style: TextStyle(
-                          color: NereusTokens.navy,
+                          color: NereusTokens.text(context),
                           fontSize: 14,
                           height: 1.4,
                           fontWeight: FontWeight.w600,

@@ -156,8 +156,8 @@ class _Proposals extends StatelessWidget {
                           clp(
                             item.totalPrice == 0
                                 ? item.quantity *
-                                    item.unitPrice *
-                                    (1 - item.discount / 100)
+                                      item.unitPrice *
+                                      (1 - item.discount / 100)
                                 : item.totalPrice,
                           ),
                           style: const TextStyle(
@@ -188,10 +188,10 @@ class _Proposals extends StatelessWidget {
                       ),
                       Text(
                         clp(grandTotal),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: NereusTokens.navy,
+                          color: NereusTokens.text(context),
                         ),
                       ),
                     ],
@@ -283,9 +283,7 @@ class _FollowUps extends StatelessWidget {
                             children: [
                               Text(
                                 item.description,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
+                                style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(
                                       decoration: item.isCompleted
                                           ? TextDecoration.lineThrough
@@ -314,8 +312,9 @@ class _FollowUps extends StatelessWidget {
                             onPressed: () => onComplete!(item.id),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size(0, 28),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
                             ),
                             child: const Text(
                               'Hecho',

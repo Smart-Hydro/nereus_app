@@ -79,6 +79,23 @@ abstract final class NereusTokens {
   static const double glassOpacityDark = 0.96;
   static const double borderWidth = 1;
 
+  /// Color de acento que se lee sobre el fondo actual.
+  /// En oscuro, un navy o ámbar se aclara para no desaparecer en el panel.
+  static Color readable(BuildContext context, Color tone) {
+    if (Theme.of(context).brightness != Brightness.dark) return tone;
+    if (tone.computeLuminance() >= 0.55) return tone;
+    return Color.lerp(tone, darkInk, 0.82)!;
+  }
+
+  static Color text(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkInk : navy;
+
+  static Color panel(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkRaised : surface;
+
+  static Color hairline(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? darkLine : line;
+
   // Motion
   static const Duration fast = Duration(milliseconds: 150);
   static const Duration motionFast = fast;

@@ -10,34 +10,34 @@ import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 
-const _kildeLabel = TextStyle(
-  color: NereusTokens.navy,
+TextStyle _kildeLabel(BuildContext context) => TextStyle(
+  color: NereusTokens.text(context),
   fontSize: 14,
   fontWeight: FontWeight.w700,
   height: 1.3,
 );
 
-const _kildeValue = TextStyle(
-  color: NereusTokens.navy,
+TextStyle _kildeValue(BuildContext context) => TextStyle(
+  color: NereusTokens.text(context),
   fontSize: 22,
   fontWeight: FontWeight.w700,
   height: 1.2,
 );
 
-const _kildeMeta = TextStyle(
-  color: NereusTokens.navy,
+TextStyle _kildeMeta(BuildContext context) => TextStyle(
+  color: NereusTokens.text(context),
   fontSize: 13.5,
   height: 1.45,
 );
 
-Card _panel({required Widget child}) {
+Card _panel(BuildContext context, {required Widget child}) {
   return Card(
-    color: NereusTokens.surface,
+    color: NereusTokens.panel(context),
     elevation: 0,
     margin: EdgeInsets.zero,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
-      side: const BorderSide(color: NereusTokens.line),
+      side: BorderSide(color: NereusTokens.hairline(context)),
     ),
     child: child,
   );
@@ -116,8 +116,8 @@ class _IndicatorGrid extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               'Período ${data.periodLabel}',
-              style: const TextStyle(
-                color: NereusTokens.navy,
+              style: TextStyle(
+                color: NereusTokens.text(context),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -131,14 +131,15 @@ class _IndicatorGrid extends StatelessWidget {
               SizedBox(
                 width: 220,
                 child: _panel(
+                  context,
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(tile.$1, style: _kildeLabel),
+                        Text(tile.$1, style: _kildeLabel(context)),
                         const SizedBox(height: 8),
-                        Text(tile.$2, style: _kildeValue),
+                        Text(tile.$2, style: _kildeValue(context)),
                       ],
                     ),
                   ),
@@ -183,18 +184,19 @@ class KildeTeamScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final row = rows[index];
                   return _panel(
+                    context,
                     child: ListTile(
                       title: Text(
                         row.missingNext > 0
                             ? '${row.label} · sin próxima acción'
                             : row.label,
-                        style: _kildeLabel,
+                        style: _kildeLabel(context),
                       ),
                       subtitle: Text(
                         '${row.openOpportunities} abiertas · ${clp(row.weightedValue)} ponderado\n'
                         '${row.weekActivities} de la semana · ${row.overdue} atrasadas · ${row.wonPeriod} ganadas'
                         '${row.todayAgenda.isEmpty ? '' : '\nAgenda: ${row.todayAgenda.join(' · ')}'}',
-                        style: _kildeMeta,
+                        style: _kildeMeta(context),
                       ),
                       isThreeLine: true,
                     ),
@@ -241,8 +243,9 @@ class KildeRenewalsScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final row = rows[index];
                   return _panel(
+                    context,
                     child: ListTile(
-                      title: Text(row.title, style: _kildeLabel),
+                      title: Text(row.title, style: _kildeLabel(context)),
                       subtitle: Text(
                         [
                           if (row.clientName != null) row.clientName!,
@@ -252,7 +255,7 @@ class KildeRenewalsScreen extends ConsumerWidget {
                           if (!row.autoRenewal) 'Sin renovación automática',
                           if (row.contractNumber != null) row.contractNumber!,
                         ].join(' · '),
-                        style: _kildeMeta,
+                        style: _kildeMeta(context),
                       ),
                       trailing: Wrap(
                         spacing: 8,
@@ -389,8 +392,9 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                 itemBuilder: (context, index) {
                   final row = rows[index];
                   return _panel(
+                    context,
                     child: ListTile(
-                      title: Text(row.question, style: _kildeLabel),
+                      title: Text(row.question, style: _kildeLabel(context)),
                       subtitle: Text(
                         [
                           if (row.number != null) row.number!,
@@ -401,7 +405,7 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                           if (row.blocking) 'bloqueante',
                           if (row.answer != null) row.answer!,
                         ].join(' · '),
-                        style: _kildeMeta,
+                        style: _kildeMeta(context),
                       ),
                       trailing: row.answer == null
                           ? TextButton(
@@ -533,8 +537,9 @@ class _KildeLostReasonsScreenState
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _panel(
+                        context,
                         child: ListTile(
-                          title: Text(row.name, style: _kildeLabel),
+                          title: Text(row.name, style: _kildeLabel(context)),
                         ),
                       ),
                     ),

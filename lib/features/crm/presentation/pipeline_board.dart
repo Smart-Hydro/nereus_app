@@ -359,13 +359,13 @@ class _DealCard extends StatelessWidget {
             ),
           ] else ...[
             const SizedBox(height: 2),
-            const Text(
+            Text(
               'Sin próxima acción',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
                 fontWeight: FontWeight.w700,
-                color: NereusTokens.amber,
+                color: NereusTokens.readable(context, NereusTokens.amber),
               ),
             ),
           ],

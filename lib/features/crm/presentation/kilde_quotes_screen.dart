@@ -59,13 +59,14 @@ class KildeQuotesScreen extends ConsumerWidget {
                     blockingRfiOpen: blocking,
                   );
                   final pending = row.discountStatus == 'pending';
+                  final ink = NereusTokens.text(context);
                   return Card(
-                    color: NereusTokens.surface,
+                    color: NereusTokens.panel(context),
                     elevation: 0,
                     margin: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: NereusTokens.line),
+                      side: BorderSide(color: NereusTokens.hairline(context)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(14),
@@ -74,8 +75,8 @@ class KildeQuotesScreen extends ConsumerWidget {
                         children: [
                           Text(
                             row.number,
-                            style: const TextStyle(
-                              color: NereusTokens.navy,
+                            style: TextStyle(
+                              color: ink,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -100,8 +101,8 @@ class KildeQuotesScreen extends ConsumerWidget {
                                 'respuesta ${row.responseOn}',
                               if (row.poNumber != null) 'OC ${row.poNumber}',
                             ].join(' · '),
-                            style: const TextStyle(
-                              color: NereusTokens.navy,
+                            style: TextStyle(
+                              color: ink,
                               fontSize: 13.5,
                               height: 1.4,
                             ),
@@ -109,32 +110,32 @@ class KildeQuotesScreen extends ConsumerWidget {
                           if ((row.objection ?? '').isNotEmpty)
                             Text(
                               'Objeción: ${row.objection}',
-                              style: const TextStyle(
-                                color: NereusTokens.navy,
+                              style: TextStyle(
+                                color: ink,
                                 fontSize: 13.5,
                               ),
                             ),
                           if ((row.rejectionReason ?? '').isNotEmpty)
                             Text(
                               'Rechazo: ${row.rejectionReason}',
-                              style: const TextStyle(
-                                color: NereusTokens.navy,
+                              style: TextStyle(
+                                color: ink,
                                 fontSize: 13.5,
                               ),
                             ),
                           if (row.parentId != null)
                             Text(
                               'Versión anterior: ${row.parentId}',
-                              style: const TextStyle(
-                                color: NereusTokens.navy,
+                              style: TextStyle(
+                                color: ink,
                                 fontSize: 13.5,
                               ),
                             ),
                           if (blocking)
-                            const Text(
+                            Text(
                               'RFI bloqueante abierta: no se puede enviar.',
                               style: TextStyle(
-                                color: NereusTokens.navy,
+                                color: ink,
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
                               ),

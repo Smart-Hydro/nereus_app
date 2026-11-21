@@ -107,15 +107,19 @@ class LevantamientosScreen extends ConsumerWidget {
                                       width: 34,
                                       height: 34,
                                       decoration: BoxDecoration(
-                                        color: NereusTokens.navy.withValues(
-                                          alpha: 0.1,
-                                        ),
+                                        color: NereusTokens.readable(
+                                          context,
+                                          NereusTokens.navy,
+                                        ).withValues(alpha: 0.16),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.fact_check_outlined,
                                         size: 17,
-                                        color: NereusTokens.navy,
+                                        color: NereusTokens.readable(
+                                          context,
+                                          NereusTokens.navy,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -204,7 +208,9 @@ class LevantamientosScreen extends ConsumerWidget {
     LevantamientoTemplate template,
   ) async {
     try {
-      final published = await ref.read(levantamientoRepositoryProvider).publish(
+      final published = await ref
+          .read(levantamientoRepositoryProvider)
+          .publish(
             title: template.name,
             questions: template.questions,
           );
