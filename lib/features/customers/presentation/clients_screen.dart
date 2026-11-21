@@ -9,7 +9,8 @@ import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
 import 'package:nereus_app/features/customers/presentation/client_form.dart';
 import 'package:nereus_app/features/devices/providers/devices_provider.dart';
-import 'package:nereus_app/features/tickets/domain/ticket_models.dart';
+import 'package:go_router/go_router.dart';
+import 'package:nereus_app/features/customers/domain/client_models.dart';
 
 class ClientsScreen extends ConsumerWidget {
   const ClientsScreen({super.key});
@@ -30,7 +31,7 @@ class ClientsScreen extends ConsumerWidget {
 
     return CrudPage<ClientItem>(
       title: 'Clientes',
-      subtitle: 'Organizaciones y predios de esta sucursal',
+      subtitle: 'Razón social, giro, ubicación y documento de esta sucursal',
       value: clients,
       onRetry: () => ref.invalidate(clientsProvider),
       canWrite: canWrite,
@@ -40,30 +41,65 @@ class ClientsScreen extends ConsumerWidget {
       rowTitle: (row) => row.name,
       rowSubtitle: (row) => [
         if (row.clientCode != null) row.clientCode!,
+        if (row.commercialBusiness != null) row.commercialBusiness!,
+        if (row.commune != null) row.commune!,
         if (row.email != null) row.email!,
-        if (row.address != null) row.address!,
       ].join(' · '),
       columns: [
         NereusColumn(id: 'name', label: 'Nombre', cell: (r) => r.name),
-        NereusColumn(id: 'code', label: 'Código', cell: (r) => r.clientCode ?? '—'),
+        NereusColumn(
+          id: 'code',
+          label: 'Código',
+          cell: (r) => r.clientCode ?? '—',
+        ),
         NereusColumn(id: 'dni', label: 'RUT', cell: (r) => r.dni ?? '—'),
+        NereusColumn(
+          id: 'giro',
+          label: 'Giro',
+          cell: (r) => r.commercialBusiness ?? '—',
+        ),
+        NereusColumn(
+          id: 'commune',
+          label: 'Comuna',
+          cell: (r) => r.commune ?? '—',
+        ),
         NereusColumn(id: 'email', label: 'Email', cell: (r) => r.email ?? '—'),
-        NereusColumn(id: 'phone', label: 'Teléfono', cell: (r) => r.phone ?? '—'),
+        NereusColumn(
+          id: 'phone',
+          label: 'Teléfono',
+          cell: (r) => r.phone ?? '—',
+        ),
         NereusColumn(
           id: 'active',
           label: 'Estado',
           cell: (r) => r.isActive ? 'Activo' : 'Inactivo',
         ),
       ],
-      onOpen: canWrite ? openForm : null,
+      onOpen: (row) => context.go('/clients/${row.id}'),
       detailBuilder: (row) => ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(row.name, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
+          Text(receiverTypeLabel(row.receiverType)),
+          Text(row.commercialBusiness ?? 'Sin giro'),
+          Text(row.dni ?? 'Sin RUT'),
+          Text(documentTypeLabel(row.defaultDocumentType)),
           Text(row.email ?? 'Sin email'),
           Text(row.phone ?? 'Sin teléfono'),
-          Text(row.address ?? 'Sin dirección'),
+          Text(
+            [
+              if (row.region != null) row.region!,
+              if (row.commune != null) row.commune!,
+              if (row.address != null) row.address!,
+              if (row.sector != null) row.sector!,
+            ].join(' · '),
+          ),
+          if (row.tags.isNotEmpty) Text(row.tags.join(', ')),
+          FilledButton(
+            onPressed: () => context.go('/clients/${row.id}'),
+            child: const Text('Abrir ficha'),
+          ),
           if (canWrite) ...[
             const SizedBox(height: 16),
             FilledButton.tonal(

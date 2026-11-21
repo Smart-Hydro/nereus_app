@@ -101,6 +101,10 @@ dart run build_runner build --delete-conflicting-outputs
 flutter run --dart-define=NEREUS_DATA_MODE=fixture
 ```
 
+## Seguridad
+
+No versionar secretos. Copia [`.env.example`](.env.example) a `.env` y completa los valores fuera del repo. Cómo reportar una vulnerabilidad está en [`SECURITY.md`](SECURITY.md).
+
 ## Plan de 4 semanas (propuesta)
 
 A partir de la reunión del lunes 16 de noviembre de 2026, a las 11:00 (hora de Chile):
@@ -136,6 +140,7 @@ El seguimiento de issues y pull requests de Strøm está en el tablero [Strøm O
 | [DESIGN.md](docs/DESIGN.md) | Sistema de diseño (paleta, layout, estados, accesibilidad). |
 | [JOURNEY.md](docs/JOURNEY.md) | Recorrido funcional y endpoints que existen en el API. |
 | [API_CONTRACT.md](docs/API_CONTRACT.md) | Contrato de runtime del API que usa la app. |
+| [SECURITY.md](SECURITY.md) | Cómo reportar una vulnerabilidad y reglas del repo. |
 
 ---
 
