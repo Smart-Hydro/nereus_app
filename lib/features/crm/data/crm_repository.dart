@@ -225,7 +225,7 @@ class CrmRepository {
       if (names.contains(stage.name.toLowerCase())) continue;
       await createStage(
         name: stage.name,
-        order: i,
+        order: i + 1,
         probability: stage.probability,
         color: stage.color,
         isClosed: stage.closed,
@@ -340,11 +340,22 @@ class CrmRepository {
     }
   }
 
-  Future<void> move({required String id, required String stageId}) async {
+  Future<void> move({
+    required String id,
+    required String stageId,
+    String? lostReasonId,
+    String? lostReasonText,
+  }) async {
     try {
       await _dio.post<dynamic>(
         '/api/crm/opportunities/$id/move/',
-        data: {'stage_id': stageId},
+        data: {
+          'stage_id': stageId,
+          if (lostReasonId != null && lostReasonId.isNotEmpty)
+            'lost_reason_id': lostReasonId,
+          if (lostReasonText != null && lostReasonText.isNotEmpty)
+            'lost_reason_text': lostReasonText,
+        },
       );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
@@ -387,6 +398,9 @@ class CrmRepository {
     required String description,
     String? categoryId,
     DateTime? scheduledAt,
+    String? intakeOn,
+    bool? siteVisitNeeded,
+    String? installRequirements,
   }) async {
     try {
       await _dio.post<dynamic>(
@@ -399,6 +413,10 @@ class CrmRepository {
             'category': categoryId,
           if (scheduledAt != null)
             'scheduled_at': scheduledAt.toUtc().toIso8601String(),
+          if (intakeOn != null && intakeOn.isNotEmpty) 'intake_on': intakeOn,
+          if (siteVisitNeeded != null) 'site_visit_needed': siteVisitNeeded,
+          if (installRequirements != null && installRequirements.isNotEmpty)
+            'install_requirements': installRequirements,
         },
       );
     } on Object catch (error, stack) {
@@ -464,6 +482,235 @@ class CrmRepository {
   Future<void> deleteProposal(String id) async {
     try {
       await _dio.delete<dynamic>('/api/crm/opportunity-products/$id/');
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<LeadItem> registerContact({
+    required String leadId,
+    required String channel,
+    required String outcome,
+    String? requirementText,
+    String? reason,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/crm/leads/$leadId/register_contact/',
+        data: {
+          'channel': channel,
+          'outcome': outcome,
+          if (requirementText != null) 'requirement_text': requirementText,
+          if (reason != null) 'reason': reason,
+        },
+      );
+      return LeadItem.fromJson(response.data ?? const {});
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<String> deriveToStrom(String opportunityId) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/crm/opportunities/$opportunityId/derive_to_strom/',
+      );
+      return asString(response.data?['project_id']);
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<KildeIndicators> kildeIndicators() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/crm/kilde/indicators/',
+      );
+      return KildeIndicators.fromJson(response.data ?? const {});
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<KildeMember>> kildeTeam() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/crm/kilde/team/',
+      );
+      final members = response.data?['members'];
+      if (members is! List) return const [];
+      return [
+        for (final row in members)
+          if (row is Map) KildeMember.fromJson(Map<String, dynamic>.from(row)),
+      ];
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<KildeRenewal>> kildeRenewals() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/crm/kilde/renewals/',
+      );
+      final rows = response.data?['contracts'];
+      if (rows is! List) return const [];
+      return [
+        for (final row in rows)
+          if (row is Map) KildeRenewal.fromJson(Map<String, dynamic>.from(row)),
+      ];
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<String> openRenewal(String contractId) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/crm/kilde/renewals/$contractId/open_opportunity/',
+      );
+      return asString(response.data?['id']);
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<Map<String, dynamic>> client360(String clientId) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/crm/kilde/clients/$clientId/360/',
+      );
+      return response.data ?? const {};
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<String> openLevantamiento({
+    required String opportunityId,
+    required String title,
+    String? quoteResponseOn,
+    String? openQuestions,
+    String? resolutionMeetingOn,
+    bool? resolutionMeetingDone,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/surveys/surveys/',
+        data: {
+          'title': title,
+          'survey_type': 'CUSTOM',
+          'status': 'ACTIVE',
+          'opportunity_id': opportunityId,
+          if (quoteResponseOn != null) 'quote_response_on': quoteResponseOn,
+          if (openQuestions != null) 'open_questions': openQuestions,
+          if (resolutionMeetingOn != null)
+            'resolution_meeting_on': resolutionMeetingOn,
+          if (resolutionMeetingDone != null)
+            'resolution_meeting_done': resolutionMeetingDone,
+        },
+      );
+      return asString(response.data?['id']);
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> uploadClientPoFile({
+    required String quotationId,
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    try {
+      await _dio.patch<dynamic>(
+        '/api/sales/quotations/$quotationId/',
+        data: FormData.fromMap({
+          'client_po_file': MultipartFile.fromBytes(bytes, filename: filename),
+        }),
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<KildeRfi>> rfis() async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/crm/rfis/',
+        queryParameters: {'page_size': 100, 'ordering': '-created'},
+      );
+      return asResults(response.data).map(KildeRfi.fromJson).toList();
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> createRfi({
+    required String question,
+    required bool blocking,
+  }) async {
+    try {
+      await _dio.post<dynamic>(
+        '/api/crm/rfis/',
+        data: {'question': question, 'is_blocking': blocking},
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> answerRfi({required String id, required String answer}) async {
+    try {
+      await _dio.post<dynamic>(
+        '/api/crm/rfis/$id/answer/',
+        data: {'answer': answer},
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<KildeQuote>> quotations() async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/sales/quotations/',
+        queryParameters: {'page_size': 50, 'ordering': '-created'},
+      );
+      return asResults(response.data).map(KildeQuote.fromJson).toList();
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> quoteAction(String id, String action, [Map<String, dynamic>? body]) async {
+    try {
+      await _dio.post<dynamic>(
+        '/api/sales/quotations/$id/$action/',
+        data: body ?? const <String, dynamic>{},
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<LostReasonItem>> lostReasons() async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/crm/lost-reasons/',
+        queryParameters: {'page_size': 100, 'ordering': 'name'},
+      );
+      return asResults(response.data).map(LostReasonItem.fromJson).toList();
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> createLostReason(String name) async {
+    try {
+      await _dio.post<dynamic>(
+        '/api/crm/lost-reasons/',
+        data: {'name': name},
+      );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }

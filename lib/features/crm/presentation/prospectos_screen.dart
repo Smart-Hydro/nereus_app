@@ -12,6 +12,7 @@ import 'package:nereus_app/core/widgets/form_fields.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
+import 'package:nereus_app/features/crm/data/crm_repository.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/devices/providers/devices_provider.dart';
@@ -58,6 +59,9 @@ class _ProspectosScreenState extends ConsumerState<ProspectosScreen> {
           lead.status != 'ARCHIVED' &&
           lead.status != 'LOST',
       'ALL' => true,
+      'NOT_CONTACTED' => lead.notContacted,
+      'WITH_REQUIREMENT' => lead.requirementOutcome == 'with_requirement',
+      'WITHOUT_REQUIREMENT' => lead.requirementOutcome == 'without_requirement',
       _ => lead.status == _filter,
     };
   }
@@ -125,6 +129,9 @@ class _ProspectosScreenState extends ConsumerState<ProspectosScreen> {
                           ('NEW', 'Nuevos'),
                           ('CONTACTED', 'Contactados'),
                           ('QUALIFIED', 'Calificados'),
+                          ('NOT_CONTACTED', 'No contactados'),
+                          ('WITH_REQUIREMENT', 'Con requerimiento'),
+                          ('WITHOUT_REQUIREMENT', 'Sin requerimiento'),
                           ('CONVERTED', 'Clientes'),
                           ('LOST', 'Perdidos'),
                           ('ALL', 'Todos'),

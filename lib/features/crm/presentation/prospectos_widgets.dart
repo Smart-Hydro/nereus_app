@@ -65,6 +65,75 @@ class _LeadCard extends ConsumerWidget {
     }
   }
 
+  Future<void> _register(BuildContext context, CrmRepository repo) async {
+    final text = TextEditingController();
+    var channel = 'CALL';
+    var withRequirement = true;
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) => AlertDialog(
+          title: const Text('Registrar contacto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                // This Flutter SDK still reads `value` on DropdownButtonFormField.
+                // ignore: deprecated_member_use
+                value: channel,
+                decoration: const InputDecoration(labelText: 'Canal'),
+                items: const [
+                  DropdownMenuItem(value: 'CALL', child: Text('Llamada')),
+                  DropdownMenuItem(value: 'EMAIL', child: Text('Correo')),
+                  DropdownMenuItem(value: 'MEETING', child: Text('Reunión')),
+                  DropdownMenuItem(value: 'OTHER', child: Text('Otro')),
+                ],
+                onChanged: (value) => setLocal(() => channel = value ?? channel),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Hay requerimiento'),
+                value: withRequirement,
+                onChanged: (value) => setLocal(() => withRequirement = value),
+              ),
+              TextField(
+                controller: text,
+                decoration: InputDecoration(
+                  labelText: withRequirement ? 'Requerimiento' : 'Motivo',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final body = text.text.trim();
+    text.dispose();
+    if (saved != true || body.isEmpty) return;
+    if (!context.mounted) return;
+    await _run(
+      context,
+      () => repo.registerContact(
+        leadId: lead.id,
+        channel: channel,
+        outcome: withRequirement ? 'with_requirement' : 'without_requirement',
+        requirementText: withRequirement ? body : null,
+        reason: withRequirement ? null : body,
+      ),
+    );
+  }
+
   Color _statusColor(String status) {
     return switch (status) {
       'NEW' => NereusTokens.hydroBlue,
@@ -119,6 +188,17 @@ class _LeadCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(detail, style: TextStyle(fontSize: 12.5, color: muted)),
           ],
+          if (lead.requirementOutcome == 'with_requirement' &&
+              (lead.requirementText ?? '').isNotEmpty)
+            Text(
+              'Requerimiento: ${lead.requirementText}',
+              style: TextStyle(fontSize: 12.5, color: muted),
+            ),
+          if (lead.requirementOutcome == 'without_requirement')
+            Text(
+              'Sin requerimiento: ${lead.noRequirementReason ?? lead.requirementText ?? ''}',
+              style: TextStyle(fontSize: 12.5, color: muted),
+            ),
           if (lead.notes != null && lead.notes!.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
@@ -132,6 +212,18 @@ class _LeadCard extends ConsumerWidget {
               spacing: 8,
               runSpacing: 6,
               children: [
+                if (lead.status != 'CONVERTED' && lead.status != 'LOST')
+                  OutlinedButton(
+                    onPressed: () => _register(context, repo),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 30),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    child: const Text(
+                      'Requerimiento',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
                 if (lead.status == 'NEW')
                   OutlinedButton(
                     onPressed: () => _run(
@@ -148,7 +240,8 @@ class _LeadCard extends ConsumerWidget {
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
-                if (lead.status == 'NEW' || lead.status == 'CONTACTED')
+                if ((lead.status == 'NEW' || lead.status == 'CONTACTED') &&
+                    lead.requirementOutcome != 'without_requirement')
                   OutlinedButton(
                     onPressed: () => _run(
                       context,

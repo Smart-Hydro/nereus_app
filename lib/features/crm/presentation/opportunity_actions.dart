@@ -18,15 +18,19 @@ class FollowUpForm extends ConsumerStatefulWidget {
 
 class _FollowUpFormState extends ConsumerState<FollowUpForm> {
   final _description = TextEditingController();
+  final _requirements = TextEditingController();
   var _type = 'NOTE';
   String? _categoryId;
   DateTime? _when;
+  DateTime? _intakeOn;
+  var _siteVisit = false;
   var _busy = false;
   String? _error;
 
   @override
   void dispose() {
     _description.dispose();
+    _requirements.dispose();
     super.dispose();
   }
 
@@ -47,6 +51,14 @@ class _FollowUpFormState extends ConsumerState<FollowUpForm> {
             description: text,
             scheduledAt: _when,
             categoryId: _categoryId,
+            intakeOn: _intakeOn == null
+                ? null
+                : '${_intakeOn!.year.toString().padLeft(4, '0')}-${_intakeOn!.month.toString().padLeft(2, '0')}-${_intakeOn!.day.toString().padLeft(2, '0')}',
+            siteVisitNeeded:
+                _type == 'tech_commercial_handoff' ? _siteVisit : null,
+            installRequirements: _requirements.text.trim().isEmpty
+                ? null
+                : _requirements.text.trim(),
           );
       if (mounted) Navigator.pop(context, true);
     } on Object catch (error) {
@@ -101,6 +113,38 @@ class _FollowUpFormState extends ConsumerState<FollowUpForm> {
           decoration: const InputDecoration(labelText: 'Qué pasó'),
           maxLines: 3,
         ),
+        if (_type == 'tech_commercial_handoff') ...[
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Hace falta visita técnica'),
+            value: _siteVisit,
+            onChanged: (value) => setState(() => _siteVisit = value),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Fecha de ingreso'),
+            subtitle: Text(
+              _intakeOn == null
+                  ? 'Sin fecha'
+                  : '${_intakeOn!.day}/${_intakeOn!.month}/${_intakeOn!.year}',
+            ),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _intakeOn ?? DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (picked != null && mounted) setState(() => _intakeOn = picked);
+            },
+          ),
+        ],
+        if (_type == 'install_planning')
+          TextField(
+            controller: _requirements,
+            decoration: const InputDecoration(labelText: 'Requisitos de instalación'),
+            maxLines: 2,
+          ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Programado para'),

@@ -13,7 +13,9 @@ import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_form.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
+import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 import 'package:nereus_app/features/customers/domain/client_models.dart';
 
 part 'pipeline_board.dart';
@@ -46,8 +48,20 @@ class _PipelineScreenState extends ConsumerState<PipelineScreen> {
   }
 
   Future<void> _moveDeal(String id, String stageId) async {
+    final stages = ref.read(opportunityStagesProvider).value ?? const [];
+    String? lostReasonId;
+    if (movingToLost(stages, stageId)) {
+      final reasons = await ref.read(lostReasonsProvider.future);
+      if (!mounted) return;
+      lostReasonId = await askLostReason(context, reasons);
+      if (lostReasonId == null || lostReasonId.isEmpty) return;
+    }
     try {
-      await ref.read(crmRepositoryProvider).move(id: id, stageId: stageId);
+      await ref.read(crmRepositoryProvider).move(
+            id: id,
+            stageId: stageId,
+            lostReasonId: lostReasonId,
+          );
       await _reload();
     } on Object catch (error) {
       if (mounted) showFriendlyError(context, error);

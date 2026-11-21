@@ -333,6 +333,31 @@ class _DealCard extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: muted),
             ),
           ],
+          if (item.assignedToName != null && item.assignedToName!.isNotEmpty)
+            Text(
+              item.assignedToName!,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
+          if (item.probability > 0)
+            Text(
+              '${item.probability.round()}%',
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
+          if (item.nextActionLabel != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Próxima: ${item.nextActionLabel}',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
+          ] else ...[
+            const SizedBox(height: 2),
+            Text(
+              'Sin próxima acción',
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
+          ],
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

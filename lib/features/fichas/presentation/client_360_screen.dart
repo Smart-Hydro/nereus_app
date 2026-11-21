@@ -12,6 +12,7 @@ import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
 import 'package:nereus_app/features/crm/presentation/client_deals_card.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_client_card.dart';
 import 'package:nereus_app/features/customers/domain/client_models.dart';
 import 'package:nereus_app/features/fichas/domain/ficha_models.dart';
 import 'package:nereus_app/features/fichas/presentation/ficha_ui.dart';
@@ -217,6 +218,7 @@ class Client360Screen extends ConsumerWidget {
                     FichaGrid(maxColumns: 1, children: sectionCards),
                   ],
                   ClientDealsCard(clientId: clientId),
+                  KildeClientCard(clientId: clientId),
                   if (respuestas.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     Text(

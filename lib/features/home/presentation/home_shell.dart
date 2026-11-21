@@ -86,6 +86,48 @@ const shellDestinations = [
     section: 'Kilde',
   ),
   ShellDest(
+    path: '/kilde/indicadores',
+    label: 'Indicadores',
+    icon: Icons.insights_outlined,
+    selectedIcon: Icons.insights,
+    section: 'Kilde',
+  ),
+  ShellDest(
+    path: '/kilde/equipo',
+    label: 'Equipo',
+    icon: Icons.groups_outlined,
+    selectedIcon: Icons.groups,
+    section: 'Kilde',
+  ),
+  ShellDest(
+    path: '/kilde/cotizaciones',
+    label: 'Cotizaciones',
+    icon: Icons.request_quote_outlined,
+    selectedIcon: Icons.request_quote,
+    section: 'Kilde',
+  ),
+  ShellDest(
+    path: '/kilde/consultas',
+    label: 'Consultas',
+    icon: Icons.forum_outlined,
+    selectedIcon: Icons.forum,
+    section: 'Kilde',
+  ),
+  ShellDest(
+    path: '/kilde/renovaciones',
+    label: 'Renovaciones',
+    icon: Icons.event_repeat_outlined,
+    selectedIcon: Icons.event_repeat,
+    section: 'Kilde',
+  ),
+  ShellDest(
+    path: '/kilde/motivos',
+    label: 'Motivos',
+    icon: Icons.playlist_remove_outlined,
+    selectedIcon: Icons.playlist_remove,
+    section: 'Kilde',
+  ),
+  ShellDest(
     path: '/points',
     label: 'Puntos',
     icon: Icons.place_outlined,
@@ -228,10 +270,10 @@ const shellDestinations = [
 ];
 
 /// Destinations shown in the mobile bottom navigation.
-const mobileDestinations = [0, 10, 7, 3, 27];
+const mobileDestinations = [0, 16, 7, 3, 33];
 
 /// Destinations shown in the tablet rail when it is collapsed.
-const railDestinations = [0, 10, 3, 6, 7, 4, 11];
+const railDestinations = [0, 16, 3, 6, 7, 4, 17];
 
 int destinationIndexFor(String path) {
   if (path.startsWith('/catalog')) return 1;
@@ -241,32 +283,41 @@ int destinationIndexFor(String path) {
   if (path.startsWith('/levantamientos')) return 5;
   if (path.startsWith('/prospectos')) return 6;
   if (path.startsWith('/pipeline')) return 7;
-  if (path.startsWith('/points')) return 8;
-  if (path.startsWith('/equipment')) return 9;
-  if (path.startsWith('/devices') || path.startsWith('/alerts')) return 10;
-  if (path.startsWith('/tickets')) return 11;
-  if (path.startsWith('/strom/dev')) return 12;
-  if (path.startsWith('/strom/instalaciones')) return 14;
-  if (path.startsWith('/strom/ordenes')) return 15;
-  if (path.startsWith('/strom/visitas')) return 16;
-  if (path.startsWith('/strom/actividades')) return 17;
-  if (path.startsWith('/strom/terreno')) return 18;
-  if (path.startsWith('/strom/tecnico')) return 19;
-  if (path.startsWith('/strom/rts')) return 20;
-  if (path.startsWith('/strom/informes')) return 21;
-  if (path.startsWith('/strom/aclaraciones')) return 22;
-  if (path.startsWith('/strom/costos')) return 23;
-  if (path.startsWith('/strom/auditoria')) return 24;
-  if (path.startsWith('/strom/indicadores')) return 25;
-  if (path.startsWith('/strom/configuracion')) return 26;
-  if (path.startsWith('/strom')) return 13;
-  if (path.startsWith('/profile') || path.startsWith('/settings')) return 27;
+  if (path.startsWith('/kilde/indicadores')) return 8;
+  if (path.startsWith('/kilde/equipo')) return 9;
+  if (path.startsWith('/kilde/cotizaciones')) return 10;
+  if (path.startsWith('/kilde/consultas')) return 11;
+  if (path.startsWith('/kilde/renovaciones')) return 12;
+  if (path.startsWith('/kilde/motivos')) return 13;
+  if (path.startsWith('/points')) return 14;
+  if (path.startsWith('/equipment')) return 15;
+  if (path.startsWith('/devices') || path.startsWith('/alerts')) return 16;
+  if (path.startsWith('/tickets')) return 17;
+  if (path.startsWith('/strom/dev')) return 18;
+  if (path.startsWith('/strom/instalaciones')) return 20;
+  if (path.startsWith('/strom/ordenes')) return 21;
+  if (path.startsWith('/strom/visitas')) return 22;
+  if (path.startsWith('/strom/actividades')) return 23;
+  if (path.startsWith('/strom/terreno')) return 24;
+  if (path.startsWith('/strom/tecnico')) return 25;
+  if (path.startsWith('/strom/rts')) return 26;
+  if (path.startsWith('/strom/informes')) return 27;
+  if (path.startsWith('/strom/aclaraciones')) return 28;
+  if (path.startsWith('/strom/costos')) return 29;
+  if (path.startsWith('/strom/auditoria')) return 30;
+  if (path.startsWith('/strom/indicadores')) return 31;
+  if (path.startsWith('/strom/configuracion')) return 32;
+  if (path.startsWith('/strom')) return 19;
+  if (path.startsWith('/profile') || path.startsWith('/settings')) return 33;
   return 0;
 }
 
 List<String> breadcrumbsFor(String path) {
   if (path.startsWith('/devices/')) return ['Operación', 'Equipo'];
   if (path.startsWith('/tickets/')) return ['Tickets', 'Detalle'];
+  if (path.startsWith('/kilde/')) {
+    return ['Kilde', shellDestinations[destinationIndexFor(path)].label];
+  }
   if (path.startsWith('/strom')) {
     return ['Strøm — Operaciones', shellDestinations[destinationIndexFor(path)].label];
   }

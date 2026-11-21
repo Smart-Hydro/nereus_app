@@ -481,9 +481,29 @@ class FixtureCrmRepository extends CrmRepository {
       _opportunities.removeWhere((o) => o.id == id);
 
   @override
-  Future<void> move({required String id, required String stageId}) async {
+  Future<void> move({
+    required String id,
+    required String stageId,
+    String? lostReasonId,
+    String? lostReasonText,
+  }) async {
     final opp = await retrieve(id);
+    final stage = _stages.where((item) => item.id == stageId).firstOrNull;
+    if (stage != null &&
+        stage.isLost &&
+        (lostReasonId == null || lostReasonId.isEmpty)) {
+      throw StateError('Marcar Perdida exige un motivo.');
+    }
     await updateOpportunity(id: id, title: opp.title, stageId: stageId);
+    _activities.putIfAbsent(id, () => []).insert(
+          0,
+          FollowUpItem(
+            id: 'act-${++_seq}',
+            description: lostReasonText ?? 'Cambio de etapa',
+            activityType: 'STAGE_CHANGE',
+            createdByName: 'Demo',
+          ),
+        );
   }
 
   @override
@@ -497,6 +517,9 @@ class FixtureCrmRepository extends CrmRepository {
     required String description,
     String? categoryId,
     DateTime? scheduledAt,
+    String? intakeOn,
+    bool? siteVisitNeeded,
+    String? installRequirements,
   }) async {
     final cat = _categories.where((c) => c.id == categoryId).firstOrNull;
     _activities.putIfAbsent(opportunityId, () => []).insert(
@@ -577,4 +600,165 @@ class FixtureCrmRepository extends CrmRepository {
       list.removeWhere((p) => p.id == id);
     }
   }
+
+  @override
+  Future<LeadItem> registerContact({
+    required String leadId,
+    required String channel,
+    required String outcome,
+    String? requirementText,
+    String? reason,
+  }) async {
+    final index = _leads.indexWhere((lead) => lead.id == leadId);
+    if (index < 0) {
+      return LeadItem(id: leadId, firstName: 'Prospecto');
+    }
+    final current = _leads[index];
+    final next = LeadItem(
+      id: current.id,
+      firstName: current.firstName,
+      lastName: current.lastName,
+      email: current.email,
+      phone: current.phone,
+      company: current.company,
+      status: 'CONTACTED',
+      score: current.score,
+      sourceId: current.sourceId,
+      sourceName: current.sourceName,
+      notes: current.notes,
+      requirementOutcome: outcome,
+      requirementText: requirementText,
+      noRequirementReason: reason,
+    );
+    _leads[index] = next;
+    return next;
+  }
+
+  @override
+  Future<KildeIndicators> kildeIndicators() async => const KildeIndicators(
+        contacted: 2,
+        withRequirement: 1,
+        quotesAccepted: 1,
+        salesCount: 1,
+        salesNet: 4500000,
+        weighted: 1200000,
+      );
+
+  @override
+  Future<List<KildeMember>> kildeTeam() async => const [
+        KildeMember(
+          userId: 'ejecutivo',
+          openOpportunities: 3,
+          weightedValue: 1200000,
+          missingNext: 1,
+        ),
+      ];
+
+  @override
+  Future<List<KildeRenewal>> kildeRenewals() async => const [
+        KildeRenewal(
+          id: 'ct-1',
+          title: 'Mantención anual',
+          clientName: 'APR Demo',
+          endDate: '2026-12-31',
+        ),
+      ];
+
+  @override
+  Future<String> openRenewal(String contractId) async => 'opp-renovacion';
+
+  @override
+  Future<Map<String, dynamic>> client360(String clientId) async => {
+        'client': {'id': clientId, 'name': 'APR Demo'},
+        'opportunities': [
+          {'id': 'opp-1', 'title': 'Pozo Sur', 'stage_name': 'Cotización'},
+        ],
+        'quotations': [
+          {'id': 'q-1', 'status': 'accepted', 'version': 1},
+        ],
+        'purchase_orders': [
+          {'client_po_number': 'OC-1'},
+        ],
+        'surveys': [
+          {'id': 'sv-1', 'title': 'Levantamiento'},
+        ],
+        'rfis': const [],
+        'derivation': {'status': 'pending_derivation'},
+        'milestones': [
+          {
+            'channel': 'strom_install',
+            'at': '2026-11-01',
+            'description': 'Instalación',
+          },
+        ],
+        'follow_up': const [],
+        'contracts': const [],
+        'nps': {'latest_score': 9, 'count': 1},
+      };
+
+  @override
+  Future<String> openLevantamiento({
+    required String opportunityId,
+    required String title,
+    String? quoteResponseOn,
+    String? openQuestions,
+    String? resolutionMeetingOn,
+    bool? resolutionMeetingDone,
+  }) async =>
+      'sv-demo';
+
+  @override
+  Future<void> uploadClientPoFile({
+    required String quotationId,
+    required List<int> bytes,
+    required String filename,
+  }) async {}
+
+  @override
+  Future<List<KildeRfi>> rfis() async => const [
+        KildeRfi(
+          id: 'rfi-1',
+          number: 'RFI-1',
+          question: '¿El pozo tiene energía trifásica?',
+          blocking: true,
+          status: 'open',
+        ),
+      ];
+
+  @override
+  Future<void> createRfi({
+    required String question,
+    required bool blocking,
+  }) async {}
+
+  @override
+  Future<void> answerRfi({required String id, required String answer}) async {}
+
+  @override
+  Future<List<KildeQuote>> quotations() async => const [
+        KildeQuote(
+          id: 'q-1',
+          number: 'COT-1',
+          status: 'draft',
+          total: 4500000,
+        ),
+      ];
+
+  @override
+  Future<void> quoteAction(
+    String id,
+    String action, [
+    Map<String, dynamic>? body,
+  ]) async {}
+
+  @override
+  Future<List<LostReasonItem>> lostReasons() async => const [
+        LostReasonItem(id: 'lr-1', name: 'Precio'),
+      ];
+
+  @override
+  Future<void> createLostReason(String name) async {}
+
+  @override
+  Future<String> deriveToStrom(String opportunityId) async => 'proy-demo';
 }

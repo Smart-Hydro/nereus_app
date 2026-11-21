@@ -8,6 +8,8 @@ import 'package:nereus_app/features/auth/presentation/login_screen.dart';
 import 'package:nereus_app/features/auth/presentation/reset_password_screen.dart';
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/catalog/presentation/catalog_screen.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_screens.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_quotes_screen.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_screen.dart';
 import 'package:nereus_app/features/crm/presentation/pipeline_screen.dart';
 import 'package:nereus_app/features/crm/presentation/prospectos_screen.dart';
@@ -137,6 +139,30 @@ GoRouter appRouter(Ref ref) {
               GoRoute(
                 path: '/prospectos',
                 builder: (_, __) => const ProspectosScreen(),
+              ),
+              GoRoute(
+                path: '/kilde/indicadores',
+                builder: (_, __) => const KildeIndicatorsScreen(),
+              ),
+              GoRoute(
+                path: '/kilde/equipo',
+                builder: (_, __) => const KildeTeamScreen(),
+              ),
+              GoRoute(
+                path: '/kilde/renovaciones',
+                builder: (_, __) => const KildeRenewalsScreen(),
+              ),
+              GoRoute(
+                path: '/kilde/consultas',
+                builder: (_, __) => const KildeRfiScreen(),
+              ),
+              GoRoute(
+                path: '/kilde/cotizaciones',
+                builder: (_, __) => const KildeQuotesScreen(),
+              ),
+              GoRoute(
+                path: '/kilde/motivos',
+                builder: (_, __) => const KildeLostReasonsScreen(),
               ),
               GoRoute(
                 path: '/pipeline',

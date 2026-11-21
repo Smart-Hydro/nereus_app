@@ -21,7 +21,7 @@ void main() {
     expect(clp(item.estimatedValue), r'$1.500.000');
   });
 
-  test('lead can convert only after contact or qualification', () {
+  test('lead can convert only with a requirement', () {
     final fresh = LeadItem.fromJson(const {
       'id': 'l1',
       'first_name': 'Ana',
@@ -33,10 +33,18 @@ void main() {
       'id': 'l2',
       'first_name': 'Ana',
       'status': 'QUALIFIED',
+      'requirement_outcome': 'with_requirement',
+    });
+    final blocked = LeadItem.fromJson(const {
+      'id': 'l3',
+      'first_name': 'Ana',
+      'status': 'CONTACTED',
+      'requirement_outcome': 'without_requirement',
     });
     expect(fresh.name, 'Ana Soto');
     expect(fresh.canConvert, isFalse);
     expect(ready.canConvert, isTrue);
+    expect(blocked.canConvert, isFalse);
     expect(leadStatusLabel('CONTACTED'), 'Contactado');
   });
 

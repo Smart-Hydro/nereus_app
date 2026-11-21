@@ -12,7 +12,10 @@ import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/catalog/domain/journey_models.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
+import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_actions.dart';
+import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_form.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/customers/domain/client_models.dart';
@@ -39,7 +42,17 @@ class OpportunityScreen extends ConsumerWidget {
     final activities = ref.watch(opportunityActivitiesProvider(opportunityId));
     final proposals = ref.watch(opportunityProposalsProvider(opportunityId));
     final clients = ref.watch(customerClientsProvider);
+    final quotes = ref.watch(kildeQuotesProvider);
+    final role = ref.watch(sessionProvider).value?.currentBranch?.roleCode;
     final deal = detail.value;
+    final hasPo = (quotes.value ?? const <KildeQuote>[]).any(
+      (quote) => quote.opportunityId == deal?.id && quote.acceptedWithPo,
+    );
+    final canDerive = deriveEnabled(
+      roleCode: role,
+      hasSurvey: (deal?.surveyId ?? '').isNotEmpty,
+      hasAcceptedQuoteWithPo: hasPo || quotes.isLoading,
+    );
 
     Future<void> reload() async {
       ref.invalidate(opportunityDetailProvider(opportunityId));
@@ -50,10 +63,18 @@ class OpportunityScreen extends ConsumerWidget {
     }
 
     Future<void> move(String stageId) async {
+      String? lostReasonId;
+      if (movingToLost(stages.value ?? const [], stageId)) {
+        final reasons = await ref.read(lostReasonsProvider.future);
+        if (!context.mounted) return;
+        lostReasonId = await askLostReason(context, reasons);
+        if (lostReasonId == null || lostReasonId.isEmpty) return;
+      }
       try {
         await ref.read(crmRepositoryProvider).move(
               id: opportunityId,
               stageId: stageId,
+              lostReasonId: lostReasonId,
             );
         await reload();
       } on Object catch (error) {
@@ -107,6 +128,11 @@ class OpportunityScreen extends ConsumerWidget {
               if (deal != null) clp(deal.estimatedValue),
               if (deal?.expectedCloseDate != null)
                 'Cierre ${deal!.expectedCloseDate}',
+              if (deal != null && deal.probability > 0)
+                '${deal.probability.round()}%',
+              if ((deal?.lostReasonName ?? deal?.lostReasonText ?? '')
+                  .isNotEmpty)
+                'Pérdida: ${deal!.lostReasonName ?? deal.lostReasonText}',
             ].join(' · '),
             actions: [
               OutlinedButton.icon(
@@ -119,6 +145,20 @@ class OpportunityScreen extends ConsumerWidget {
                   onPressed: () => context.go('/clients/${deal!.clientId}'),
                   icon: const Icon(Icons.assignment_ind_outlined, size: 16),
                   label: const Text('Ficha 360'),
+                ),
+              if (canWrite && deal != null)
+                OutlinedButton.icon(
+                  onPressed: () => _openSurvey(context, ref, deal),
+                  icon: const Icon(Icons.fact_check_outlined, size: 16),
+                  label: Text(
+                    deal.surveyId == null ? 'Crear ficha' : 'Abrir ficha',
+                  ),
+                ),
+              if (kildeIsLead(role) && deal != null)
+                OutlinedButton.icon(
+                  onPressed: canDerive ? () => _derive(context, ref, deal) : null,
+                  icon: const Icon(Icons.alt_route, size: 16),
+                  label: const Text('Derivar a Strøm'),
                 ),
               if (canWrite && deal != null) ...[
                 OutlinedButton.icon(
@@ -185,6 +225,149 @@ class OpportunityScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openSurvey(
+    BuildContext context,
+    WidgetRef ref,
+    OpportunityItem deal,
+  ) async {
+    final existing = deal.surveyId;
+    if (existing != null && existing.isNotEmpty) {
+      context.go('/levantamientos/fill/$existing?client=${deal.clientId ?? ''}');
+      return;
+    }
+    final questions = TextEditingController();
+    final responseOn = TextEditingController();
+    final meetingOn = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ficha de levantamiento'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: responseOn,
+              decoration: const InputDecoration(
+                labelText: 'Fecha de respuesta de la cotización (AAAA-MM-DD)',
+              ),
+            ),
+            TextField(
+              controller: questions,
+              decoration: const InputDecoration(labelText: 'Dudas u objeciones'),
+              maxLines: 3,
+            ),
+            TextField(
+              controller: meetingOn,
+              decoration: const InputDecoration(
+                labelText: 'Reunión de resolución (AAAA-MM-DD)',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+    final doubts = questions.text.trim();
+    final response = responseOn.text.trim();
+    final meeting = meetingOn.text.trim();
+    questions.dispose();
+    responseOn.dispose();
+    meetingOn.dispose();
+    if (ok != true) return;
+    try {
+      final id = await ref.read(crmRepositoryProvider).openLevantamiento(
+            opportunityId: deal.id,
+            title: 'Levantamiento ${deal.title}',
+            quoteResponseOn: response.isEmpty ? null : response,
+            openQuestions: doubts.isEmpty ? null : doubts,
+            resolutionMeetingOn: meeting.isEmpty ? null : meeting,
+            resolutionMeetingDone: meeting.isNotEmpty,
+          );
+      ref.invalidate(opportunityDetailProvider(opportunityId));
+      if (context.mounted) {
+        context.go('/levantamientos/fill/$id?client=${deal.clientId ?? ''}');
+      }
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
+  }
+
+  Future<void> _derive(
+    BuildContext context,
+    WidgetRef ref,
+    OpportunityItem deal,
+  ) async {
+    final quotes = ref.read(kildeQuotesProvider).value ?? const <KildeQuote>[];
+    final related = [
+      for (final quote in quotes)
+        if (quote.opportunityId == deal.id) quote,
+    ];
+    final accepted = related.where((quote) => quote.status == 'accepted');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Derivar a Strøm'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Cliente: ${deal.clientName ?? 'sin cliente'}'),
+            Text('Ficha: ${deal.surveyId ?? 'falta'}'),
+            Text(
+              accepted.isEmpty
+                  ? 'Cotización aceptada: falta'
+                  : 'Cotización: ${accepted.first.number}',
+            ),
+            Text(
+              'OC: ${accepted.where((quote) => quote.poNumber != null).map((quote) => quote.poNumber).join(', ')}',
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Se copia lo que ya está en la ficha. No se vuelve a escribir.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Derivar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final projectId =
+          await ref.read(crmRepositoryProvider).deriveToStrom(deal.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              projectId.isEmpty
+                  ? 'Derivado a Strøm.'
+                  : 'Derivado a Strøm ($projectId).',
+            ),
+          ),
+        );
+      }
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
   }
 
   Future<void> _addProposal(
