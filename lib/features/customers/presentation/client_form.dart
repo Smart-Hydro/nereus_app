@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/core/providers.dart';
+import 'package:nereus_app/core/theme/tokens.dart';
 import 'package:nereus_app/core/widgets/form_fields.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
+import 'package:nereus_app/features/customers/domain/client_models.dart';
 import 'package:nereus_app/features/devices/providers/devices_provider.dart';
 import 'package:nereus_app/features/tickets/domain/ticket_models.dart';
 
@@ -23,6 +25,15 @@ class _ClientFormState extends ConsumerState<ClientForm> {
   final _address = TextEditingController();
   final _dni = TextEditingController();
   final _code = TextEditingController();
+  final _giro = TextEditingController();
+  final _province = TextEditingController();
+  final _commune = TextEditingController();
+  final _sector = TextEditingController();
+  final _tags = TextEditingController();
+  String _receiver = 'PERSONA_NATURAL';
+  String _document = 'BOLETA';
+  String? _region;
+  bool _active = true;
   bool _busy = false;
   String? _error;
 
@@ -30,25 +41,57 @@ class _ClientFormState extends ConsumerState<ClientForm> {
   void initState() {
     super.initState();
     final existing = widget.existing;
-    if (existing != null) {
-      _name.text = existing.name;
-      _email.text = existing.email ?? '';
-      _phone.text = existing.phone ?? '';
-      _address.text = existing.address ?? '';
-      _dni.text = existing.dni ?? '';
-      _code.text = existing.clientCode ?? '';
-    }
+    if (existing == null) return;
+    _name.text = existing.name;
+    _email.text = existing.email ?? '';
+    _phone.text = existing.phone ?? '';
+    _address.text = existing.address ?? '';
+    _dni.text = existing.dni ?? '';
+    _code.text = existing.clientCode ?? '';
+    _giro.text = existing.commercialBusiness ?? '';
+    _province.text = existing.province ?? '';
+    _commune.text = existing.commune ?? '';
+    _sector.text = existing.sector ?? '';
+    _tags.text = existing.tags.join(', ');
+    _receiver = existing.receiverType;
+    _document = existing.defaultDocumentType;
+    _region = existing.region;
+    _active = existing.isActive;
   }
 
   @override
   void dispose() {
-    _name.dispose();
-    _email.dispose();
-    _phone.dispose();
-    _address.dispose();
-    _dni.dispose();
-    _code.dispose();
+    for (final controller in [
+      _name,
+      _email,
+      _phone,
+      _address,
+      _dni,
+      _code,
+      _giro,
+      _province,
+      _commune,
+      _sector,
+      _tags,
+    ]) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  String? _blank(TextEditingController controller) {
+    final text = controller.text.trim();
+    return text.isEmpty ? null : text;
+  }
+
+  List<String> _regionItems() {
+    final current = _region;
+    if (current != null &&
+        current.isNotEmpty &&
+        !chileRegions.contains(current)) {
+      return [current, ...chileRegions];
+    }
+    return chileRegions;
   }
 
   Future<void> _save() async {
@@ -62,12 +105,23 @@ class _ClientFormState extends ConsumerState<ClientForm> {
     });
     final body = {
       'name': _name.text.trim(),
-      'email': _email.text.trim(),
-      'phone_number': _phone.text.trim(),
-      'address': _address.text.trim(),
-      'dni': _dni.text.trim(),
-      'client_code': _code.text.trim(),
-      'is_active': true,
+      'email': _blank(_email),
+      'phone_number': _blank(_phone),
+      'address': _blank(_address),
+      'dni': _blank(_dni),
+      'client_code': _blank(_code),
+      'commercial_business': _blank(_giro),
+      'receiver_type': _receiver,
+      'default_document_type': _document,
+      'region': _region,
+      'province': _blank(_province),
+      'commune': _blank(_commune),
+      'sector': _blank(_sector),
+      'tags': [
+        for (final tag in _tags.text.split(','))
+          if (tag.trim().isNotEmpty) tag.trim(),
+      ],
+      'is_active': _active,
     };
     try {
       final repo = ref.read(customersRepositoryProvider);
@@ -87,6 +141,19 @@ class _ClientFormState extends ConsumerState<ClientForm> {
     }
   }
 
+  Widget _section(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: NereusTokens.text(context),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FormPad(
@@ -94,18 +161,46 @@ class _ClientFormState extends ConsumerState<ClientForm> {
       error: _error,
       onSubmit: _save,
       children: [
+        _section('Identificación'),
         TextField(
           controller: _name,
-          decoration: const InputDecoration(labelText: 'Nombre'),
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Nombre o razón social'),
         ),
         TextField(
           controller: _code,
-          decoration: const InputDecoration(labelText: 'Código de cliente'),
+          decoration: const InputDecoration(
+            labelText: 'Código de socio',
+            helperText: 'Si lo dejas vacío, el sistema asigna uno.',
+          ),
         ),
         TextField(
           controller: _dni,
-          decoration: const InputDecoration(labelText: 'RUT / DNI'),
+          decoration: const InputDecoration(labelText: 'RUT'),
         ),
+        SelectField<String>(
+          label: 'Tipo de receptor',
+          value: _receiver,
+          items: receiverTypes,
+          itemLabel: receiverTypeLabel,
+          onChanged: (value) {
+            if (value != null) setState(() => _receiver = value);
+          },
+        ),
+        TextField(
+          controller: _giro,
+          decoration: const InputDecoration(labelText: 'Giro'),
+        ),
+        SelectField<String>(
+          label: 'Documento por defecto',
+          value: _document,
+          items: documentTypes,
+          itemLabel: documentTypeLabel,
+          onChanged: (value) {
+            if (value != null) setState(() => _document = value);
+          },
+        ),
+        _section('Contacto'),
         TextField(
           controller: _email,
           keyboardType: TextInputType.emailAddress,
@@ -116,9 +211,44 @@ class _ClientFormState extends ConsumerState<ClientForm> {
           keyboardType: TextInputType.phone,
           decoration: const InputDecoration(labelText: 'Teléfono'),
         ),
+        _section('Ubicación'),
+        SelectField<String>(
+          label: 'Región',
+          value: _region != null && _regionItems().contains(_region)
+              ? _region
+              : null,
+          items: _regionItems(),
+          onChanged: (value) => setState(() => _region = value),
+        ),
+        TextField(
+          controller: _province,
+          decoration: const InputDecoration(labelText: 'Provincia'),
+        ),
+        TextField(
+          controller: _commune,
+          decoration: const InputDecoration(labelText: 'Comuna'),
+        ),
         TextField(
           controller: _address,
           decoration: const InputDecoration(labelText: 'Dirección'),
+        ),
+        TextField(
+          controller: _sector,
+          decoration: const InputDecoration(labelText: 'Sector'),
+        ),
+        _section('Clasificación'),
+        TextField(
+          controller: _tags,
+          decoration: const InputDecoration(
+            labelText: 'Etiquetas',
+            helperText: 'Sepáralas con coma. Ejemplo: APR, telemetría',
+          ),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Cliente activo'),
+          value: _active,
+          onChanged: (value) => setState(() => _active = value),
         ),
       ],
     );

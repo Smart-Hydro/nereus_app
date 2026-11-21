@@ -31,7 +31,7 @@ class ClientsScreen extends ConsumerWidget {
 
     return CrudPage<ClientItem>(
       title: 'Clientes',
-      subtitle: 'Organizaciones y clientes de esta sucursal',
+      subtitle: 'Razón social, giro, ubicación y documento de esta sucursal',
       value: clients,
       onRetry: () => ref.invalidate(clientsProvider),
       canWrite: canWrite,
@@ -41,15 +41,34 @@ class ClientsScreen extends ConsumerWidget {
       rowTitle: (row) => row.name,
       rowSubtitle: (row) => [
         if (row.clientCode != null) row.clientCode!,
+        if (row.commercialBusiness != null) row.commercialBusiness!,
+        if (row.commune != null) row.commune!,
         if (row.email != null) row.email!,
-        if (row.address != null) row.address!,
       ].join(' · '),
       columns: [
         NereusColumn(id: 'name', label: 'Nombre', cell: (r) => r.name),
-        NereusColumn(id: 'code', label: 'Código', cell: (r) => r.clientCode ?? '—'),
+        NereusColumn(
+          id: 'code',
+          label: 'Código',
+          cell: (r) => r.clientCode ?? '—',
+        ),
         NereusColumn(id: 'dni', label: 'RUT', cell: (r) => r.dni ?? '—'),
+        NereusColumn(
+          id: 'giro',
+          label: 'Giro',
+          cell: (r) => r.commercialBusiness ?? '—',
+        ),
+        NereusColumn(
+          id: 'commune',
+          label: 'Comuna',
+          cell: (r) => r.commune ?? '—',
+        ),
         NereusColumn(id: 'email', label: 'Email', cell: (r) => r.email ?? '—'),
-        NereusColumn(id: 'phone', label: 'Teléfono', cell: (r) => r.phone ?? '—'),
+        NereusColumn(
+          id: 'phone',
+          label: 'Teléfono',
+          cell: (r) => r.phone ?? '—',
+        ),
         NereusColumn(
           id: 'active',
           label: 'Estado',
@@ -62,9 +81,21 @@ class ClientsScreen extends ConsumerWidget {
         children: [
           Text(row.name, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
+          Text(receiverTypeLabel(row.receiverType)),
+          Text(row.commercialBusiness ?? 'Sin giro'),
+          Text(row.dni ?? 'Sin RUT'),
+          Text(documentTypeLabel(row.defaultDocumentType)),
           Text(row.email ?? 'Sin email'),
           Text(row.phone ?? 'Sin teléfono'),
-          Text(row.address ?? 'Sin dirección'),
+          Text(
+            [
+              if (row.region != null) row.region!,
+              if (row.commune != null) row.commune!,
+              if (row.address != null) row.address!,
+              if (row.sector != null) row.sector!,
+            ].join(' · '),
+          ),
+          if (row.tags.isNotEmpty) Text(row.tags.join(', ')),
           FilledButton(
             onPressed: () => context.go('/clients/${row.id}'),
             child: const Text('Abrir ficha'),

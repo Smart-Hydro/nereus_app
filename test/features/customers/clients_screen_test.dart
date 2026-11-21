@@ -36,14 +36,77 @@ void main() {
     expect(find.text('Agricola Nahuen'), findsOneWidget);
     expect(find.textContaining('{id:'), findsNothing);
   });
+
+  test('el cliente lee giro, comuna y etiquetas', () {
+    final item = ClientItem.fromJson(const {
+      'id': '1',
+      'name': 'APR Valle',
+      'commercial_business': 'Agua potable',
+      'commune': 'Pemuco',
+      'receiver_type': 'EMPRESA',
+      'default_document_type': 'FACTURA',
+      'tags': ['APR', 'telemetría'],
+    });
+    expect(item.commercialBusiness, 'Agua potable');
+    expect(item.commune, 'Pemuco');
+    expect(item.receiverType, 'EMPRESA');
+    expect(documentTypeLabel(item.defaultDocumentType), 'Factura electrónica');
+    expect(item.tags, ['APR', 'telemetría']);
+  });
+
+  testWidgets('el alta de cliente muestra giro, comuna y documento', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionProvider.overrideWith(_AdminSession.new),
+          clientsProvider.overrideWith(
+            (ref) async => const [
+              ClientItem(id: '41', name: 'Agricola Nahuen'),
+            ],
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const ClientsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cliente'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nuevo cliente'), findsOneWidget);
+    expect(find.text('Giro'), findsOneWidget);
+    expect(find.text('Tipo de receptor'), findsOneWidget);
+    expect(find.text('Documento por defecto'), findsOneWidget);
+    expect(find.text('Comuna'), findsOneWidget);
+    await tester.drag(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(ListView),
+      ),
+      const Offset(0, -700),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Sector'), findsOneWidget);
+    expect(find.text('Etiquetas'), findsOneWidget);
+    expect(find.text('Cliente activo'), findsOneWidget);
+  });
 }
 
 class _AdminSession extends Session {
   @override
   FutureOr<AuthSession> build() => const AuthSession(
-        token: 't',
-        branchId: '1',
-        enabledApps: ['customers'],
-        branches: [BranchAssignment(branchId: 1, roleCode: 'ADM')],
-      );
+    token: 't',
+    branchId: '1',
+    enabledApps: ['customers'],
+    branches: [BranchAssignment(branchId: 1, roleCode: 'ADM')],
+  );
 }

@@ -7,9 +7,9 @@ import 'package:nereus_app/features/fichas/data/fixture_store.dart';
 
 class CustomersRepository {
   CustomersRepository({Dio? dio, ReadCache? cache, FixtureStore? store})
-      : _dio = dio,
-        _cache = cache,
-        _store = store;
+    : _dio = dio,
+      _cache = cache,
+      _store = store;
 
   factory CustomersRepository.fixture(FixtureStore store) {
     return CustomersRepository(store: store);
@@ -62,7 +62,11 @@ class CustomersRepository {
     final store = _store;
     if (store != null) {
       final id = store.nextId('cli');
-      final row = {...body, 'id': id, 'is_active': true};
+      final row = {
+        ...body,
+        'id': id,
+        'is_active': body['is_active'] ?? true,
+      };
       store.clients[id] = row;
       return ClientItem.fromJson(row);
     }

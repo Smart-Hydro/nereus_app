@@ -14,6 +14,14 @@ class FixtureStore {
       'address': 'Camino Los Pozos 100, Ñuble',
       'dni': '76.543.210-K',
       'client_code': 'SR-01',
+      'commercial_business': 'Agricultura',
+      'receiver_type': 'EMPRESA',
+      'default_document_type': 'FACTURA',
+      'region': 'Ñuble',
+      'province': 'Diguillín',
+      'commune': 'Chillán',
+      'sector': 'Valle del Itata',
+      'tags': ['Telemetría'],
       'is_active': true,
     };
     store.clients['2'] = {
@@ -24,6 +32,13 @@ class FixtureStore {
       'address': 'El Huape, Pemuco',
       'dni': '65.111.222-3',
       'client_code': 'EH-02',
+      'commercial_business': 'Agua potable rural',
+      'receiver_type': 'EMPRESA',
+      'default_document_type': 'FACTURA',
+      'region': 'Ñuble',
+      'province': 'Diguillín',
+      'commune': 'Pemuco',
+      'sector': 'El Huape',
       'is_active': true,
     };
     _seedSurvey(
