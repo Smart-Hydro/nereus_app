@@ -441,6 +441,7 @@ class FollowUpItem {
     this.isCompleted = false,
     this.createdByName,
     this.assignedToName,
+    this.opportunityId,
   });
 
   final String id;
@@ -454,9 +455,11 @@ class FollowUpItem {
   final bool isCompleted;
   final String? createdByName;
   final String? assignedToName;
+  final String? opportunityId;
 
   factory FollowUpItem.fromJson(Map<String, dynamic> json) {
     final cat = json['category'];
+    final opportunity = json['opportunity'];
     return FollowUpItem(
       id: asString(json['id']),
       description: asString(json['description']),
@@ -469,6 +472,9 @@ class FollowUpItem {
       isCompleted: json['is_completed'] == true,
       createdByName: asStringOrNull(json['created_by_name']),
       assignedToName: asStringOrNull(json['assigned_to_name']),
+      opportunityId: opportunity is Map
+          ? asStringOrNull(opportunity['id'])
+          : asStringOrNull(opportunity),
     );
   }
 }
@@ -774,7 +780,9 @@ class KildeRfi {
     this.status = 'open',
     this.blocking = false,
     this.answer,
+    this.reopenReason,
     this.assignedToId,
+    this.assignedToName,
     this.quotationId,
     this.opportunityId,
   });
@@ -785,13 +793,19 @@ class KildeRfi {
   final String status;
   final bool blocking;
   final String? answer;
+  final String? reopenReason;
   final String? assignedToId;
+  final String? assignedToName;
   final String? quotationId;
   final String? opportunityId;
 
   bool get isOpen => status != 'closed' && status != 'answered';
 
   factory KildeRfi.fromJson(Map<String, dynamic> json) {
+    final assigned = json['assigned_to'];
+    final assignedMap = assigned is Map
+        ? Map<String, dynamic>.from(assigned)
+        : null;
     return KildeRfi(
       id: asString(json['id']),
       question: asString(json['question'], fallback: 'Consulta'),
@@ -799,7 +813,14 @@ class KildeRfi {
       status: asString(json['status'], fallback: 'open'),
       blocking: json['is_blocking'] == true,
       answer: asStringOrNull(json['answer']),
-      assignedToId: asStringOrNull(json['assigned_to']),
+      reopenReason: asStringOrNull(json['reopen_reason']),
+      assignedToId: assignedMap != null
+          ? asStringOrNull(assignedMap['id'])
+          : asStringOrNull(assigned),
+      assignedToName: assignedMap != null
+          ? asStringOrNull(assignedMap['full_name']) ??
+                asStringOrNull(assignedMap['username'])
+          : asStringOrNull(json['assigned_to_name']),
       quotationId: asStringOrNull(json['quotation']),
       opportunityId: asStringOrNull(json['opportunity']),
     );

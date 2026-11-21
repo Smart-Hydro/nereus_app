@@ -187,6 +187,20 @@ class LevantamientosScreen extends ConsumerWidget {
                           LevantamientoShareCard(item: item, demo: demo),
                       ],
                     ),
+                  const SizedBox(height: 24),
+                  Text('Respuestas recibidas', style: text.titleLarge),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Lo que el cliente envió por el enlace público.',
+                    style: text.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  ..._respuestas(
+                    context,
+                    ref.watch(levantamientoRespuestasProvider).value ??
+                        const <LevantamientoRespuesta>[],
+                    listos,
+                  ),
                 ],
               ),
             ),
@@ -194,6 +208,39 @@ class LevantamientosScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  List<Widget> _respuestas(
+    BuildContext context,
+    List<LevantamientoRespuesta> rows,
+    List<Levantamiento> surveys,
+  ) {
+    if (rows.isEmpty) {
+      return const [
+        GlassCard(child: Text('Todavía no llegan respuestas.')),
+      ];
+    }
+    final ink = NereusTokens.text(context);
+    return [
+      for (final row in rows)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GlassCard(
+            child: Text(
+              [
+                surveys
+                        .where((item) => item.id == row.surveyId)
+                        .map((item) => item.title)
+                        .firstOrNull ??
+                    'Formulario',
+                for (final value in row.answers.values)
+                  if ('$value'.isNotEmpty) '$value',
+              ].join(' · '),
+              style: TextStyle(color: ink, fontSize: 14, height: 1.4),
+            ),
+          ),
+        ),
+    ];
   }
 
   Future<void> _usarPlantilla(

@@ -10,6 +10,10 @@ final kildeTeamProvider = FutureProvider<List<KildeMember>>((ref) {
   return ref.watch(crmRepositoryProvider).kildeTeam();
 });
 
+final todayActivitiesProvider = FutureProvider<List<FollowUpItem>>((ref) {
+  return ref.watch(crmRepositoryProvider).todayActivities();
+});
+
 final kildeRenewalsProvider = FutureProvider<List<KildeRenewal>>((ref) {
   return ref.watch(crmRepositoryProvider).kildeRenewals();
 });

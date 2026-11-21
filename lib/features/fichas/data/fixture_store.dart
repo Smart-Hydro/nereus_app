@@ -38,6 +38,12 @@ class FixtureStore {
       title: captacionTemplateName,
       fields: captacionSection.fields,
     );
+    store.responses['rsp-captacion'] = {
+      'id': 'rsp-captacion',
+      'survey': 'sv-captacion',
+      'answers': {'tipo_punto': 'Pozo'},
+      'created': '2026-11-20T15:00:00',
+    };
     return store;
   }
 

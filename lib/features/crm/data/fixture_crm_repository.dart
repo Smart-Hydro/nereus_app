@@ -257,6 +257,14 @@ class FixtureCrmRepository extends CrmRepository {
   final Map<String, List<FollowUpItem>> _activities = {
     'opp-1': [
       FollowUpItem(
+        id: 'act-hoy',
+        description: 'Llamar al APR Valle del Itata',
+        activityType: 'CALL',
+        scheduledAt: DateTime.now(),
+        createdByName: 'Josefa Lagos',
+        opportunityId: 'opp-1',
+      ),
+      FollowUpItem(
         id: 'act-1',
         description: 'Presentación de propuesta en junta de vecinos APR',
         activityType: 'MEETING',
@@ -264,6 +272,7 @@ class FixtureCrmRepository extends CrmRepository {
         categoryName: 'Revisión de propuesta',
         scheduledAt: DateTime(2026, 10, 25, 11),
         createdByName: 'Josefa Lagos',
+        opportunityId: 'opp-1',
       ),
       FollowUpItem(
         id: 'act-2',
@@ -274,6 +283,7 @@ class FixtureCrmRepository extends CrmRepository {
         isCompleted: true,
         scheduledAt: DateTime(2026, 10, 18, 9, 30),
         createdByName: 'Héctor Muñoz',
+        opportunityId: 'opp-1',
       ),
     ],
   };
@@ -616,6 +626,21 @@ class FixtureCrmRepository extends CrmRepository {
   }
 
   @override
+  Future<List<FollowUpItem>> todayActivities() async {
+    final today = DateTime.now();
+    return [
+      for (final list in _activities.values)
+        for (final item in list)
+          if (!item.isCompleted &&
+              item.scheduledAt != null &&
+              item.scheduledAt!.year == today.year &&
+              item.scheduledAt!.month == today.month &&
+              item.scheduledAt!.day == today.day)
+            item,
+    ];
+  }
+
+  @override
   Future<List<FollowUpItem>> activities(String opportunityId) async =>
       List.unmodifiable(_activities[opportunityId] ?? const []);
 
@@ -643,6 +668,7 @@ class FixtureCrmRepository extends CrmRepository {
             categoryName: cat?.name,
             scheduledAt: scheduledAt,
             createdByName: 'Demostración',
+            opportunityId: opportunityId,
           ),
         );
   }
@@ -1101,16 +1127,66 @@ class FixtureCrmRepository extends CrmRepository {
 
   @override
   Future<void> answerRfi({required String id, required String answer}) async {
+    _replaceRfi(
+      id,
+      (current) => _copyRfi(current, status: 'answered', answer: answer),
+    );
+  }
+
+  @override
+  Future<void> assignRfi({required String id, required String userId}) async {
+    _replaceRfi(
+      id,
+      (current) => _copyRfi(
+        current,
+        status: 'assigned',
+        assignedToId: userId,
+        assignedToName: userId,
+      ),
+    );
+  }
+
+  @override
+  Future<void> closeRfi(String id) async {
+    _replaceRfi(id, (current) => _copyRfi(current, status: 'closed'));
+  }
+
+  @override
+  Future<void> reopenRfi({required String id, required String reason}) async {
+    _replaceRfi(
+      id,
+      (current) => _copyRfi(
+        current,
+        status: 'reopened',
+        reopenReason: reason,
+      ),
+    );
+  }
+
+  void _replaceRfi(String id, KildeRfi Function(KildeRfi current) build) {
     final index = _rfis.indexWhere((item) => item.id == id);
     if (index < 0) return;
-    final current = _rfis[index];
-    _rfis[index] = KildeRfi(
+    _rfis[index] = build(_rfis[index]);
+  }
+
+  KildeRfi _copyRfi(
+    KildeRfi current, {
+    String? status,
+    String? answer,
+    String? reopenReason,
+    String? assignedToId,
+    String? assignedToName,
+  }) {
+    return KildeRfi(
       id: current.id,
       question: current.question,
       number: current.number,
-      status: 'answered',
+      status: status ?? current.status,
       blocking: current.blocking,
-      answer: answer,
+      answer: answer ?? current.answer,
+      reopenReason: reopenReason ?? current.reopenReason,
+      assignedToId: assignedToId ?? current.assignedToId,
+      assignedToName: assignedToName ?? current.assignedToName,
       quotationId: current.quotationId,
       opportunityId: current.opportunityId,
     );

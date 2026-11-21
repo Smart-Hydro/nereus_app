@@ -68,6 +68,11 @@ void main() {
     expect(find.text('Copiar enlace'), findsWidgets);
     expect(find.text('Vista previa'), findsWidgets);
     expect(find.text('Editar formulario'), findsWidgets);
+    expect(find.text('Respuestas recibidas'), findsOneWidget);
+    expect(
+      find.textContaining('Levantamiento de captación · Pozo'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('la vista publica muestra las opciones del formulario', (

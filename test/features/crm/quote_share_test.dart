@@ -93,6 +93,7 @@ void main() {
     expect(find.text('Nueva cotización'), findsOneWidget);
     expect(find.text('Compartir'), findsWidgets);
     expect(find.text('Vista pública'), findsWidgets);
+    expect(find.text('Descargar resumen'), findsWidgets);
     expect(
       find.textContaining('/cotizacion/q-1042?demo=1'),
       findsOneWidget,

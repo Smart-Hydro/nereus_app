@@ -33,7 +33,10 @@ Future<List<FichaField>> fichaFields(Ref ref) async {
 }
 
 @Riverpod(retry: nereusNoRetry)
-Future<List<FichaField>> fichaFieldsForSection(Ref ref, String sectionId) async {
+Future<List<FichaField>> fichaFieldsForSection(
+  Ref ref,
+  String sectionId,
+) async {
   await ref.watch(waterTemplatesReadyProvider.future);
   return ref.watch(fichaRepositoryProvider).fields(groupId: sectionId);
 }
@@ -66,10 +69,17 @@ Future<Levantamiento> levantamientoDetail(Ref ref, String id) {
   return ref.watch(levantamientoRepositoryProvider).retrieve(id);
 }
 
+final levantamientoRespuestasProvider =
+    FutureProvider<List<LevantamientoRespuesta>>((ref) {
+      return ref.watch(levantamientoRepositoryProvider).responses();
+    });
+
 @Riverpod(retry: nereusNoRetry)
 Future<List<LevantamientoRespuesta>> clientLevantamientoRespuestas(
   Ref ref,
   String clientId,
 ) {
-  return ref.watch(levantamientoRepositoryProvider).responses(clientId: clientId);
+  return ref
+      .watch(levantamientoRepositoryProvider)
+      .responses(clientId: clientId);
 }

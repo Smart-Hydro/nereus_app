@@ -7,6 +7,8 @@ import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
+import 'package:nereus_app/features/crm/presentation/my_day_section.dart';
+import 'package:nereus_app/features/crm/presentation/rfi_actions.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 
@@ -70,7 +72,9 @@ class KildeIndicatorsScreen extends ConsumerWidget {
               isLoading: snap.isLoading,
               hasError: snap.hasError,
               isEmpty: !snap.hasValue,
-              errorMessage: userFacingErrorMessage(snap.error ?? 'Error'),
+              errorMessage: snap.hasError
+                  ? userFacingErrorMessage(snap.error!)
+                  : 'No pudimos cargar esta vista.',
               isNetworkError: isNetworkFailure(snap.error ?? 'Error'),
               onRetry: () => ref.invalidate(kildeIndicatorsProvider),
               child: _IndicatorGrid(
@@ -168,13 +172,16 @@ class KildeTeamScreen extends ConsumerWidget {
             title: 'Equipo',
             subtitle: 'Embudo, atrasos y próxima acción por ejecutivo',
           ),
+          const MyDaySection(),
           Expanded(
             child: AsyncBody(
               isLoading: snap.isLoading,
               hasError: snap.hasError,
               isEmpty: rows.isEmpty && !snap.isLoading && !snap.hasError,
               emptyMessage: 'No hay ejecutivos Kilde en esta sucursal.',
-              errorMessage: userFacingErrorMessage(snap.error ?? 'Error'),
+              errorMessage: snap.hasError
+                  ? userFacingErrorMessage(snap.error!)
+                  : 'No pudimos cargar esta vista.',
               isNetworkError: isNetworkFailure(snap.error ?? 'Error'),
               onRetry: () => ref.invalidate(kildeTeamProvider),
               child: ListView.separated(
@@ -233,7 +240,9 @@ class KildeRenewalsScreen extends ConsumerWidget {
               hasError: snap.hasError,
               isEmpty: rows.isEmpty && !snap.isLoading && !snap.hasError,
               emptyMessage: 'Ningún contrato está en plazo de aviso.',
-              errorMessage: userFacingErrorMessage(snap.error ?? 'Error'),
+              errorMessage: snap.hasError
+                  ? userFacingErrorMessage(snap.error!)
+                  : 'No pudimos cargar esta vista.',
               isNetworkError: isNetworkFailure(snap.error ?? 'Error'),
               onRetry: () => ref.invalidate(kildeRenewalsProvider),
               child: ListView.separated(
@@ -344,6 +353,7 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
   Widget build(BuildContext context) {
     final snap = ref.watch(kildeRfisProvider);
     final rows = snap.value ?? const <KildeRfi>[];
+    final team = ref.watch(kildeTeamProvider).value ?? const <KildeMember>[];
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -382,7 +392,9 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
               hasError: snap.hasError,
               isEmpty: rows.isEmpty && !snap.isLoading && !snap.hasError,
               emptyMessage: 'No hay consultas.',
-              errorMessage: userFacingErrorMessage(snap.error ?? 'Error'),
+              errorMessage: snap.hasError
+                  ? userFacingErrorMessage(snap.error!)
+                  : 'No pudimos cargar esta vista.',
               isNetworkError: isNetworkFailure(snap.error ?? 'Error'),
               onRetry: () => ref.invalidate(kildeRfisProvider),
               child: ListView.separated(
@@ -393,26 +405,39 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                   final row = rows[index];
                   return _panel(
                     context,
-                    child: ListTile(
-                      title: Text(row.question, style: _kildeLabel(context)),
-                      subtitle: Text(
-                        [
-                          if (row.number != null) row.number!,
-                          if (row.isOpen) 'Abierta',
-                          if (!row.isOpen) 'Respondida',
-                          if (row.assignedToId != null)
-                            'asignada a ${row.assignedToId}',
-                          if (row.blocking) 'bloqueante',
-                          if (row.answer != null) row.answer!,
-                        ].join(' · '),
-                        style: _kildeMeta(context),
-                      ),
-                      trailing: row.answer == null
-                          ? TextButton(
-                              onPressed: () => _answer(row),
-                              child: const Text('Responder'),
-                            )
-                          : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          title: Text(
+                            row.question,
+                            style: _kildeLabel(context),
+                          ),
+                          subtitle: Text(
+                            [
+                              if (row.number != null) row.number!,
+                              if (row.isOpen) 'Abierta',
+                              if (!row.isOpen) 'Respondida',
+                              if (row.blocking) 'bloqueante',
+                              if (row.answer != null) row.answer!,
+                              if ((row.reopenReason ?? '').isNotEmpty)
+                                'Reabierta: ${row.reopenReason}',
+                            ].join(' · '),
+                            style: _kildeMeta(context),
+                          ),
+                          isThreeLine: true,
+                          trailing: row.answer == null && row.status != 'closed'
+                              ? TextButton(
+                                  onPressed: () => _answer(row),
+                                  child: const Text('Responder'),
+                                )
+                              : null,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+                          child: RfiActions(row: row, team: team),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -527,7 +552,9 @@ class _KildeLostReasonsScreenState
               hasError: snap.hasError,
               isEmpty: rows.isEmpty && !snap.isLoading && !snap.hasError,
               emptyMessage: 'Todavía no hay motivos.',
-              errorMessage: userFacingErrorMessage(snap.error ?? 'Error'),
+              errorMessage: snap.hasError
+                  ? userFacingErrorMessage(snap.error!)
+                  : 'No pudimos cargar esta vista.',
               isNetworkError: isNetworkFailure(snap.error ?? 'Error'),
               onRetry: () => ref.invalidate(lostReasonsProvider),
               child: ListView(

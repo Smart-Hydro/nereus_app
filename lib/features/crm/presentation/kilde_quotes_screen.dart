@@ -1,4 +1,7 @@
 import 'package:file_picker/file_picker.dart';
+
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nereus_app/core/config/app_config.dart';
@@ -10,6 +13,8 @@ import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
+import 'package:nereus_app/features/crm/domain/quote_file.dart';
+import 'package:nereus_app/features/crm/domain/quote_share.dart';
 import 'package:nereus_app/features/crm/presentation/quote_create_dialog.dart';
 import 'package:nereus_app/features/crm/presentation/quote_seller_card.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
@@ -86,6 +91,7 @@ class KildeQuotesScreen extends ConsumerWidget {
                       field,
                     ),
                     onPo: () => _po(context, ref, row.id),
+                    onDownload: () => _download(context, ref, row, demo),
                   );
                 },
               ),
@@ -94,6 +100,34 @@ class KildeQuotesScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _download(
+    BuildContext context,
+    WidgetRef ref,
+    KildeQuote quote,
+    bool demo,
+  ) async {
+    try {
+      final bytes = demo
+          ? utf8.encode(quoteDocument(quote))
+          : await ref.read(crmRepositoryProvider).quotationPdf(quote.id);
+      saveQuoteBytes(
+        filename: demo
+            ? 'cotizacion_${quote.id}.txt'
+            : 'cotizacion_${quote.id}.pdf',
+        bytes: bytes,
+        mime: demo ? 'text/plain;charset=utf-8' : 'application/pdf',
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(demo ? 'Resumen descargado.' : 'PDF descargado.'),
+        ),
+      );
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
   }
 
   Future<void> _run(

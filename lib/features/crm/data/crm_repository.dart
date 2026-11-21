@@ -385,6 +385,30 @@ class CrmRepository {
     }
   }
 
+  Future<List<FollowUpItem>> todayActivities() async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/crm/opportunity-activities/',
+        queryParameters: {'page_size': 100, 'ordering': 'scheduled_at'},
+      );
+      final today = DateTime.now();
+      return [
+        for (final item in asResults(response.data).map(FollowUpItem.fromJson))
+          if (_isSameDay(item.scheduledAt, today) && !item.isCompleted) item,
+      ];
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  bool _isSameDay(DateTime? when, DateTime today) {
+    if (when == null) return false;
+    final local = when.toLocal();
+    return local.year == today.year &&
+        local.month == today.month &&
+        local.day == today.day;
+  }
+
   Future<List<FollowUpItem>> activities(String opportunityId) async {
     try {
       final response = await _dio.get<dynamic>(
@@ -673,6 +697,36 @@ class CrmRepository {
       await _dio.post<dynamic>(
         '/api/crm/rfis/$id/answer/',
         data: {'answer': answer},
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> assignRfi({required String id, required String userId}) async {
+    try {
+      await _dio.post<dynamic>(
+        '/api/crm/rfis/$id/assign/',
+        data: {'assigned_to': int.tryParse(userId) ?? userId},
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> closeRfi(String id) async {
+    try {
+      await _dio.post<dynamic>('/api/crm/rfis/$id/close/');
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> reopenRfi({required String id, required String reason}) async {
+    try {
+      await _dio.post<dynamic>(
+        '/api/crm/rfis/$id/reopen/',
+        data: {'reason': reason},
       );
     } on Object catch (error, stack) {
       _rethrow(error, stack);

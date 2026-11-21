@@ -17,6 +17,7 @@ class QuoteSellerCard extends StatelessWidget {
     required this.onAction,
     required this.onText,
     required this.onPo,
+    required this.onDownload,
     super.key,
   });
 
@@ -28,6 +29,7 @@ class QuoteSellerCard extends StatelessWidget {
   final void Function(String action) onAction;
   final void Function(String action, String label, String field) onText;
   final VoidCallback onPo;
+  final VoidCallback onDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +132,10 @@ class QuoteSellerCard extends StatelessWidget {
                   onPressed: () =>
                       context.go(quoteSharePath(row.id, demo: demo)),
                   child: const Text('Vista pública'),
+                ),
+                OutlinedButton(
+                  onPressed: onDownload,
+                  child: Text(demo ? 'Descargar resumen' : 'Descargar PDF'),
                 ),
                 OutlinedButton(
                   onPressed: sendBlocked || row.immutable
