@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nereus_app/core/theme/glass.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_handoff_panel.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/domain/ops_parse.dart';
 import 'package:nereus_app/features/strom/domain/project_models.dart';
@@ -84,6 +85,11 @@ class _BodyState extends ConsumerState<_Body> {
           OpsLink('Costos', '/strom/costos?proyecto=${project.id}'),
           OpsLink('Aclaraciones', '/strom/aclaraciones?proyecto=${project.id}'),
         ]),
+        if (project.kildeHandoff != null)
+          KildeHandoffPanel(
+            handoff: project.kildeHandoff!,
+            title: 'Viene de Kilde',
+          ),
         Wrap(
           spacing: 8,
           runSpacing: 8,

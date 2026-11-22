@@ -298,9 +298,10 @@ class _FollowUps extends StatelessWidget {
                                   if (item.categoryName != null)
                                     item.categoryName!,
                                   if (item.scheduledAt != null)
-                                    _when(item.scheduledAt!.toLocal()),
-                                  if (item.createdByName != null)
-                                    item.createdByName!,
+                                    'Fecha ${_when(item.scheduledAt!.toLocal())}',
+                                  if ((item.assignedToName ?? item.createdByName) !=
+                                      null)
+                                    'Responsable ${item.assignedToName ?? item.createdByName}',
                                 ].join(' · '),
                                 style: TextStyle(fontSize: 12, color: muted),
                               ),
