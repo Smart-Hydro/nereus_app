@@ -1,4 +1,5 @@
 import 'package:nereus_app/core/json_util.dart';
+import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/strom/domain/ops_parse.dart';
 
 /// Proyecto de operaciones. El id llega como int o string.
@@ -21,6 +22,7 @@ class OpsProject {
     this.openClarifications = const [],
     this.created = '',
     this.modified = '',
+    this.kildeHandoff,
   });
 
   final String id;
@@ -40,6 +42,7 @@ class OpsProject {
   final List<OpsOpenClarification> openClarifications;
   final String created;
   final String modified;
+  final KildeHandoff? kildeHandoff;
 
   bool get looksLikeSupport => serviceType == 'support';
 
@@ -66,8 +69,25 @@ class OpsProject {
           .toList(),
       created: asString(json['created']),
       modified: asString(json['modified']),
+      kildeHandoff: _kildeHandoff(json),
     );
   }
+}
+
+KildeHandoff? _kildeHandoff(Map<String, dynamic> json) {
+  final raw = json['kilde_handoff'];
+  if (raw is! Map) return null;
+  final merged = Map<String, dynamic>.from(raw);
+  if (merged['client'] == null && json['client'] != null) {
+    merged['client'] = json['client'];
+  }
+  if (merged['client_name'] == null && json['client_name'] != null) {
+    merged['client_name'] = json['client_name'];
+  }
+  if (merged['quotation'] == null && json['quotation'] is Map) {
+    merged['quotation'] = json['quotation'];
+  }
+  return KildeHandoff.fromJson(merged);
 }
 
 class OpsOpenClarification {

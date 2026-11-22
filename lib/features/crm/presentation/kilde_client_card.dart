@@ -47,7 +47,7 @@ class KildeClientCard extends ConsumerWidget {
             _block(context, 'Órdenes de compra', data['purchase_orders'], 'client_po_number'),
             _block(context, 'Levantamientos', data['surveys'], 'title'),
             _block(context, 'Consultas', data['rfis'], 'question'),
-            _block(context, 'Hitos de Strøm', data['milestones'], 'description'),
+            _milestones(context, data['milestones']),
             _block(context, 'Seguimiento', data['follow_up'], 'description'),
             _block(context, 'Contratos', data['contracts'], 'title'),
             TextButton(
@@ -56,6 +56,21 @@ class KildeClientCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _milestones(BuildContext context, Object? raw) {
+    if (raw is! List || raw.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Hitos de Strøm', style: Theme.of(context).textTheme.titleSmall),
+          for (final row in raw)
+            if (row is Map) Text(stromMilestoneLine(row)),
+        ],
       ),
     );
   }
@@ -75,7 +90,11 @@ class KildeClientCard extends ConsumerWidget {
                   activityTypeLabel(asString(row['channel'])),
                   asString(row[field]),
                   asString(row['at']),
-                  asString(row['assigned_to_id']),
+                  asString(
+                    row['assigned_to_name'] ??
+                        row['created_by_name'] ??
+                        row['assigned_to_id'],
+                  ),
                 ].where((part) => part.isNotEmpty && part != field).join(' · '),
               ),
         ],

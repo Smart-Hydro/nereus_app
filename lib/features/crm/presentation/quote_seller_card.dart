@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
+import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/domain/quote_share.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class QuoteSellerCard extends StatelessWidget {
   const QuoteSellerCard({
@@ -18,6 +21,7 @@ class QuoteSellerCard extends StatelessWidget {
     required this.onText,
     required this.onPo,
     required this.onDownload,
+    required this.onVersions,
     super.key,
   });
 
@@ -30,11 +34,16 @@ class QuoteSellerCard extends StatelessWidget {
   final void Function(String action, String label, String field) onText;
   final VoidCallback onPo;
   final VoidCallback onDownload;
+  final VoidCallback onVersions;
 
   @override
   Widget build(BuildContext context) {
     final row = quote;
     final pending = row.discountStatus == 'pending';
+    final expired = quoteShowsExpired(
+      status: row.status,
+      validUntil: row.validUntil,
+    );
     final ink = NereusTokens.text(context);
     return Card(
       color: NereusTokens.panel(context),
@@ -72,6 +81,7 @@ class QuoteSellerCard extends StatelessWidget {
               [
                 'v${row.version}',
                 if (row.status.isNotEmpty) quoteStatusLabel(row.status),
+                if (expired) 'Vencida',
                 clp(row.total),
                 if (row.validUntil != null) 'vigente hasta ${row.validUntil}',
                 if (pending) 'pendiente del Líder',
@@ -98,6 +108,7 @@ class QuoteSellerCard extends StatelessWidget {
                 'Versión anterior: ${row.parentId}',
                 style: TextStyle(color: ink, fontSize: 13.5),
               ),
+            if ((row.poFile ?? '').isNotEmpty) _PoFileLink(file: row.poFile!),
             if (blocking)
               Text(
                 'RFI bloqueante abierta: no se puede enviar.',
@@ -138,6 +149,10 @@ class QuoteSellerCard extends StatelessWidget {
                   child: Text(demo ? 'Descargar resumen' : 'Descargar PDF'),
                 ),
                 OutlinedButton(
+                  onPressed: onVersions,
+                  child: const Text('Versiones'),
+                ),
+                OutlinedButton(
                   onPressed: sendBlocked || row.immutable
                       ? null
                       : () => onAction('send'),
@@ -150,10 +165,10 @@ class QuoteSellerCard extends StatelessWidget {
                   child: const Text('Recepción'),
                 ),
                 OutlinedButton(
-                  onPressed: sendBlocked || row.immutable
+                  onPressed: expired || sendBlocked || row.immutable
                       ? null
                       : () => onAction('accept'),
-                  child: const Text('Aceptar'),
+                  child: Text(expired ? expiredQuoteAcceptLabel : 'Aceptar'),
                 ),
                 OutlinedButton(
                   onPressed: row.immutable
@@ -185,7 +200,7 @@ class QuoteSellerCard extends StatelessWidget {
                   ),
                 ],
                 OutlinedButton(
-                  onPressed: row.immutable ? null : onPo,
+                  onPressed: canRegisterClientPo(row.status) ? onPo : null,
                   child: const Text('Registrar OC'),
                 ),
               ],
@@ -193,6 +208,42 @@ class QuoteSellerCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PoFileLink extends StatelessWidget {
+  const _PoFileLink({required this.file});
+
+  final String file;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = NereusTokens.text(context);
+    final http = file.startsWith('http://') || file.startsWith('https://');
+    if (!http) {
+      return SelectableText(
+        'Archivo de OC: $file',
+        style: TextStyle(
+          color: ink,
+          fontSize: 13.5,
+          decoration: TextDecoration.underline,
+        ),
+      );
+    }
+    return TextButton(
+      onPressed: () async {
+        final uri = Uri.tryParse(file);
+        final opened = uri != null &&
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!opened && context.mounted) {
+          showFriendlyError(
+            context,
+            const ApiError(message: 'No se pudo abrir el archivo de la OC.'),
+          );
+        }
+      },
+      child: const Text('Archivo de OC'),
     );
   }
 }

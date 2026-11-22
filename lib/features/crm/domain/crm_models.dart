@@ -785,6 +785,7 @@ class KildeRfi {
     this.assignedToName,
     this.quotationId,
     this.opportunityId,
+    this.answers = const [],
   });
 
   final String id;
@@ -798,8 +799,17 @@ class KildeRfi {
   final String? assignedToName;
   final String? quotationId;
   final String? opportunityId;
+  final List<KildeRfiAnswer> answers;
 
   bool get isOpen => status != 'closed' && status != 'answered';
+
+  /// Historial que muestra la ficha. Si el API viejo solo trae `answer`, esa es la única fila.
+  List<KildeRfiAnswer> get history {
+    if (answers.isNotEmpty) return answers;
+    final text = answer;
+    if (text == null || text.isEmpty) return const [];
+    return [KildeRfiAnswer(id: id, answer: text)];
+  }
 
   factory KildeRfi.fromJson(Map<String, dynamic> json) {
     final assigned = json['assigned_to'];
@@ -823,8 +833,53 @@ class KildeRfi {
           : asStringOrNull(json['assigned_to_name']),
       quotationId: asStringOrNull(json['quotation']),
       opportunityId: asStringOrNull(json['opportunity']),
+      answers: _rfiAnswers(json['answers']),
     );
   }
+}
+
+@immutable
+class KildeRfiAnswer {
+  const KildeRfiAnswer({
+    required this.id,
+    required this.answer,
+    this.answeredBy,
+    this.answeredAt,
+  });
+
+  final String id;
+  final String answer;
+  final String? answeredBy;
+  final String? answeredAt;
+
+  factory KildeRfiAnswer.fromJson(Map<String, dynamic> json) {
+    return KildeRfiAnswer(
+      id: asString(json['id']),
+      answer: asString(json['answer']),
+      answeredBy: _personLabel(json['answered_by']),
+      answeredAt: asStringOrNull(json['answered_at']),
+    );
+  }
+}
+
+List<KildeRfiAnswer> _rfiAnswers(Object? raw) {
+  if (raw is! List) return const [];
+  final rows = <KildeRfiAnswer>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    rows.add(KildeRfiAnswer.fromJson(Map<String, dynamic>.from(item)));
+  }
+  return rows;
+}
+
+String? _personLabel(Object? raw) {
+  if (raw is Map) {
+    return asStringOrNull(raw['full_name']) ??
+        asStringOrNull(raw['name']) ??
+        asStringOrNull(raw['username']) ??
+        asStringOrNull(raw['id']);
+  }
+  return asStringOrNull(raw);
 }
 
 @immutable
@@ -990,4 +1045,351 @@ class LostReasonItem {
       name: asString(json['name'], fallback: 'Motivo'),
     );
   }
+}
+
+/// Línea de una versión de cotización. Campos faltantes quedan en cero o vacíos.
+@immutable
+class QuoteVersionItem {
+  const QuoteVersionItem({
+    this.productId = '',
+    this.productName = 'Ítem',
+    this.quantity = 0,
+    this.unitPrice = 0,
+    this.discount = 0,
+    this.total = 0,
+  });
+
+  final String productId;
+  final String productName;
+  final double quantity;
+  final double unitPrice;
+  final double discount;
+  final double total;
+
+  factory QuoteVersionItem.fromJson(Map<String, dynamic> json) {
+    return QuoteVersionItem(
+      productId: asString(json['product_id']),
+      productName: asString(
+        json['product_name'] ?? json['name'],
+        fallback: 'Ítem',
+      ),
+      quantity: asDoubleOrNull(json['quantity']) ?? 0,
+      unitPrice: asDoubleOrNull(json['unit_price']) ?? 0,
+      discount: asDoubleOrNull(json['discount']) ?? 0,
+      total: asDoubleOrNull(json['total']) ?? 0,
+    );
+  }
+}
+
+@immutable
+class QuoteFieldChange {
+  const QuoteFieldChange({
+    this.productId = '',
+    this.productName = 'Ítem',
+    this.field = '',
+    this.before = '',
+    this.after = '',
+  });
+
+  final String productId;
+  final String productName;
+  final String field;
+  final String before;
+  final String after;
+
+  factory QuoteFieldChange.fromJson(Map<String, dynamic> json) {
+    return QuoteFieldChange(
+      productId: asString(json['product_id']),
+      productName: asString(json['product_name'], fallback: 'Ítem'),
+      field: asString(json['field']),
+      before: _diffScalar(json['before']),
+      after: _diffScalar(json['after']),
+    );
+  }
+}
+
+@immutable
+class QuoteVersionDiff {
+  const QuoteVersionDiff({
+    this.added = const [],
+    this.removed = const [],
+    this.changed = const [],
+    this.totalBefore,
+    this.totalAfter,
+    this.validUntilBefore,
+    this.validUntilAfter,
+  });
+
+  final List<QuoteVersionItem> added;
+  final List<QuoteVersionItem> removed;
+  final List<QuoteFieldChange> changed;
+  final double? totalBefore;
+  final double? totalAfter;
+  final String? validUntilBefore;
+  final String? validUntilAfter;
+
+  factory QuoteVersionDiff.fromJson(Map<String, dynamic> json) {
+    return QuoteVersionDiff(
+      added: _versionItems(json['added']),
+      removed: _versionItems(json['removed']),
+      changed: _fieldChanges(json['changed']),
+      totalBefore: asDoubleOrNull(json['total_before']),
+      totalAfter: asDoubleOrNull(json['total_after']),
+      validUntilBefore: asStringOrNull(json['valid_until_before']),
+      validUntilAfter: asStringOrNull(json['valid_until_after']),
+    );
+  }
+}
+
+@immutable
+class QuoteVersion {
+  const QuoteVersion({
+    required this.id,
+    this.version = 1,
+    this.status = '',
+    this.validUntil,
+    this.subtotal = 0,
+    this.total = 0,
+    this.discount = 0,
+    this.items = const [],
+    this.diff,
+  });
+
+  final String id;
+  final int version;
+  final String status;
+  final String? validUntil;
+  final double subtotal;
+  final double total;
+  final double discount;
+  final List<QuoteVersionItem> items;
+  final QuoteVersionDiff? diff;
+
+  factory QuoteVersion.fromJson(Map<String, dynamic> json) {
+    final rawDiff = json['diff_vs_previous'];
+    final version = asInt(json['version']);
+    return QuoteVersion(
+      id: asString(json['id']),
+      version: version == 0 ? 1 : version,
+      status: asString(json['kilde_quote_status']),
+      validUntil: asStringOrNull(json['valid_until']),
+      subtotal: asDoubleOrNull(json['subtotal']) ?? 0,
+      total: asDoubleOrNull(json['total'] ?? json['total_amount']) ?? 0,
+      discount: asDoubleOrNull(json['discount']) ?? 0,
+      items: _versionItems(json['items']),
+      diff: rawDiff is Map
+          ? QuoteVersionDiff.fromJson(Map<String, dynamic>.from(rawDiff))
+          : null,
+    );
+  }
+
+  factory QuoteVersion.fromQuote(KildeQuote quote) {
+    return QuoteVersion(
+      id: quote.id,
+      version: quote.version,
+      status: quote.status,
+      validUntil: quote.validUntil,
+      subtotal: quote.total,
+      total: quote.total,
+      items: [
+        for (final line in quote.lines)
+          QuoteVersionItem(
+            productName: line.name,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            total: line.total,
+          ),
+      ],
+    );
+  }
+}
+
+List<QuoteVersionItem> _versionItems(Object? raw) {
+  if (raw is! List) return const [];
+  final items = <QuoteVersionItem>[];
+  for (final row in raw) {
+    if (row is! Map) continue;
+    items.add(QuoteVersionItem.fromJson(Map<String, dynamic>.from(row)));
+  }
+  return items;
+}
+
+List<QuoteFieldChange> _fieldChanges(Object? raw) {
+  if (raw is! List) return const [];
+  final items = <QuoteFieldChange>[];
+  for (final row in raw) {
+    if (row is! Map) continue;
+    items.add(QuoteFieldChange.fromJson(Map<String, dynamic>.from(row)));
+  }
+  return items;
+}
+
+String _diffScalar(Object? raw) {
+  if (raw == null) return '';
+  if (raw is Map || raw is List) return '';
+  return '$raw';
+}
+
+const quoteDiffFieldLabels = <String, String>{
+  'quantity': 'Cantidad',
+  'unit_price': 'Precio unitario',
+  'discount': 'Descuento',
+  'total': 'Total',
+  'product_name': 'Nombre',
+  'valid_until': 'Vigencia',
+};
+
+String quoteDiffFieldLabel(String field) => quoteDiffFieldLabels[field] ?? field;
+
+String quoteDiffValue(String field, String raw) {
+  if (raw.isEmpty) return '—';
+  const money = {'unit_price', 'discount', 'total', 'subtotal'};
+  if (money.contains(field)) {
+    final number = double.tryParse(raw);
+    if (number != null) return clp(number);
+  }
+  return raw;
+}
+
+/// Línea de un hito Strøm en la ficha: tipo, texto, fecha y responsable.
+String stromMilestoneLine(Map<dynamic, dynamic> row) {
+  final kind = activityTypeLabel(asString(row['channel']));
+  final description = asString(row['description']);
+  final at = asString(row['at'] ?? row['occurred_on'] ?? row['scheduled_at']);
+  final who = asString(
+    row['assigned_to_name'] ?? row['created_by_name'] ?? row['assigned_to_id'],
+  );
+  return [
+    if (kind.isNotEmpty) kind,
+    if (description.isNotEmpty) description,
+    if (at.isNotEmpty) 'Fecha $at',
+    if (who.isNotEmpty) 'Responsable $who',
+  ].join(' · ');
+}
+
+/// Lo que viaja a Strøm al derivar, o el snapshot `kilde_handoff` del proyecto.
+@immutable
+class KildeHandoff {
+  const KildeHandoff({
+    this.clientName,
+    this.contacts = const [],
+    this.wells = const [],
+    this.quotation,
+    this.equipment = const [],
+    this.surveyId,
+    this.surveyTitle,
+    this.closedRfis = const [],
+  });
+
+  final String? clientName;
+  final List<String> contacts;
+  final List<String> wells;
+  final String? quotation;
+  final List<String> equipment;
+  final String? surveyId;
+  final String? surveyTitle;
+  final List<KildeClosedRfi> closedRfis;
+
+  String? get surveyLabel {
+    final title = surveyTitle;
+    if (title != null && title.isNotEmpty) return title;
+    final id = surveyId;
+    if (id != null && id.isNotEmpty) return id;
+    return null;
+  }
+
+  factory KildeHandoff.fromJson(Map<String, dynamic> json) {
+    final survey = json['survey'];
+    return KildeHandoff(
+      clientName: _handoffLabel(json['client'] ?? json['client_name']),
+      contacts: _handoffLabels(json['contacts']),
+      wells: _handoffLabels(json['wells']),
+      quotation: _quotationLabel(json['quotation'] ?? json['quote']),
+      equipment: _handoffLabels(json['equipment']),
+      surveyId: survey is Map ? asStringOrNull(survey['id']) : null,
+      surveyTitle: survey is Map
+          ? asStringOrNull(survey['title'] ?? survey['name'])
+          : _handoffLabel(survey),
+      closedRfis: [
+        for (final row in asMapList(json['closed_rfis']))
+          KildeClosedRfi.fromJson(row),
+      ],
+    );
+  }
+}
+
+@immutable
+class KildeClosedRfi {
+  const KildeClosedRfi({
+    required this.id,
+    required this.question,
+    this.answer = '',
+    this.answeredBy,
+    this.answeredAt,
+  });
+
+  final String id;
+  final String question;
+  final String answer;
+  final String? answeredBy;
+  final String? answeredAt;
+
+  factory KildeClosedRfi.fromJson(Map<String, dynamic> json) {
+    return KildeClosedRfi(
+      id: asString(json['id']),
+      question: asString(json['question'], fallback: 'Consulta'),
+      answer: asString(json['answer']),
+      answeredBy: _personLabel(json['answered_by']),
+      answeredAt: asStringOrNull(json['answered_at']),
+    );
+  }
+}
+
+String? _quotationLabel(Object? raw) {
+  if (raw is Map) {
+    final number = asStringOrNull(
+      raw['order_number'] ?? raw['number'] ?? raw['name'],
+    );
+    final total = asDoubleOrNull(raw['total'] ?? raw['total_amount']);
+    if (number != null && total != null) return '$number · ${clp(total)}';
+    return number ?? _handoffLabel(raw);
+  }
+  return _handoffLabel(raw);
+}
+
+String? _handoffLabel(Object? raw) {
+  if (raw == null) return null;
+  if (raw is String) return raw.isEmpty ? null : raw;
+  if (raw is num || raw is bool) return '$raw';
+  if (raw is Map) {
+    final person = [
+      asStringOrNull(raw['first_name']),
+      asStringOrNull(raw['last_name']),
+    ].whereType<String>().join(' ');
+    final name = person.isNotEmpty
+        ? person
+        : asStringOrNull(
+            raw['product_name'] ??
+                raw['name'] ??
+                raw['label'] ??
+                raw['title'] ??
+                raw['code'],
+          );
+    final email = asStringOrNull(raw['email']);
+    final quantity = raw['quantity'];
+    if (name != null && quantity != null) return '$name × $quantity';
+    if (name != null && email != null) return '$name · $email';
+    return name ?? asStringOrNull(raw['id']);
+  }
+  return null;
+}
+
+List<String> _handoffLabels(Object? raw) {
+  if (raw is! List) return const [];
+  final labels = <String>[];
+  for (final item in raw) {
+    final label = _handoffLabel(item);
+    if (label != null && label.isNotEmpty) labels.add(label);
+  }
+  return labels;
 }

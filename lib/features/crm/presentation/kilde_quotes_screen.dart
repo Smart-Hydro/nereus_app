@@ -1,5 +1,3 @@
-import 'package:file_picker/file_picker.dart';
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -15,8 +13,10 @@ import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/domain/quote_file.dart';
 import 'package:nereus_app/features/crm/domain/quote_share.dart';
+import 'package:nereus_app/features/crm/presentation/client_po_dialog.dart';
 import 'package:nereus_app/features/crm/presentation/quote_create_dialog.dart';
 import 'package:nereus_app/features/crm/presentation/quote_seller_card.dart';
+import 'package:nereus_app/features/crm/presentation/quote_versions_dialog.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 
@@ -90,8 +90,9 @@ class KildeQuotesScreen extends ConsumerWidget {
                       label,
                       field,
                     ),
-                    onPo: () => _po(context, ref, row.id),
+                    onPo: () => _po(context, ref, row),
                     onDownload: () => _download(context, ref, row, demo),
+                    onVersions: () => _versions(context, ref, row.id),
                   );
                 },
               ),
@@ -183,71 +184,42 @@ class KildeQuotesScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _po(BuildContext context, WidgetRef ref, String id) async {
-    final number = TextEditingController();
-    final amount = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Orden de compra'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: number,
-              decoration: const InputDecoration(labelText: 'Número'),
-            ),
-            TextField(
-              controller: amount,
-              decoration: const InputDecoration(labelText: 'Monto neto'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
-    );
-    final po = number.text.trim();
-    final net = amount.text.trim();
-    number.dispose();
-    amount.dispose();
-    if (ok != true || po.isEmpty || net.isEmpty) return;
-    final today = DateTime.now();
-    final day =
-        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+  Future<void> _versions(BuildContext context, WidgetRef ref, String id) async {
     try {
-      await ref.read(crmRepositoryProvider).quoteAction(
-        id,
-        'register_client_po',
-        {
-          'client_po_number': po,
-          'client_po_received_on': day,
-          'client_po_net_amount': net,
-        },
+      final versions = await ref
+          .read(crmRepositoryProvider)
+          .quotationVersions(id);
+      if (!context.mounted) return;
+      await showQuoteVersionsDialog(context, versions);
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
+  }
+
+  Future<void> _po(BuildContext context, WidgetRef ref, KildeQuote quote) async {
+    final input = await askClientPo(context);
+    if (input == null || !context.mounted) return;
+    try {
+      await ref.read(crmRepositoryProvider).registerClientPo(
+        quotationId: quote.id,
+        number: input.number,
+        receivedOn: input.receivedOn,
+        netAmount: input.netAmount,
+        fileBytes: input.file?.bytes,
+        filename: input.file?.name,
       );
       ref.invalidate(kildeQuotesProvider);
+      ref.invalidate(opportunitiesProvider());
+      final opportunityId = quote.opportunityId;
+      if (opportunityId != null && opportunityId.isNotEmpty) {
+        ref.invalidate(opportunityDetailProvider(opportunityId));
+      }
       if (!context.mounted) return;
-      final picked = await FilePicker.platform.pickFiles(withData: true);
-      final file = picked?.files.singleOrNull;
-      final bytes = file?.bytes;
-      if (bytes == null || file == null) return;
-      await ref
-          .read(crmRepositoryProvider)
-          .uploadClientPoFile(
-            quotationId: id,
-            bytes: bytes,
-            filename: file.name,
-          );
-      ref.invalidate(kildeQuotesProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('OC registrada. La oportunidad quedó ganada.'),
+        ),
+      );
     } on Object catch (error) {
       if (context.mounted) showFriendlyError(context, error);
     }

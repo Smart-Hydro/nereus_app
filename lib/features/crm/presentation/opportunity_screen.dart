@@ -13,7 +13,9 @@ import 'package:nereus_app/features/catalog/domain/journey_models.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_client_card.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
+import 'package:nereus_app/features/crm/presentation/kilde_handoff_panel.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_actions.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_form.dart';
@@ -333,35 +335,25 @@ class OpportunityScreen extends ConsumerWidget {
     WidgetRef ref,
     OpportunityItem deal,
   ) async {
-    final quotes = ref.read(kildeQuotesProvider).value ?? const <KildeQuote>[];
-    final related = [
-      for (final quote in quotes)
-        if (quote.opportunityId == deal.id) quote,
-    ];
-    final accepted = related.where((quote) => quote.status == 'accepted');
+    KildeHandoff handoff;
+    try {
+      handoff = await ref
+          .read(crmRepositoryProvider)
+          .derivationPreview(deal.id);
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+      return;
+    }
+    if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Derivar a Strøm'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Cliente: ${deal.clientName ?? 'sin cliente'}'),
-            Text('Ficha: ${deal.surveyId ?? 'falta'}'),
-            Text(
-              accepted.isEmpty
-                  ? 'Cotización aceptada: falta'
-                  : 'Cotización: ${accepted.first.number}',
-            ),
-            Text(
-              'OC: ${accepted.where((quote) => quote.poNumber != null).map((quote) => quote.poNumber).join(', ')}',
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Se copia lo que ya está en la ficha. No se vuelve a escribir.',
-            ),
-          ],
+        content: SizedBox(
+          width: 460,
+          child: SingleChildScrollView(
+            child: KildeHandoffPanel(handoff: handoff),
+          ),
         ),
         actions: [
           TextButton(
@@ -380,6 +372,12 @@ class OpportunityScreen extends ConsumerWidget {
       final projectId = await ref
           .read(crmRepositoryProvider)
           .deriveToStrom(deal.id);
+      ref.invalidate(opportunityDetailProvider(deal.id));
+      ref.invalidate(opportunitiesProvider());
+      final clientId = deal.clientId;
+      if (clientId != null && clientId.isNotEmpty) {
+        ref.invalidate(kildeClient360Provider(clientId));
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

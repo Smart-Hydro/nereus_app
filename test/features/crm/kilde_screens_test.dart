@@ -183,14 +183,17 @@ void main() {
 
     await tester.tap(find.text('Cerrar'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(TextButton, 'Reabrir'), findsNWidgets(2));
+    expect(find.widgetWithText(TextButton, 'Reabrir'), findsNWidgets(3));
 
     await tester.tap(find.widgetWithText(TextButton, 'Reabrir').first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Falta el plano');
     await tester.tap(find.widgetWithText(FilledButton, 'Reabrir'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Reabierta: Falta el plano'), findsOneWidget);
+    expect(
+      find.textContaining('Motivo de reapertura: Falta el plano'),
+      findsOneWidget,
+    );
     expect(find.text('Asignar'), findsWidgets);
   });
 }

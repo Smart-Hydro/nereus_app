@@ -109,11 +109,21 @@ class _ReopenDialog extends StatefulWidget {
 
 class _ReopenDialogState extends State<_ReopenDialog> {
   final _motivo = TextEditingController();
+  var _error = false;
 
   @override
   void dispose() {
     _motivo.dispose();
     super.dispose();
+  }
+
+  void _submit() {
+    final text = _motivo.text.trim();
+    if (text.isEmpty) {
+      setState(() => _error = true);
+      return;
+    }
+    Navigator.pop(context, text);
   }
 
   @override
@@ -122,17 +132,21 @@ class _ReopenDialogState extends State<_ReopenDialog> {
       title: const Text('Reabrir consulta'),
       content: TextField(
         controller: _motivo,
-        decoration: const InputDecoration(labelText: 'Motivo'),
+        decoration: InputDecoration(
+          labelText: 'Motivo',
+          helperText: 'El motivo es obligatorio.',
+          errorText: _error ? 'El motivo es obligatorio.' : null,
+        ),
+        onChanged: (_) {
+          if (_error) setState(() => _error = false);
+        },
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, _motivo.text.trim()),
-          child: const Text('Reabrir'),
-        ),
+        FilledButton(onPressed: _submit, child: const Text('Reabrir')),
       ],
     );
   }

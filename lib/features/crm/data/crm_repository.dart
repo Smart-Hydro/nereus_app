@@ -554,6 +554,110 @@ class CrmRepository {
     }
   }
 
+  /// Resumen de lo que se copia a Strøm, armado con lo que ya está en Kilde.
+  Future<KildeHandoff> derivationPreview(String opportunityId) async {
+    try {
+      final deal = await retrieve(opportunityId);
+      final quotes = await quotations();
+      final allRfis = await rfis();
+      final related = [
+        for (final quote in quotes)
+          if (quote.opportunityId == opportunityId) quote,
+      ];
+      final accepted = related.where((quote) => quote.status == 'accepted');
+      final quote = accepted.isNotEmpty
+          ? accepted.first
+          : (related.isEmpty ? null : related.first);
+      var card = const <String, dynamic>{};
+      if ((deal.clientId ?? '').isNotEmpty) {
+        try {
+          card = await client360(deal.clientId!);
+        } on Object {
+          card = const {};
+        }
+      }
+      final wells = <String>[];
+      if ((deal.clientId ?? '').isNotEmpty) {
+        try {
+          final response = await _dio.get<dynamic>(
+            '/api/inventory/measurement-points/',
+            queryParameters: {'client': deal.clientId, 'page_size': 100},
+          );
+          for (final row in asResults(response.data)) {
+            final label = asString(
+              row['label'] ?? row['name'] ?? row['code'],
+              fallback: 'Pozo',
+            );
+            if (label.isNotEmpty) wells.add(label);
+          }
+        } on Object {
+          // El resumen sigue sin pozos si el inventario no responde.
+        }
+      }
+      String? surveyTitle;
+      for (final row in asMapList(card['surveys'])) {
+        if (asString(row['id']) == (deal.surveyId ?? '')) {
+          surveyTitle = asStringOrNull(row['title']);
+        }
+      }
+      return KildeHandoff(
+        clientName: deal.clientName ?? _handoffName(card['client']),
+        contacts: [
+          for (final row in asMapList(card['contacts']))
+            if (_contactLabel(row) != null) _contactLabel(row)!,
+        ],
+        wells: wells,
+        quotation: quote == null
+            ? null
+            : '${quote.number} · ${clp(quote.total)}',
+        equipment: [
+          for (final line in quote?.lines ?? const <QuoteLine>[])
+            '${_qtyLabel(line.quantity)} × ${line.name}',
+        ],
+        surveyId: deal.surveyId,
+        surveyTitle: surveyTitle ??
+            ((deal.surveyId ?? '').isEmpty
+                ? null
+                : 'Ficha ${deal.surveyId}'),
+        closedRfis: [
+          for (final rfi in allRfis)
+            if (rfi.opportunityId == opportunityId && rfi.status == 'closed')
+              KildeClosedRfi(
+                id: rfi.id,
+                question: rfi.question,
+                answer: rfi.answer ?? rfi.history.lastOrNull?.answer ?? '',
+                answeredBy: rfi.history.lastOrNull?.answeredBy,
+                answeredAt: rfi.history.lastOrNull?.answeredAt,
+              ),
+        ],
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  String? _handoffName(Object? raw) {
+    if (raw is Map) return asStringOrNull(raw['name']);
+    return asStringOrNull(raw);
+  }
+
+  String? _contactLabel(Map<String, dynamic> row) {
+    final person = [
+      asStringOrNull(row['first_name']),
+      asStringOrNull(row['last_name']),
+    ].whereType<String>().join(' ');
+    final name = person.isEmpty ? asStringOrNull(row['name']) : person;
+    final email = asStringOrNull(row['email']);
+    if (name == null) return email;
+    if (email == null) return name;
+    return '$name · $email';
+  }
+
+  String _qtyLabel(double quantity) {
+    if (quantity == quantity.roundToDouble()) return '${quantity.round()}';
+    return '$quantity';
+  }
+
   Future<KildeIndicators> kildeIndicators() async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -764,6 +868,46 @@ class CrmRepository {
     try {
       final response = await _dio.get<dynamic>('/api/sales/quotations/$id/');
       return KildeQuote.fromJson(_quoteMap(response.data));
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<QuoteVersion>> quotationVersions(String id) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/sales/quotations/$id/versions/',
+      );
+      final versions = asResults(response.data).map(QuoteVersion.fromJson).toList()
+        ..sort((a, b) => a.version.compareTo(b.version));
+      return versions;
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> registerClientPo({
+    required String quotationId,
+    required String number,
+    required String receivedOn,
+    required String netAmount,
+    List<int>? fileBytes,
+    String? filename,
+  }) async {
+    try {
+      await _dio.post<dynamic>(
+        '/api/sales/quotations/$quotationId/register_client_po/',
+        data: FormData.fromMap({
+          'client_po_number': number,
+          'client_po_received_on': receivedOn,
+          'client_po_net_amount': netAmount,
+          if (fileBytes != null && (filename ?? '').isNotEmpty)
+            'client_po_file': MultipartFile.fromBytes(
+              fileBytes,
+              filename: filename,
+            ),
+        }),
+      );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }

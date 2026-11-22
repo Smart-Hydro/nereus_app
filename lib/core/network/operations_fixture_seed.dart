@@ -26,6 +26,34 @@ List<Map<String, dynamic>> stromSeedProjects() => [
       },
     ],
     'open_clarifications': <Map<String, dynamic>>[],
+    'kilde_handoff': {
+      'client': {'name': 'Agrícola Los Aromos'},
+      'contacts': [
+        {
+          'first_name': 'Roberto',
+          'last_name': 'Henríquez',
+          'email': 'rhenriquez@losaromos.cl',
+        },
+      ],
+      'wells': [
+        {'name': 'Los Niches 1'},
+        {'name': 'Los Niches 2'},
+      ],
+      'equipment': [
+        {'product_name': 'Datalogger SmartHydro N1', 'quantity': 3},
+      ],
+      'survey': {'id': 'sv-opp-7', 'title': 'Levantamiento Pozos Los Niches'},
+      'quotation': {'order_number': 'COT-1018', 'total': 8900000},
+      'closed_rfis': [
+        {
+          'id': 'rfi-8',
+          'question': '¿El pozo 2 tiene caudalímetro?',
+          'answer': 'Sí, instalado en octubre.',
+          'answered_by': 'Héctor Muñoz',
+          'answered_at': '2026-10-16',
+        },
+      ],
+    },
     'created': '2026-11-01T12:00:00Z',
     'modified': '2026-11-01T12:00:00Z',
   },
