@@ -98,4 +98,21 @@ void main() {
     expect(quote.acceptedWithPo, isTrue);
     expect(quote.validUntil, '2026-12-01');
   });
+
+  test('una cotización vence el día después de valid_until', () {
+    final today = DateTime(2026, 11, 22);
+    expect(quoteIsExpired('2026-11-22', today: today), isFalse);
+    expect(quoteIsExpired('2026-11-21', today: today), isTrue);
+    expect(quoteIsExpired('2026-11-21T23:30:00', today: today), isTrue);
+    expect(quoteIsExpired(null, today: today), isFalse);
+    expect(quoteIsExpired('mañana', today: today), isFalse);
+    expect(isIsoDate('2026-11-22'), isTrue);
+    expect(isIsoDate('2026-02-31'), isFalse);
+    expect(canRegisterClientPo('accepted'), isTrue);
+    expect(canRegisterClientPo('sent'), isFalse);
+    expect(
+      quoteShowsExpired(status: 'expired', validUntil: '2026-12-01', today: today),
+      isTrue,
+    );
+  });
 }

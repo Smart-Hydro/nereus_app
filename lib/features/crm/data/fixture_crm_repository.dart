@@ -4,7 +4,18 @@ import 'package:dio/dio.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/features/crm/data/crm_repository.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
+import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/domain/quote_share.dart';
+
+const _demoContacts = <String, List<String>>{
+  'cli-1': ['Rosa Muñoz · presidenta@valle.cl', 'Luis Aravena · operador'],
+  'cli-5': ['Roberto Henríquez · rhenriquez@losaromos.cl'],
+};
+
+const _demoWells = <String, List<String>>{
+  'cli-1': ['Pozo norte · Itata', 'Pozo sur · Itata'],
+  'cli-5': ['Los Niches 1', 'Los Niches 2', 'Los Niches 3'],
+};
 
 class FixtureCrmRepository extends CrmRepository {
   FixtureCrmRepository() : super(dio: Dio());
@@ -194,6 +205,7 @@ class FixtureCrmRepository extends CrmRepository {
       stageName: 'Negociación/Cierre',
       clientId: 'cli-5',
       clientName: 'Agrícola Los Aromos',
+      surveyId: 'sv-opp-6',
       estimatedValue: 22100000,
       weightedValue: 15470000,
       probability: 70,
@@ -284,6 +296,48 @@ class FixtureCrmRepository extends CrmRepository {
         scheduledAt: DateTime(2026, 10, 18, 9, 30),
         createdByName: 'Héctor Muñoz',
         opportunityId: 'opp-1',
+      ),
+    ],
+    'opp-7': [
+      FollowUpItem(
+        id: 'hito-1',
+        description: 'Instalación en Los Niches',
+        activityType: 'strom_install',
+        scheduledAt: DateTime(2026, 10, 28, 9),
+        isCompleted: true,
+        createdByName: 'Héctor Muñoz',
+        assignedToName: 'Héctor Muñoz',
+        opportunityId: 'opp-7',
+      ),
+      FollowUpItem(
+        id: 'hito-2',
+        description: 'Puesta en marcha y datos en plataforma',
+        activityType: 'strom_commissioning',
+        scheduledAt: DateTime(2026, 11, 3, 11),
+        isCompleted: true,
+        createdByName: 'Héctor Muñoz',
+        assignedToName: 'Héctor Muñoz',
+        opportunityId: 'opp-7',
+      ),
+      FollowUpItem(
+        id: 'hito-3',
+        description: 'Entrega del proyecto',
+        activityType: 'strom_handover',
+        scheduledAt: DateTime(2026, 11, 10, 16),
+        isCompleted: true,
+        createdByName: 'Josefa Lagos',
+        assignedToName: 'Josefa Lagos',
+        opportunityId: 'opp-7',
+      ),
+      FollowUpItem(
+        id: 'hito-4',
+        description: 'Capacitación Ikolu',
+        activityType: 'strom_ikolu_training',
+        scheduledAt: DateTime(2026, 11, 18, 10),
+        isCompleted: true,
+        createdByName: 'Martín Soto',
+        assignedToName: 'Martín Soto',
+        opportunityId: 'opp-7',
       ),
     ],
   };
@@ -823,6 +877,15 @@ class FixtureCrmRepository extends CrmRepository {
       poNet: 15400000,
       immutable: true,
       opportunityId: 'opp-3',
+      poFile: '/media/client_po/oc-4412.pdf',
+      lines: [
+        QuoteLine(
+          name: 'Datalogger de pivote',
+          quantity: 12,
+          unitPrice: 1100000,
+        ),
+        QuoteLine(name: 'Puesta en marcha', quantity: 1, unitPrice: 2200000),
+      ],
     ),
     const KildeQuote(
       id: 'q-1020',
@@ -833,7 +896,109 @@ class FixtureCrmRepository extends CrmRepository {
       version: 1,
       opportunityId: 'opp-6',
     ),
+    const KildeQuote(
+      id: 'q-1080',
+      number: 'COT-1080 · Consorcio Riego Ñuble',
+      status: 'sent',
+      total: 11800000,
+      version: 1,
+      validUntil: '2026-10-01',
+      opportunityId: 'opp-4',
+      clientName: 'Consorcio Riego Ñuble',
+      observation: 'Aforo y estación. La vigencia ya venció.',
+      lines: [
+        QuoteLine(name: 'Estación meteorológica', quantity: 1, unitPrice: 11800000),
+      ],
+    ),
+    const KildeQuote(
+      id: 'q-1101',
+      number: 'COT-1101 · Pivote norte',
+      status: 'accepted',
+      total: 21000000,
+      version: 1,
+      validUntil: '2026-12-20',
+      receptionConfirmed: true,
+      responseOn: '2026-11-18',
+      opportunityId: 'opp-6',
+      clientName: 'Agrícola Los Aromos',
+      observation: 'Caudalímetro del pivote norte, sin OC todavía.',
+      lines: [
+        QuoteLine(
+          name: 'Caudalímetro de pivote',
+          quantity: 1,
+          unitPrice: 21000000,
+        ),
+      ],
+    ),
   ];
+
+  final Map<String, List<QuoteVersion>> _versionChains = {
+    'q-1042': [
+      const QuoteVersion(
+        id: 'q-1042-v1',
+        version: 1,
+        status: 'sent',
+        validUntil: '2026-11-30',
+        subtotal: 18800000,
+        total: 18800000,
+        items: [
+          QuoteVersionItem(
+            productId: 'p-logger',
+            productName: 'Datalogger de pozo',
+            quantity: 1,
+            unitPrice: 9800000,
+            total: 9800000,
+          ),
+          QuoteVersionItem(
+            productId: 'p-start',
+            productName: 'Puesta en marcha',
+            quantity: 1,
+            unitPrice: 9000000,
+            total: 9000000,
+          ),
+        ],
+      ),
+      const QuoteVersion(
+        id: 'q-1042',
+        version: 2,
+        status: 'draft',
+        validUntil: '2026-12-15',
+        subtotal: 28600000,
+        total: 28600000,
+        items: [
+          QuoteVersionItem(
+            productId: 'p-logger',
+            productName: 'Datalogger de pozo',
+            quantity: 2,
+            unitPrice: 9800000,
+            total: 19600000,
+          ),
+          QuoteVersionItem(
+            productId: 'p-start',
+            productName: 'Puesta en marcha',
+            quantity: 1,
+            unitPrice: 9000000,
+            total: 9000000,
+          ),
+        ],
+        diff: QuoteVersionDiff(
+          changed: [
+            QuoteFieldChange(
+              productId: 'p-logger',
+              productName: 'Datalogger de pozo',
+              field: 'quantity',
+              before: '1',
+              after: '2',
+            ),
+          ],
+          totalBefore: 18800000,
+          totalAfter: 28600000,
+          validUntilBefore: '2026-11-30',
+          validUntilAfter: '2026-12-15',
+        ),
+      ),
+    ],
+  };
 
   final List<KildeRfi> _rfis = [
     const KildeRfi(
@@ -853,6 +1018,30 @@ class FixtureCrmRepository extends CrmRepository {
       status: 'answered',
       answer: 'Sí, tapa de 60 cm al lado norte.',
       opportunityId: 'opp-5',
+      answers: [
+        KildeRfiAnswer(
+          id: 'ans-2',
+          answer: 'Sí, tapa de 60 cm al lado norte.',
+          answeredBy: 'Carmen Sepúlveda',
+          answeredAt: '2026-11-04',
+        ),
+      ],
+    ),
+    const KildeRfi(
+      id: 'rfi-3',
+      number: 'RFI-3',
+      question: '¿El gabinete cabe en la caseta de bombeo?',
+      status: 'closed',
+      answer: 'Sí, quedan 40 cm libres.',
+      opportunityId: 'opp-3',
+      answers: [
+        KildeRfiAnswer(
+          id: 'ans-3',
+          answer: 'Sí, quedan 40 cm libres.',
+          answeredBy: 'Héctor Muñoz',
+          answeredAt: '2026-10-02',
+        ),
+      ],
     ),
   ];
 
@@ -862,7 +1051,7 @@ class FixtureCrmRepository extends CrmRepository {
     const LostReasonItem(id: 'lr-3', name: 'Competencia local'),
   ];
 
-  final Set<String> _derived = {};
+  final Set<String> _derived = {'opp-7'};
 
   @override
   Future<KildeIndicators> kildeIndicators() async {
@@ -1049,15 +1238,7 @@ class FixtureCrmRepository extends CrmRepository {
       'derivation': {
         'status': derived ? 'derived' : 'pending_derivation',
       },
-      'milestones': derived
-          ? [
-              {
-                'channel': 'strom_install',
-                'at': '2026-11-21',
-                'description': 'Proyecto creado en Strøm',
-              },
-            ]
-          : const <Map<String, String>>[],
+      'milestones': derived ? _demoMilestones() : const <Map<String, String>>[],
       'follow_up': [
         for (final item in opps)
           if (item.nextActionLabel != null)
@@ -1127,10 +1308,20 @@ class FixtureCrmRepository extends CrmRepository {
 
   @override
   Future<void> answerRfi({required String id, required String answer}) async {
-    _replaceRfi(
-      id,
-      (current) => _copyRfi(current, status: 'answered', answer: answer),
-    );
+    _replaceRfi(id, (current) {
+      final row = KildeRfiAnswer(
+        id: 'ans-${++_seq}',
+        answer: answer,
+        answeredBy: 'Josefa Lagos',
+        answeredAt: _today(),
+      );
+      return _copyRfi(
+        current,
+        status: 'answered',
+        answer: answer,
+        answers: [...current.answers, row],
+      );
+    });
   }
 
   @override
@@ -1176,6 +1367,7 @@ class FixtureCrmRepository extends CrmRepository {
     String? reopenReason,
     String? assignedToId,
     String? assignedToName,
+    List<KildeRfiAnswer>? answers,
   }) {
     return KildeRfi(
       id: current.id,
@@ -1189,6 +1381,7 @@ class FixtureCrmRepository extends CrmRepository {
       assignedToName: assignedToName ?? current.assignedToName,
       quotationId: current.quotationId,
       opportunityId: current.opportunityId,
+      answers: answers ?? current.answers,
     );
   }
 
@@ -1230,6 +1423,130 @@ class FixtureCrmRepository extends CrmRepository {
   }
 
   @override
+  Future<List<QuoteVersion>> quotationVersions(String id) async {
+    for (final chain in _versionChains.values) {
+      if (chain.any((row) => row.id == id)) {
+        final copy = [...chain]
+          ..sort((a, b) => a.version.compareTo(b.version));
+        return copy;
+      }
+    }
+    final quote = await quotation(id);
+    return [QuoteVersion.fromQuote(quote)];
+  }
+
+  @override
+  Future<void> registerClientPo({
+    required String quotationId,
+    required String number,
+    required String receivedOn,
+    required String netAmount,
+    List<int>? fileBytes,
+    String? filename,
+  }) async {
+    final index = _quotes.indexWhere((item) => item.id == quotationId);
+    if (index < 0) {
+      throw const ApiError(message: 'No encontramos esta cotización.');
+    }
+    final current = _quotes[index];
+    if (current.status != 'accepted') {
+      throw const ApiError(
+        message: 'La orden de compra solo se registra sobre una cotización aceptada.',
+        statusCode: 400,
+      );
+    }
+    if (number.trim().isEmpty || netAmount.trim().isEmpty || !isIsoDate(receivedOn)) {
+      throw const ApiError(
+        message: 'Indica número, fecha AAAA-MM-DD y monto neto.',
+        statusCode: 400,
+      );
+    }
+    final file = (filename ?? '').trim().isEmpty
+        ? current.poFile
+        : '/media/client_po/${filename!.trim()}';
+    _quotes[index] = _retouch(
+      current,
+      status: 'accepted',
+      poNumber: number.trim(),
+      poReceivedOn: receivedOn.trim(),
+      poNet: double.tryParse(netAmount.trim()) ?? current.poNet,
+      poFile: file,
+    );
+    _markWon(current.opportunityId, poNet: double.tryParse(netAmount.trim()));
+  }
+
+  @override
+  Future<KildeHandoff> derivationPreview(String opportunityId) async {
+    final deal = _opportunities.where((item) => item.id == opportunityId).firstOrNull;
+    if (deal == null) {
+      throw const ApiError(message: 'No encontramos esta oportunidad.');
+    }
+    final related = [
+      for (final quote in _quotes)
+        if (quote.opportunityId == opportunityId) quote,
+    ];
+    final accepted = related.where((quote) => quote.status == 'accepted');
+    final quote = accepted.isNotEmpty
+        ? accepted.first
+        : (related.isEmpty ? null : related.first);
+    final closed = [
+      for (final rfi in _rfis)
+        if (rfi.opportunityId == opportunityId && rfi.status == 'closed')
+          KildeClosedRfi(
+            id: rfi.id,
+            question: rfi.question,
+            answer: rfi.answer ?? '',
+            answeredBy: rfi.history.lastOrNull?.answeredBy,
+            answeredAt: rfi.history.lastOrNull?.answeredAt,
+          ),
+    ];
+    return KildeHandoff(
+      clientName: deal.clientName,
+      contacts: _demoContacts[deal.clientId] ?? const [],
+      wells: _demoWells[deal.clientId] ?? const [],
+      quotation: quote == null ? null : '${quote.number} · ${clp(quote.total)}',
+      equipment: [
+        for (final line in quote?.lines ?? const <QuoteLine>[])
+          '${line.quantity == line.quantity.roundToDouble() ? line.quantity.round() : line.quantity} × ${line.name}',
+      ],
+      surveyId: deal.surveyId,
+      surveyTitle: (deal.surveyId ?? '').isEmpty
+          ? null
+          : 'Levantamiento ${deal.title}',
+      closedRfis: closed,
+    );
+  }
+
+  void _markWon(String? opportunityId, {double? poNet}) {
+    if (opportunityId == null || opportunityId.isEmpty) return;
+    final won = _stages.where((stage) => stage.isWon).firstOrNull;
+    if (won == null) return;
+    final index = _opportunities.indexWhere((item) => item.id == opportunityId);
+    if (index < 0) return;
+    final current = _opportunities[index];
+    _opportunities[index] = _touch(
+      current,
+      stageId: won.id,
+      stageName: won.name,
+      probability: won.probability,
+      actualValue: poNet ?? current.actualValue,
+    );
+    _activities.putIfAbsent(opportunityId, () => []).insert(
+      0,
+      FollowUpItem(
+        id: 'act-po-${++_seq}',
+        description: 'OC registrada. La oportunidad quedó ganada.',
+        activityType: 'STAGE_CHANGE',
+        scheduledAt: DateTime.now(),
+        isCompleted: true,
+        createdByName: 'Josefa Lagos',
+        assignedToName: 'Josefa Lagos',
+        opportunityId: opportunityId,
+      ),
+    );
+  }
+
+  @override
   Future<void> quoteAction(
     String id,
     String action, [
@@ -1239,6 +1556,21 @@ class FixtureCrmRepository extends CrmRepository {
     if (index < 0) return;
     final current = _quotes[index];
     final today = _today();
+    if (action == 'accept' && quoteIsExpired(current.validUntil)) {
+      throw const ApiError(
+        message: expiredQuoteAcceptDetail,
+        statusCode: 400,
+      );
+    }
+    if (action == 'register_client_po') {
+      await registerClientPo(
+        quotationId: id,
+        number: '${body?['client_po_number'] ?? ''}',
+        receivedOn: '${body?['client_po_received_on'] ?? today}',
+        netAmount: '${body?['client_po_net_amount'] ?? ''}',
+      );
+      return;
+    }
     _quotes[index] = switch (action) {
       'send' => _retouch(current, status: 'sent'),
       'confirm_reception' => _retouch(current, receptionConfirmed: true),
@@ -1257,18 +1589,36 @@ class FixtureCrmRepository extends CrmRepository {
       ),
       'approve_discount' => _retouch(current, discountStatus: 'approved'),
       'reject_discount' => _retouch(current, discountStatus: 'rejected'),
-      'register_client_po' => _retouch(
-        current,
-        status: 'accepted',
-        poNumber: '${body?['client_po_number'] ?? ''}',
-        poReceivedOn: '${body?['client_po_received_on'] ?? today}',
-        poNet:
-            double.tryParse('${body?['client_po_net_amount']}') ??
-            current.poNet,
-      ),
       _ => current,
     };
   }
+
+  List<Map<String, String>> _demoMilestones() => const [
+    {
+      'channel': 'strom_install',
+      'at': '2026-10-28',
+      'description': 'Instalación en terreno',
+      'assigned_to_name': 'Héctor Muñoz',
+    },
+    {
+      'channel': 'strom_commissioning',
+      'at': '2026-11-03',
+      'description': 'Puesta en marcha y datos en plataforma',
+      'assigned_to_name': 'Héctor Muñoz',
+    },
+    {
+      'channel': 'strom_handover',
+      'at': '2026-11-10',
+      'description': 'Entrega del proyecto',
+      'assigned_to_name': 'Josefa Lagos',
+    },
+    {
+      'channel': 'strom_ikolu_training',
+      'at': '2026-11-18',
+      'description': 'Capacitación Ikolu',
+      'assigned_to_name': 'Martín Soto',
+    },
+  ];
 
   @override
   Future<List<LostReasonItem>> lostReasons() async => List.unmodifiable(_lost);

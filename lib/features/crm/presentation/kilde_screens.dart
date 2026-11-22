@@ -421,7 +421,7 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                               if (row.blocking) 'bloqueante',
                               if (row.answer != null) row.answer!,
                               if ((row.reopenReason ?? '').isNotEmpty)
-                                'Reabierta: ${row.reopenReason}',
+                                'Motivo de reapertura: ${row.reopenReason}',
                             ].join(' · '),
                             style: _kildeMeta(context),
                           ),
@@ -433,6 +433,30 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                                 )
                               : null,
                         ),
+                        if (row.history.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Historial de respuestas',
+                                  style: _kildeLabel(context),
+                                ),
+                                for (final item in row.history)
+                                  Text(
+                                    [
+                                      item.answer,
+                                      if ((item.answeredBy ?? '').isNotEmpty)
+                                        item.answeredBy!,
+                                      if ((item.answeredAt ?? '').isNotEmpty)
+                                        item.answeredAt!,
+                                    ].join(' · '),
+                                    style: _kildeMeta(context),
+                                  ),
+                              ],
+                            ),
+                          ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
                           child: RfiActions(row: row, team: team),
