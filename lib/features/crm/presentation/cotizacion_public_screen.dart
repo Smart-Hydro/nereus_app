@@ -8,6 +8,7 @@ import 'package:nereus_app/core/providers.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
 import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
+import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/domain/quote_file.dart';
 import 'package:nereus_app/features/crm/domain/quote_share.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
@@ -112,7 +113,11 @@ class _CotizacionPublicScreenState
                         onPressed: _busy || !_canAnswer(quote.value!)
                             ? null
                             : () => _act('accept'),
-                        child: const Text('Aprobar'),
+                        child: Text(
+                          _expired(quote.value!)
+                              ? expiredQuoteAcceptLabel
+                              : 'Aprobar',
+                        ),
                       ),
                       OutlinedButton(
                         onPressed: _busy || !_canAnswer(quote.value!)
@@ -137,7 +142,13 @@ class _CotizacionPublicScreenState
     return userFacingErrorMessage(quote.error ?? 'Error');
   }
 
+  bool _expired(KildeQuote quote) => quoteShowsExpired(
+    status: quote.status,
+    validUntil: quote.validUntil,
+  );
+
   bool _canAnswer(KildeQuote quote) {
+    if (_expired(quote)) return false;
     if (quote.immutable) return false;
     if (quote.discountStatus == 'pending') return false;
     return quote.status != 'accepted' && quote.status != 'rejected';
@@ -260,6 +271,11 @@ class _QuoteBody extends StatelessWidget {
             Text(
               [
                 quoteStatusLabel(quote.status),
+                if (quoteShowsExpired(
+                  status: quote.status,
+                  validUntil: quote.validUntil,
+                ))
+                  'Vencida',
                 if ((quote.validUntil ?? '').isNotEmpty)
                   'vigente hasta ${quote.validUntil}',
                 if (pending) 'descuento pendiente del líder',
