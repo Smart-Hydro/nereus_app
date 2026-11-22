@@ -503,6 +503,7 @@ class FixtureCrmRepository extends CrmRepository {
   Future<void> setLeadStatus({
     required String id,
     required String status,
+    String? noRequirementReason,
   }) async {
     final prev = _leads.where((l) => l.id == id).firstOrNull;
     if (prev != null) {
@@ -1293,6 +1294,9 @@ class FixtureCrmRepository extends CrmRepository {
   Future<void> createRfi({
     required String question,
     required bool blocking,
+    String? clientId,
+    String? opportunityId,
+    String? quotationId,
   }) async {
     _rfis.insert(
       0,

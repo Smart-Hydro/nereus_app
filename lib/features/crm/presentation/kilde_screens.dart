@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nereus_app/core/config/app_config.dart';
 import 'package:nereus_app/core/network/api_error.dart';
+import 'package:nereus_app/core/providers.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
 import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
+import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/presentation/my_day_section.dart';
 import 'package:nereus_app/features/crm/presentation/rfi_actions.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
+import 'package:nereus_app/features/customers/domain/client_models.dart';
 
 TextStyle _kildeLabel(BuildContext context) => TextStyle(
   color: NereusTokens.text(context),
@@ -325,6 +329,7 @@ class KildeRfiScreen extends ConsumerStatefulWidget {
 class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
   final _question = TextEditingController();
   var _blocking = false;
+  String? _clientId;
 
   @override
   void dispose() {
@@ -335,12 +340,21 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
   Future<void> _create() async {
     final text = _question.text.trim();
     if (text.isEmpty) return;
+    final live = ref.read(dataModeProvider) != NereusDataMode.fixture;
+    if (live && (_clientId == null || _clientId!.isEmpty)) {
+      showFriendlyError(
+        context,
+        const ApiError(message: 'Elige el cliente de la consulta.'),
+      );
+      return;
+    }
     try {
       await ref
           .read(crmRepositoryProvider)
           .createRfi(
             question: text,
             blocking: _blocking,
+            clientId: _clientId,
           );
       _question.clear();
       ref.invalidate(kildeRfisProvider);
@@ -354,6 +368,10 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
     final snap = ref.watch(kildeRfisProvider);
     final rows = snap.value ?? const <KildeRfi>[];
     final team = ref.watch(kildeTeamProvider).value ?? const <KildeMember>[];
+    final live = ref.watch(dataModeProvider) != NereusDataMode.fixture;
+    final clients = live
+        ? ref.watch(customerClientsProvider).value ?? const <ClientItem>[]
+        : const <ClientItem>[];
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -367,6 +385,26 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
               children: [
+                if (clients.isNotEmpty)
+                  SizedBox(
+                    width: 220,
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      // This Flutter SDK still reads `value`.
+                      // ignore: deprecated_member_use
+                      value: _clientId,
+                      decoration: const InputDecoration(labelText: 'Cliente'),
+                      items: [
+                        for (final client in clients)
+                          DropdownMenuItem(
+                            value: client.id,
+                            child: Text(client.name),
+                          ),
+                      ],
+                      onChanged: (value) => setState(() => _clientId = value),
+                    ),
+                  ),
+                if (clients.isNotEmpty) const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _question,

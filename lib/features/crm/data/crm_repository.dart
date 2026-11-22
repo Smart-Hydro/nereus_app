@@ -3,6 +3,37 @@ import 'package:nereus_app/core/json_util.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 
+/// Fecha civil de hoy en America/Santiago (YYYY-MM-DD).
+///
+/// Chile continental, regla IANA vigente desde 2019: horario de verano
+/// UTC-3 desde el domingo en o después del 2 de septiembre a las 04:00 UTC
+/// hasta el domingo en o después del 2 de abril a las 03:00 UTC; el resto
+/// del año es UTC-4.
+String kildeSantiagoDate([DateTime? now]) {
+  final utc = (now ?? DateTime.now()).toUtc();
+  final offset = _santiagoIsDaylight(utc)
+      ? const Duration(hours: -3)
+      : const Duration(hours: -4);
+  final local = utc.add(offset);
+  final year = local.year.toString().padLeft(4, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  final day = local.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+
+DateTime _sundayOnOrAfter(int year, int month, int day) {
+  final start = DateTime.utc(year, month, day);
+  final delta = (DateTime.sunday - start.weekday) % 7;
+  return DateTime.utc(year, month, day + delta);
+}
+
+bool _santiagoIsDaylight(DateTime utc) {
+  final year = utc.year;
+  final start = _sundayOnOrAfter(year, 9, 2).add(const Duration(hours: 4));
+  final end = _sundayOnOrAfter(year, 4, 2).add(const Duration(hours: 3));
+  return !utc.isBefore(start) || utc.isBefore(end);
+}
+
 class CrmRepository {
   CrmRepository({required Dio dio}) : _dio = dio;
 
@@ -155,11 +186,16 @@ class CrmRepository {
   Future<void> setLeadStatus({
     required String id,
     required String status,
+    String? noRequirementReason,
   }) async {
     try {
       await _dio.patch<dynamic>(
         '/api/crm/leads/$id/',
-        data: {'status': status},
+        data: {
+          'status': status,
+          if (noRequirementReason != null && noRequirementReason.isNotEmpty)
+            'no_requirement_reason': noRequirementReason,
+        },
       );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
@@ -785,11 +821,23 @@ class CrmRepository {
   Future<void> createRfi({
     required String question,
     required bool blocking,
+    String? clientId,
+    String? opportunityId,
+    String? quotationId,
   }) async {
     try {
+      final client = int.tryParse(clientId ?? '');
       await _dio.post<dynamic>(
         '/api/crm/rfis/',
-        data: {'question': question, 'is_blocking': blocking},
+        data: {
+          'question': question,
+          'is_blocking': blocking,
+          if (client != null) 'client': client,
+          if (opportunityId != null && opportunityId.isNotEmpty)
+            'opportunity': opportunityId,
+          if (quotationId != null && quotationId.isNotEmpty)
+            'quotation': quotationId,
+        },
       );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
@@ -920,6 +968,7 @@ class CrmRepository {
       final response = await _dio.post<dynamic>(
         '/api/sales/quotations/',
         data: {
+          'date': kildeSantiagoDate(),
           if (clientId != null) 'client_id': clientId,
           'observation': draft.glosa,
           if ((draft.validUntil ?? '').isNotEmpty)
