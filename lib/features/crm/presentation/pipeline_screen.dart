@@ -12,6 +12,7 @@ import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
+import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_form.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
@@ -101,6 +102,8 @@ class _PipelineScreenState extends ConsumerState<PipelineScreen> {
   Widget build(BuildContext context) {
     final access = Access(ref.watch(sessionProvider).value);
     final canWrite = access.canWrite(NereusModules.customers);
+    final role = ref.watch(sessionProvider).value?.currentBranch?.roleCode;
+    final canSeed = canWrite && (role == null || kildeSeesTeam(role));
     final stages = ref.watch(opportunityStagesProvider);
     final deals = ref.watch(opportunitiesProvider(clientId: widget.clientId));
     final summary = ref.watch(crmSummaryProvider).value;
@@ -129,7 +132,7 @@ class _PipelineScreenState extends ConsumerState<PipelineScreen> {
             kicker: 'Comercial',
             title: 'Pipeline',
             subtitle: widget.clientId == null
-                ? 'Embudo comercial hídrico · contacto, terreno, propuesta y cierre'
+                ? 'Embudo comercial hidráulico · contacto, terreno, propuesta y cierre'
                 : 'Oportunidades asociadas a este cliente',
             actions: [
               if (widget.clientId != null)
@@ -168,6 +171,7 @@ class _PipelineScreenState extends ConsumerState<PipelineScreen> {
               stageList: stageList,
               items: filteredItems,
               canWrite: canWrite,
+              canSeed: canSeed,
               onRetry: _reload,
               onSeed: _seed,
               onOpen: (id) => context.go('/pipeline/$id'),

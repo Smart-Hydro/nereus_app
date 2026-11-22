@@ -36,7 +36,7 @@ class FixtureCrmRepository extends CrmRepository {
     ),
     const LeadSourceItem(
       id: 'src-3',
-      name: 'Terreno / Feria Hídrica',
+      name: 'Terreno / Feria Hidráulica',
       description: 'Contacto directo en terreno o junta de vigilancia',
       color: '#D97706',
     ),
@@ -127,7 +127,7 @@ class FixtureCrmRepository extends CrmRepository {
       status: 'NEW',
       score: 60,
       sourceId: 'src-3',
-      sourceName: 'Terreno / Feria Hídrica',
+      sourceName: 'Terreno / Feria Hidráulica',
       assignedToName: 'Martín Soto',
       notes: 'Dejó tarjeta en la feria de Chillán. Nadie lo ha llamado.',
       requirementOutcome: 'not_contacted',
@@ -1051,6 +1051,7 @@ class FixtureCrmRepository extends CrmRepository {
     const LostReasonItem(id: 'lr-1', name: 'Precio'),
     const LostReasonItem(id: 'lr-2', name: 'Plazo de entrega'),
     const LostReasonItem(id: 'lr-3', name: 'Competencia local'),
+    const LostReasonItem(id: 'lr-4', name: 'Sin presupuesto'),
   ];
 
   final Set<String> _derived = {'opp-7'};
@@ -1091,8 +1092,34 @@ class FixtureCrmRepository extends CrmRepository {
           .length,
       overdue: 1,
       openRfis: _rfis.where((item) => item.isOpen).length,
+      openRfiPeople: _openRfiPeople(),
       periodLabel: '1 nov 2026 – 30 nov 2026',
     );
+  }
+
+  List<KildeOpenRfiPerson> _openRfiPeople() {
+    final open = _rfis.where((item) => item.isOpen).toList();
+    if (open.isEmpty) return const [];
+    final grouped = <String, List<KildeRfi>>{};
+    for (final row in open) {
+      final key = (row.assignedToName ?? '').isEmpty
+          ? 'Sin asignar'
+          : row.assignedToName!;
+      grouped.putIfAbsent(key, () => []).add(row);
+    }
+    return [
+      for (final entry in grouped.entries)
+        KildeOpenRfiPerson(
+          name: entry.key,
+          count: entry.value.length,
+          since: entry.value.first.assignedAt,
+          opportunities: [
+            for (final row in entry.value)
+              if ((row.opportunityTitle ?? row.opportunityId ?? '').isNotEmpty)
+                row.opportunityTitle ?? row.opportunityId!,
+          ],
+        ),
+    ];
   }
 
   @override
@@ -1386,14 +1413,21 @@ class FixtureCrmRepository extends CrmRepository {
       reopenReason: reopenReason ?? current.reopenReason,
       assignedToId: assignedToId ?? current.assignedToId,
       assignedToName: assignedToName ?? current.assignedToName,
+      assignedAt: current.assignedAt,
       quotationId: current.quotationId,
       opportunityId: current.opportunityId,
+      opportunityTitle: current.opportunityTitle,
       answers: answers ?? current.answers,
     );
   }
 
   @override
-  Future<List<KildeQuote>> quotations() async => List.unmodifiable(_quotes);
+  Future<List<KildeQuote>> quotations({String? opportunityId}) async {
+    final rows = opportunityId == null || opportunityId.isEmpty
+        ? _quotes
+        : _quotes.where((item) => item.opportunityId == opportunityId);
+    return List.unmodifiable(rows);
+  }
 
   @override
   Future<KildeQuote> quotation(String id) async {
@@ -1410,8 +1444,10 @@ class FixtureCrmRepository extends CrmRepository {
       number: 'COT-$_seq · ${draft.clientName}',
       clientName: draft.clientName,
       observation: draft.glosa,
+      discountStatus: draft.discount > 0 ? 'pending' : '',
       total: draft.total,
       validUntil: draft.validUntil,
+      opportunityId: draft.opportunityId,
       lines: [
         QuoteLine(
           name: draft.glosa,
@@ -1446,12 +1482,16 @@ class FixtureCrmRepository extends CrmRepository {
         ),
       );
     }
+    final asksDiscount = (items ?? const <Map<String, dynamic>>[]).any(
+      (item) => (asDoubleOrNull(item['discount_percentage']) ?? 0) > 0,
+    );
     _quotes.insert(
       0,
       KildeQuote(
         id: 'q-${++_seq}',
         number: 'COT-$_seq',
         status: 'draft',
+        discountStatus: asksDiscount ? 'pending' : '',
         total: total,
         version: current.version + 1,
         validUntil: validUntil.isEmpty ? current.validUntil : validUntil,
@@ -1537,10 +1577,7 @@ class FixtureCrmRepository extends CrmRepository {
       for (final quote in _quotes)
         if (quote.opportunityId == opportunityId) quote,
     ];
-    final accepted = related.where((quote) => quote.status == 'accepted');
-    final quote = accepted.isNotEmpty
-        ? accepted.first
-        : (related.isEmpty ? null : related.first);
+    final quote = acceptedQuoteWithPo(related);
     final closed = [
       for (final rfi in _rfis)
         if (rfi.opportunityId == opportunityId && rfi.status == 'closed')
@@ -1683,6 +1720,14 @@ class FixtureCrmRepository extends CrmRepository {
   @override
   Future<String> deriveToStrom(String opportunityId) async {
     _derived.add(opportunityId);
+    final index = _opportunities.indexWhere((item) => item.id == opportunityId);
+    if (index >= 0) {
+      _opportunities[index] = _touch(
+        _opportunities[index],
+        derivationStatus: 'derived',
+        stromProjectId: 'proy-$opportunityId',
+      );
+    }
     _activities
         .putIfAbsent(opportunityId, () => [])
         .insert(
@@ -1710,6 +1755,8 @@ class FixtureCrmRepository extends CrmRepository {
     double? probability,
     String? expectedCloseDate,
     String? surveyId,
+    String? derivationStatus,
+    String? stromProjectId,
     String? lostReasonId,
     String? lostReasonName,
     String? lostReasonText,
@@ -1733,6 +1780,8 @@ class FixtureCrmRepository extends CrmRepository {
       nextActionAt: prev.nextActionAt,
       nextActionType: prev.nextActionType,
       surveyId: surveyId ?? prev.surveyId,
+      derivationStatus: derivationStatus ?? prev.derivationStatus,
+      stromProjectId: stromProjectId ?? prev.stromProjectId,
       lostReasonId: lostReasonId ?? prev.lostReasonId,
       lostReasonName: lostReasonName ?? prev.lostReasonName,
       lostReasonText: lostReasonText ?? prev.lostReasonText,

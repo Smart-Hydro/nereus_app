@@ -87,7 +87,7 @@ class QuoteSellerCard extends StatelessWidget {
                 if (expired) 'Vencida',
                 clp(row.total),
                 if (row.validUntil != null) 'vigente hasta ${row.validUntil}',
-                if (pending) 'pendiente del Líder',
+                if (pending) pendingDiscountLabel,
                 if (row.discountStatus == 'approved') 'descuento aprobado',
                 if (row.discountStatus == 'rejected') 'descuento rechazado',
                 if (row.receptionConfirmed) 'recepción confirmada',

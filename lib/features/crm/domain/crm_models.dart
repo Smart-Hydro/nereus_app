@@ -238,6 +238,8 @@ class OpportunityItem {
     this.nextActionAt,
     this.nextActionType,
     this.surveyId,
+    this.derivationStatus,
+    this.stromProjectId,
     this.lostReasonId,
     this.lostReasonName,
     this.lostReasonText,
@@ -262,6 +264,8 @@ class OpportunityItem {
   final String? nextActionAt;
   final String? nextActionType;
   final String? surveyId;
+  final String? derivationStatus;
+  final String? stromProjectId;
   final String? lostReasonId;
   final String? lostReasonName;
   final String? lostReasonText;
@@ -319,6 +323,8 @@ class OpportunityItem {
           ? asStringOrNull((json['next_action'] as Map)['type'])
           : null,
       surveyId: asStringOrNull(json['survey_id']),
+      derivationStatus: asStringOrNull(json['kilde_derivation_status']),
+      stromProjectId: asStringOrNull(json['strom_project_id']),
       lostReasonId: lost is Map
           ? asStringOrNull(lost['id'])
           : asStringOrNull(lost),
@@ -580,6 +586,21 @@ class CrmDashboardSummary {
 }
 
 @immutable
+class KildeOpenRfiPerson {
+  const KildeOpenRfiPerson({
+    this.name = 'Sin asignar',
+    this.count = 0,
+    this.since,
+    this.opportunities = const [],
+  });
+
+  final String name;
+  final int count;
+  final String? since;
+  final List<String> opportunities;
+}
+
+@immutable
 class KildeIndicators {
   const KildeIndicators({
     this.contacted = 0,
@@ -597,6 +618,7 @@ class KildeIndicators {
     this.missingNext = 0,
     this.overdue = 0,
     this.openRfis = 0,
+    this.openRfiPeople = const [],
     this.periodLabel,
   });
 
@@ -615,6 +637,7 @@ class KildeIndicators {
   final int missingNext;
   final int overdue;
   final int openRfis;
+  final List<KildeOpenRfiPerson> openRfiPeople;
   final String? periodLabel;
 
   factory KildeIndicators.fromJson(Map<String, dynamic> json) {
@@ -650,10 +673,40 @@ class KildeIndicators {
       missingNext: asInt(json['missing_next_action']),
       overdue: asInt(json['overdue_activities']),
       openRfis: _openRfiCount(json['open_rfis']),
+      openRfiPeople: _openRfiPeople(json['open_rfis']),
       periodLabel: period is Map
           ? '${asString(period['start'])} – ${asString(period['end'])}'
           : null,
     );
+  }
+
+  static List<KildeOpenRfiPerson> _openRfiPeople(Object? raw) {
+    if (raw is! List) return const [];
+    final rows = <KildeOpenRfiPerson>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final map = Map<String, dynamic>.from(item);
+      final titles = <String>[];
+      final opps = map['opportunities'];
+      if (opps is List) {
+        for (final opp in opps) {
+          if (opp is Map) {
+            final title = asStringOrNull(opp['title']);
+            if (title != null && title.isNotEmpty) titles.add(title);
+          }
+        }
+      }
+      final name = visiblePersonName(map['assigned_to_name']);
+      rows.add(
+        KildeOpenRfiPerson(
+          name: (name == null || name.isEmpty) ? 'Sin asignar' : name,
+          count: asInt(map['count']),
+          since: asStringOrNull(map['oldest_at']),
+          opportunities: titles,
+        ),
+      );
+    }
+    return rows;
   }
 
   static int _openRfiCount(Object? raw) {
@@ -778,8 +831,10 @@ class KildeRfi {
     this.reopenReason,
     this.assignedToId,
     this.assignedToName,
+    this.assignedAt,
     this.quotationId,
     this.opportunityId,
+    this.opportunityTitle,
     this.answers = const [],
   });
 
@@ -792,8 +847,10 @@ class KildeRfi {
   final String? reopenReason;
   final String? assignedToId;
   final String? assignedToName;
+  final String? assignedAt;
   final String? quotationId;
   final String? opportunityId;
+  final String? opportunityTitle;
   final List<KildeRfiAnswer> answers;
 
   bool get isOpen => status != 'closed' && status != 'answered';
@@ -826,8 +883,10 @@ class KildeRfi {
         json['assigned_to_name'],
         assignedMap ?? assigned,
       ),
+      assignedAt: asStringOrNull(json['assigned_at']),
       quotationId: asStringOrNull(json['quotation']),
       opportunityId: asStringOrNull(json['opportunity']),
+      opportunityTitle: asStringOrNull(json['opportunity_title']),
       answers: _rfiAnswers(json['answers']),
     );
   }
@@ -906,6 +965,8 @@ class QuoteDraft {
     required this.unitPrice,
     this.productId,
     this.validUntil,
+    this.discount = 0,
+    this.opportunityId,
   });
 
   final String clientId;
@@ -915,6 +976,8 @@ class QuoteDraft {
   final double unitPrice;
   final String? productId;
   final String? validUntil;
+  final double discount;
+  final String? opportunityId;
 
   double get total => quantity * unitPrice;
 }

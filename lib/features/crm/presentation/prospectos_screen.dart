@@ -91,7 +91,7 @@ class _ProspectosScreenState extends ConsumerState<ProspectosScreen> {
             kicker: 'Comercial',
             title: 'Prospectos',
             subtitle:
-                'Contactos comerciales e hídricos antes de convertir en cliente',
+                'Contactos comerciales e hidráulicos antes de convertir en cliente',
             actions: [
               if (canWrite)
                 FilledButton.icon(

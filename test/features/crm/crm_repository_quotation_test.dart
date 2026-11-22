@@ -56,6 +56,7 @@ void main() {
         unitPrice: 1000,
         productId: '9',
         validUntil: '2026-12-01',
+        opportunityId: '11111111-1111-1111-1111-111111111111',
       ),
     );
     expect(capture.last?.method, 'POST');
@@ -65,6 +66,7 @@ void main() {
     expect(data['client_id'], 15);
     expect(data['order_type'], 'SALE');
     expect(data['valid_until'], '2026-12-01');
+    expect(data['opportunity_id'], '11111111-1111-1111-1111-111111111111');
     expect(data['items'], [
       {
         'product': 9,

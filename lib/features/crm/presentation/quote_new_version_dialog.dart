@@ -42,16 +42,19 @@ class _LineControllers {
             ? '${line.quantity.round()}'
             : '${line.quantity}',
       ),
-      unitPrice = TextEditingController(text: '${line.unitPrice.round()}');
+      unitPrice = TextEditingController(text: '${line.unitPrice.round()}'),
+      discount = TextEditingController(text: '0');
 
   final String name;
   final String? productId;
   final TextEditingController quantity;
   final TextEditingController unitPrice;
+  final TextEditingController discount;
 
   void dispose() {
     quantity.dispose();
     unitPrice.dispose();
+    discount.dispose();
   }
 }
 
@@ -93,12 +96,18 @@ class _NewVersionDialogState extends State<_NewVersionDialog> {
         setState(() => _error = true);
         return;
       }
+      final discount = double.tryParse(line.discount.text.trim().replaceAll(',', '.'));
+      if (discount == null || discount < 0 || discount > 100) {
+        setState(() => _error = true);
+        return;
+      }
       final product = int.tryParse(line.productId ?? '');
       items.add({
         'product_name': line.name,
         if (product != null) 'product': product,
         'quantity': quantity,
         'unit_price': price,
+        if (discount > 0) 'discount_percentage': discount,
       });
     }
     Navigator.pop(
@@ -138,6 +147,18 @@ class _NewVersionDialogState extends State<_NewVersionDialog> {
                   ],
                   decoration: const InputDecoration(labelText: 'Precio unitario'),
                 ),
+                TextField(
+                  controller: line.discount,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp('[0-9.]')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Descuento %',
+                    helperText:
+                        'Mayor a 0 queda pendiente de aprobación del Líder.',
+                  ),
+                ),
                 const SizedBox(height: 8),
               ],
               TextField(
@@ -154,7 +175,7 @@ class _NewVersionDialogState extends State<_NewVersionDialog> {
               if (_error)
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
-                  child: Text('Revisa cantidades, precios y total.'),
+                  child: Text('Revisa cantidades, precios, descuento y total.'),
                 ),
             ],
           ),

@@ -19,6 +19,7 @@ class ShellDest {
     required this.icon,
     this.selectedIcon,
     this.section,
+    this.leadOnly = false,
   });
 
   final String path;
@@ -26,6 +27,7 @@ class ShellDest {
   final IconData icon;
   final IconData? selectedIcon;
   final String? section;
+  final bool leadOnly;
 }
 
 const shellDestinations = [
@@ -98,6 +100,7 @@ const shellDestinations = [
     icon: Icons.groups_outlined,
     selectedIcon: Icons.groups,
     section: 'Kilde',
+    leadOnly: true,
   ),
   ShellDest(
     path: '/kilde/cotizaciones',
@@ -126,6 +129,7 @@ const shellDestinations = [
     icon: Icons.playlist_remove_outlined,
     selectedIcon: Icons.playlist_remove,
     section: 'Kilde',
+    leadOnly: true,
   ),
   ShellDest(
     path: '/points',
@@ -426,6 +430,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             drawer: _phoneShell(breakpoint)
                 ? ShellMobileDrawer(
                     selected: selected,
+                    roleCode: session?.currentBranch?.roleCode,
                     onSelect: (index) {
                       Navigator.of(context).pop();
                       _go(index);

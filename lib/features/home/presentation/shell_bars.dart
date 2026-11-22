@@ -148,15 +148,17 @@ class ShellMobileDrawer extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onSelect,
+    this.roleCode,
   });
 
   final int selected;
   final ValueChanged<int> onSelect;
+  final String? roleCode;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final groups = groupedShellDestinations();
+    final groups = groupedShellDestinations(roleCode: roleCode);
     return Drawer(
       backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,

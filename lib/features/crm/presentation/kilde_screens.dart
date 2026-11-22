@@ -9,7 +9,9 @@ import 'package:nereus_app/core/widgets/async_body.dart';
 import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/core/widgets/page_header.dart';
 import 'package:nereus_app/features/catalog/providers/journey_providers.dart';
+import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
+import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/presentation/my_day_section.dart';
 import 'package:nereus_app/features/crm/presentation/rfi_actions.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
@@ -128,7 +130,7 @@ class _IndicatorGrid extends StatelessWidget {
       ('Embudo ponderado', clp(data.weighted)),
       ('Sin próxima acción', '${data.missingNext}'),
       ('Actividades atrasadas', '${data.overdue}'),
-      ('RFI pendientes', '${data.openRfis}'),
+      ('Consultas pendientes', '${data.openRfis}'),
     ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -145,6 +147,31 @@ class _IndicatorGrid extends StatelessWidget {
               ),
             ),
           ),
+        if (data.openRfiPeople.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Consultas pendientes por persona',
+              style: _kildeLabel(context),
+            ),
+          ),
+          for (final person in data.openRfiPeople)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                [
+                  person.name,
+                  '${person.count}',
+                  if ((person.since ?? '').isNotEmpty)
+                    'desde ${formatKildeStamp(person.since!)}',
+                  if (person.opportunities.isNotEmpty)
+                    person.opportunities.join(', '),
+                ].join(' · '),
+                style: _kildeMeta(context),
+              ),
+            ),
+          const SizedBox(height: 12),
+        ],
         Wrap(
           spacing: 12,
           runSpacing: 12,
@@ -556,6 +583,12 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                           subtitle: Text(
                             [
                               if (row.number != null) row.number!,
+                              if ((row.opportunityTitle ?? '').isNotEmpty)
+                                row.opportunityTitle!,
+                              if ((row.assignedToName ?? '').isNotEmpty)
+                                'Asignada a ${row.assignedToName}',
+                              if ((row.assignedAt ?? '').isNotEmpty)
+                                'desde ${formatKildeStamp(row.assignedAt!)}',
                               if (row.isOpen) 'Abierta',
                               if (!row.isOpen) 'Respondida',
                               if (row.blocking) 'bloqueante',
@@ -665,6 +698,8 @@ class _KildeLostReasonsScreenState
   Widget build(BuildContext context) {
     final snap = ref.watch(lostReasonsProvider);
     final rows = snap.value ?? const <LostReasonItem>[];
+    final role = ref.watch(sessionProvider).value?.currentBranch?.roleCode;
+    final canManage = role == null || kildeSeesTeam(role);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -674,6 +709,7 @@ class _KildeLostReasonsScreenState
             title: 'Motivos de pérdida',
             subtitle: 'Catálogo de la sucursal',
           ),
+          if (canManage)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
