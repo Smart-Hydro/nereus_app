@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
-import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/domain/quote_share.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class QuoteSellerCard extends StatelessWidget {
   const QuoteSellerCard({
@@ -22,6 +19,9 @@ class QuoteSellerCard extends StatelessWidget {
     required this.onPo,
     required this.onDownload,
     required this.onVersions,
+    this.onNewVersion,
+    this.onRfi,
+    this.onPoFile,
     super.key,
   });
 
@@ -35,6 +35,9 @@ class QuoteSellerCard extends StatelessWidget {
   final VoidCallback onPo;
   final VoidCallback onDownload;
   final VoidCallback onVersions;
+  final VoidCallback? onNewVersion;
+  final VoidCallback? onRfi;
+  final VoidCallback? onPoFile;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +111,8 @@ class QuoteSellerCard extends StatelessWidget {
                 'Versión anterior: ${row.parentId}',
                 style: TextStyle(color: ink, fontSize: 13.5),
               ),
-            if ((row.poFile ?? '').isNotEmpty) _PoFileLink(file: row.poFile!),
+            if ((row.poFile ?? '').isNotEmpty)
+              _PoFileLink(file: row.poFile!, onDownload: onPoFile),
             if (blocking)
               Text(
                 'RFI bloqueante abierta: no se puede enviar.',
@@ -152,6 +156,16 @@ class QuoteSellerCard extends StatelessWidget {
                   onPressed: onVersions,
                   child: const Text('Versiones'),
                 ),
+                if (onNewVersion != null)
+                  OutlinedButton(
+                    onPressed: onNewVersion,
+                    child: const Text('Nueva versión'),
+                  ),
+                if (onRfi != null)
+                  OutlinedButton(
+                    onPressed: onRfi,
+                    child: const Text('Consulta'),
+                  ),
                 OutlinedButton(
                   onPressed: sendBlocked || row.immutable
                       ? null
@@ -213,15 +227,16 @@ class QuoteSellerCard extends StatelessWidget {
 }
 
 class _PoFileLink extends StatelessWidget {
-  const _PoFileLink({required this.file});
+  const _PoFileLink({required this.file, this.onDownload});
 
   final String file;
+  final VoidCallback? onDownload;
 
   @override
   Widget build(BuildContext context) {
     final ink = NereusTokens.text(context);
     final http = file.startsWith('http://') || file.startsWith('https://');
-    if (!http) {
+    if (!http || onDownload == null) {
       return SelectableText(
         'Archivo de OC: $file',
         style: TextStyle(
@@ -232,17 +247,7 @@ class _PoFileLink extends StatelessWidget {
       );
     }
     return TextButton(
-      onPressed: () async {
-        final uri = Uri.tryParse(file);
-        final opened = uri != null &&
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-        if (!opened && context.mounted) {
-          showFriendlyError(
-            context,
-            const ApiError(message: 'No se pudo abrir el archivo de la OC.'),
-          );
-        }
-      },
+      onPressed: onDownload,
       child: const Text('Archivo de OC'),
     );
   }

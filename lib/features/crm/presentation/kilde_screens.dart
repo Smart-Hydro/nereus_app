@@ -16,6 +16,20 @@ import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 import 'package:nereus_app/features/customers/domain/client_models.dart';
 
+String _rfiHistoryLine(KildeRfiAnswer item) {
+  final who = item.answeredBy;
+  final showWho =
+      who != null &&
+      who.isNotEmpty &&
+      !technicalPersonHandle(who);
+  final when = item.answeredAt;
+  return [
+    item.answer,
+    if (showWho) who,
+    if (when != null && when.isNotEmpty) formatKildeStamp(when),
+  ].join(' · ');
+}
+
 TextStyle _kildeLabel(BuildContext context) => TextStyle(
   color: NereusTokens.text(context),
   fontSize: 14,
@@ -330,6 +344,8 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
   final _question = TextEditingController();
   var _blocking = false;
   String? _clientId;
+  String? _opportunityId;
+  String? _quotationId;
 
   @override
   void dispose() {
@@ -348,6 +364,18 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
       );
       return;
     }
+    if (_blocking &&
+        (_opportunityId == null || _opportunityId!.isEmpty) &&
+        (_quotationId == null || _quotationId!.isEmpty)) {
+      showFriendlyError(
+        context,
+        const ApiError(
+          message:
+              'Una consulta bloqueante va ligada a una oportunidad o a una cotización.',
+        ),
+      );
+      return;
+    }
     try {
       await ref
           .read(crmRepositoryProvider)
@@ -355,6 +383,8 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
             question: text,
             blocking: _blocking,
             clientId: _clientId,
+            opportunityId: _opportunityId,
+            quotationId: _quotationId,
           );
       _question.clear();
       ref.invalidate(kildeRfisProvider);
@@ -372,6 +402,14 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
     final clients = live
         ? ref.watch(customerClientsProvider).value ?? const <ClientItem>[]
         : const <ClientItem>[];
+    final opportunities =
+        ref.watch(opportunitiesProvider()).value ?? const <OpportunityItem>[];
+    final quotes = ref.watch(kildeQuotesProvider).value ?? const <KildeQuote>[];
+    final visibleQuotes = _opportunityId == null
+        ? quotes
+        : quotes
+              .where((quote) => quote.opportunityId == _opportunityId)
+              .toList();
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -383,7 +421,10 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 if (clients.isNotEmpty)
                   SizedBox(
@@ -398,14 +439,77 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                         for (final client in clients)
                           DropdownMenuItem(
                             value: client.id,
-                            child: Text(client.name),
+                            child: Text(client.name, overflow: TextOverflow.ellipsis),
                           ),
                       ],
                       onChanged: (value) => setState(() => _clientId = value),
                     ),
                   ),
-                if (clients.isNotEmpty) const SizedBox(width: 8),
-                Expanded(
+                if (opportunities.isNotEmpty)
+                  SizedBox(
+                    width: 220,
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      // This Flutter SDK still reads `value`.
+                      // ignore: deprecated_member_use
+                      value: _opportunityId,
+                      decoration: const InputDecoration(labelText: 'Oportunidad'),
+                      items: [
+                        for (final deal in opportunities)
+                          DropdownMenuItem(
+                            value: deal.id,
+                            child: Text(deal.title, overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
+                      onChanged: (value) => setState(() {
+                        _opportunityId = value;
+                        final quote = quotes.cast<KildeQuote?>().firstWhere(
+                          (item) => item?.id == _quotationId,
+                          orElse: () => null,
+                        );
+                        if (quote != null && quote.opportunityId != value) {
+                          _quotationId = null;
+                        }
+                        final deal = opportunities.cast<OpportunityItem?>().firstWhere(
+                          (item) => item?.id == value,
+                          orElse: () => null,
+                        );
+                        if (_clientId == null && deal?.clientId != null) {
+                          _clientId = deal!.clientId;
+                        }
+                      }),
+                    ),
+                  ),
+                if (visibleQuotes.isNotEmpty)
+                  SizedBox(
+                    width: 220,
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      // This Flutter SDK still reads `value`.
+                      // ignore: deprecated_member_use
+                      value: _quotationId,
+                      decoration: const InputDecoration(labelText: 'Cotización'),
+                      items: [
+                        for (final quote in visibleQuotes)
+                          DropdownMenuItem(
+                            value: quote.id,
+                            child: Text(quote.number, overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
+                      onChanged: (value) => setState(() {
+                        _quotationId = value;
+                        final quote = quotes.cast<KildeQuote?>().firstWhere(
+                          (item) => item?.id == value,
+                          orElse: () => null,
+                        );
+                        if (quote == null) return;
+                        _opportunityId ??= quote.opportunityId;
+                        _clientId ??= quote.clientId;
+                      }),
+                    ),
+                  ),
+                SizedBox(
+                  width: 280,
                   child: TextField(
                     controller: _question,
                     decoration: const InputDecoration(
@@ -413,13 +517,11 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
                 FilterChip(
                   label: const Text('Bloquea envío'),
                   selected: _blocking,
                   onSelected: (value) => setState(() => _blocking = value),
                 ),
-                const SizedBox(width: 8),
                 FilledButton(onPressed: _create, child: const Text('Crear')),
               ],
             ),
@@ -483,13 +585,7 @@ class _KildeRfiScreenState extends ConsumerState<KildeRfiScreen> {
                                 ),
                                 for (final item in row.history)
                                   Text(
-                                    [
-                                      item.answer,
-                                      if ((item.answeredBy ?? '').isNotEmpty)
-                                        item.answeredBy!,
-                                      if ((item.answeredAt ?? '').isNotEmpty)
-                                        item.answeredAt!,
-                                    ].join(' · '),
+                                    _rfiHistoryLine(item),
                                     style: _kildeMeta(context),
                                   ),
                               ],

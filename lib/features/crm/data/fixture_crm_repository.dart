@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:nereus_app/core/json_util.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/features/crm/data/crm_repository.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
@@ -1306,6 +1307,8 @@ class FixtureCrmRepository extends CrmRepository {
         question: question,
         blocking: blocking,
         status: 'open',
+        opportunityId: opportunityId,
+        quotationId: quotationId,
       ),
     );
   }
@@ -1420,6 +1423,51 @@ class FixtureCrmRepository extends CrmRepository {
     _quotes.insert(0, quote);
     return quote;
   }
+
+  @override
+  Future<void> saveQuotationVersion({
+    required String id,
+    required String validUntil,
+    required double total,
+    List<Map<String, dynamic>>? items,
+  }) async {
+    final index = _quotes.indexWhere((item) => item.id == id);
+    if (index < 0) return;
+    final current = _quotes[index];
+    _quotes[index] = _retouch(current, immutable: true);
+    final lines = <QuoteLine>[];
+    for (final item in items ?? const <Map<String, dynamic>>[]) {
+      lines.add(
+        QuoteLine(
+          name: asString(item['product_name'], fallback: 'Ítem'),
+          productId: asStringOrNull(item['product']),
+          quantity: asDoubleOrNull(item['quantity']) ?? 1,
+          unitPrice: asDoubleOrNull(item['unit_price']) ?? 0,
+        ),
+      );
+    }
+    _quotes.insert(
+      0,
+      KildeQuote(
+        id: 'q-${++_seq}',
+        number: 'COT-$_seq',
+        status: 'draft',
+        total: total,
+        version: current.version + 1,
+        validUntil: validUntil.isEmpty ? current.validUntil : validUntil,
+        parentId: current.id,
+        opportunityId: current.opportunityId,
+        clientId: current.clientId,
+        clientName: current.clientName,
+        observation: current.observation,
+        lines: lines.isEmpty ? current.lines : lines,
+      ),
+    );
+  }
+
+  @override
+  Future<List<int>> clientPoFile(String quotationId) async =>
+      const [0x25, 0x50, 0x44, 0x46];
 
   @override
   Future<List<int>> quotationPdf(String id) async {
@@ -1700,6 +1748,7 @@ class FixtureCrmRepository extends CrmRepository {
     double? poNet,
     String? poReceivedOn,
     String? poFile,
+    bool? immutable,
     String? objection,
     String? rejectionReason,
     bool? receptionConfirmed,
@@ -1720,10 +1769,11 @@ class FixtureCrmRepository extends CrmRepository {
       responseOn: responseOn ?? current.responseOn,
       opportunityId: current.opportunityId,
       parentId: current.parentId,
-      immutable: current.immutable,
+      immutable: immutable ?? current.immutable,
       poReceivedOn: poReceivedOn ?? current.poReceivedOn,
       poNet: poNet ?? current.poNet,
       poFile: poFile ?? current.poFile,
+      clientId: current.clientId,
       clientName: current.clientName,
       observation: current.observation,
       lines: current.lines,

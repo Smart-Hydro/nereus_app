@@ -72,6 +72,90 @@ void main() {
     expect(versions.last.diff!.totalAfter, 1200);
   });
 
+  test('el diff real trae before/after de la línea y el total anidado', () {
+    final diff = QuoteVersionDiff.fromJson(const {
+      'changed': [
+        {
+          'product_id': 4,
+          'before': {
+            'product_id': 4,
+            'product_name': 'Bomba',
+            'quantity': 1,
+            'unit_price': '1000.00',
+            'discount': '0.00',
+            'total': '1000.00',
+          },
+          'after': {
+            'product_id': 4,
+            'product_name': 'Bomba',
+            'quantity': 2,
+            'unit_price': '1000.00',
+            'discount': '0.00',
+            'total': '2000.00',
+          },
+        },
+      ],
+      'total': {'before': '1000.00', 'after': '2000.00'},
+      'valid_until': {'before': '2026-11-01', 'after': '2026-12-01'},
+    });
+    expect(diff.changed.map((row) => row.field), ['quantity', 'total']);
+    expect(diff.changed.first.productName, 'Bomba');
+    expect(diff.changed.first.before, '1');
+    expect(diff.changed.first.after, '2');
+    expect(
+      '${quoteDiffFieldLabel(diff.changed.first.field)}: '
+      '${diff.changed.first.before} → ${diff.changed.first.after}',
+      'Cantidad: 1 → 2',
+    );
+    expect(diff.totalBefore, 1000);
+    expect(diff.totalAfter, 2000);
+    expect(diff.validUntilBefore, '2026-11-01');
+    expect(diff.validUntilAfter, '2026-12-01');
+    expect(
+      formatKildeStamp('2026-11-22T18:22:12.522570-03:00'),
+      '22-11-2026 18:22',
+    );
+    expect(formatKildeStamp('2026-11-04'), '04-11-2026');
+    expect(
+      visiblePersonName('invited_josefa', {
+        'first_name': 'Josefa',
+        'last_name': 'Lagos',
+        'email': 'josefa@kilde.cl',
+      }),
+      'Josefa Lagos',
+    );
+    expect(visiblePersonName(171), isNull);
+  });
+
+  test('la versión nueva lleva número y la RFI queda ligada', () async {
+    final repo = FixtureCrmRepository();
+    await repo.saveQuotationVersion(
+      id: 'q-1080',
+      validUntil: '2026-12-31',
+      total: 1200,
+      items: const [
+        {'product_name': 'Estación', 'quantity': 2, 'unit_price': 600},
+      ],
+    );
+    final quotes = await repo.quotations();
+    final created = quotes.first;
+    expect(created.version, 2);
+    expect(created.number, startsWith('COT-'));
+    expect(created.parentId, 'q-1080');
+    expect(created.lines.single.quantity, 2);
+    expect((await repo.quotation('q-1080')).immutable, isTrue);
+    await repo.createRfi(
+      question: '¿Hay trifásica?',
+      blocking: true,
+      opportunityId: 'opp-4',
+      quotationId: 'q-1080',
+    );
+    final rfi = (await repo.rfis()).first;
+    expect(rfi.opportunityId, 'opp-4');
+    expect(rfi.quotationId, 'q-1080');
+    expect(rfi.blocking, isTrue);
+  });
+
   test('la RFI lee el historial con id o nombre', () {
     final row = KildeRfi.fromJson(const {
       'id': '1',
@@ -178,7 +262,7 @@ void main() {
       'strom_ikolu_training',
     ]);
     final line = stromMilestoneLine(milestones.first as Map);
-    expect(line, contains('Fecha 2026-10-28'));
+    expect(line, contains('Fecha 28-10-2026'));
     expect(line, contains('Responsable Héctor Muñoz'));
   });
 
@@ -326,6 +410,17 @@ void main() {
           kildeClient360Provider.overrideWith(
             (ref, id) async => {
               'derivation': {'status': 'derived'},
+              'quotations': [
+                {'status': 'accepted'},
+                {'status': 'sent'},
+              ],
+              'opportunities': [
+                {
+                  'title': 'Pozo Sur',
+                  'assigned_to_name': 'Josefa Lagos',
+                  'assigned_to_id': 171,
+                },
+              ],
               'milestones': [
                 {
                   'channel': 'strom_install',
@@ -359,8 +454,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.textContaining('Aceptada'), findsOneWidget);
+    expect(find.textContaining('Enviada'), findsOneWidget);
+    expect(find.textContaining('accepted'), findsNothing);
+    expect(find.textContaining('Pozo Sur · Josefa Lagos'), findsOneWidget);
+    expect(find.textContaining('171'), findsNothing);
     expect(find.textContaining('Hito Strøm: instalación'), findsOneWidget);
-    expect(find.textContaining('Fecha 2026-10-28'), findsOneWidget);
+    expect(find.textContaining('Fecha 28-10-2026'), findsOneWidget);
     expect(find.textContaining('Responsable Héctor Muñoz'), findsWidgets);
     expect(find.textContaining('Hito Strøm: capacitación Ikolu'), findsOneWidget);
     expect(find.textContaining('Responsable Martín Soto'), findsOneWidget);

@@ -897,6 +897,46 @@ class CrmRepository {
     }
   }
 
+  Future<void> saveQuotationVersion({
+    required String id,
+    required String validUntil,
+    required double total,
+    List<Map<String, dynamic>>? items,
+  }) async {
+    try {
+      final canSendItems =
+          items != null &&
+          items.isNotEmpty &&
+          items.every((row) => row['product'] != null);
+      await _dio.patch<dynamic>(
+        '/api/sales/quotations/$id/',
+        data: {
+          if (validUntil.isNotEmpty) 'valid_until': validUntil,
+          'total_amount': total,
+          if (canSendItems) 'items': items,
+        },
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<int>> clientPoFile(String quotationId) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        '/api/sales/quotations/$quotationId/client-po-file/',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) {
+        throw const ApiError(message: 'El archivo de la OC vino vacío.');
+      }
+      return bytes;
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
   Future<void> quoteAction(
     String id,
     String action, [

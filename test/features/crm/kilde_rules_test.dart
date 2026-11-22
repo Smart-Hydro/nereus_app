@@ -67,7 +67,8 @@ void main() {
     );
     final member = KildeMember.fromJson(const {
       'user_id': '9',
-      'username': 'Josefa',
+      'username': 'invited_josefa',
+      'name': 'Josefa Lagos',
       'open_opportunities': 2,
       'week_activities': 4,
       'missing_next_action': 1,
@@ -75,7 +76,14 @@ void main() {
         {'activity_type': 'CALL', 'description': 'Llamar al APR'},
       ],
     });
-    expect(member.label, 'Josefa');
+    expect(member.label, 'Josefa Lagos');
+    expect(
+      KildeMember.fromJson(const {
+        'user_id': '171',
+        'username': 'invited_171',
+      }).label,
+      'Ejecutivo',
+    );
     expect(member.weekActivities, 4);
     expect(member.todayAgenda.single, contains('Llamada'));
     expect(member.missingNext, 1);

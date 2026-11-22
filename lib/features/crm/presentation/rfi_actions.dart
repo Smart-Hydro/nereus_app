@@ -46,7 +46,7 @@ class RfiActions extends ConsumerWidget {
     for (final member in team) {
       if (member.userId == id) return member.label;
     }
-    return id;
+    return null;
   }
 
   Future<void> _assign(BuildContext context, WidgetRef ref) async {

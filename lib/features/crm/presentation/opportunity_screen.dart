@@ -16,6 +16,7 @@ import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_client_card.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_handoff_panel.dart';
+import 'package:nereus_app/features/crm/presentation/rfi_create_dialog.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_actions.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_form.dart';
@@ -152,6 +153,12 @@ class OpportunityScreen extends ConsumerWidget {
                 ),
               if (canWrite && deal != null)
                 OutlinedButton.icon(
+                  onPressed: () => _askRfi(context, ref, deal),
+                  icon: const Icon(Icons.help_outline, size: 16),
+                  label: const Text('Consulta'),
+                ),
+              if (canWrite && deal != null)
+                OutlinedButton.icon(
                   onPressed: () => _openSurvey(context, ref, deal),
                   icon: const Icon(Icons.fact_check_outlined, size: 16),
                   label: Text(
@@ -246,6 +253,30 @@ class OpportunityScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _askRfi(
+    BuildContext context,
+    WidgetRef ref,
+    OpportunityItem deal,
+  ) async {
+    final draft = await askRfi(context);
+    if (draft == null || !context.mounted) return;
+    try {
+      await ref.read(crmRepositoryProvider).createRfi(
+        question: draft.question,
+        blocking: draft.blocking,
+        clientId: deal.clientId,
+        opportunityId: deal.id,
+      );
+      ref.invalidate(kildeRfisProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Consulta creada.')),
+      );
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
   }
 
   Future<void> _openSurvey(

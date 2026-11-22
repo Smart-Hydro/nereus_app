@@ -15,8 +15,10 @@ import 'package:nereus_app/features/crm/domain/quote_file.dart';
 import 'package:nereus_app/features/crm/domain/quote_share.dart';
 import 'package:nereus_app/features/crm/presentation/client_po_dialog.dart';
 import 'package:nereus_app/features/crm/presentation/quote_create_dialog.dart';
+import 'package:nereus_app/features/crm/presentation/quote_new_version_dialog.dart';
 import 'package:nereus_app/features/crm/presentation/quote_seller_card.dart';
 import 'package:nereus_app/features/crm/presentation/quote_versions_dialog.dart';
+import 'package:nereus_app/features/crm/presentation/rfi_create_dialog.dart';
 import 'package:nereus_app/features/crm/providers/crm_providers.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 
@@ -93,6 +95,13 @@ class KildeQuotesScreen extends ConsumerWidget {
                     onPo: () => _po(context, ref, row),
                     onDownload: () => _download(context, ref, row, demo),
                     onVersions: () => _versions(context, ref, row.id),
+                    onNewVersion: row.status == 'sent' && !row.immutable
+                        ? () => _newVersion(context, ref, row)
+                        : null,
+                    onRfi: () => _rfi(context, ref, row),
+                    onPoFile: (row.poFile ?? '').startsWith('http')
+                        ? () => _downloadPo(context, ref, row)
+                        : null,
                   );
                 },
               ),
@@ -179,6 +188,81 @@ class KildeQuotesScreen extends ConsumerWidget {
         field: text,
       });
       ref.invalidate(kildeQuotesProvider);
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
+  }
+
+  Future<void> _newVersion(
+    BuildContext context,
+    WidgetRef ref,
+    KildeQuote quote,
+  ) async {
+    final draft = await askNewQuoteVersion(context, quote);
+    if (draft == null || !context.mounted) return;
+    try {
+      await ref.read(crmRepositoryProvider).saveQuotationVersion(
+        id: quote.id,
+        validUntil: draft.validUntil,
+        total: draft.total,
+        items: draft.items,
+      );
+      ref.invalidate(kildeQuotesProvider);
+      ref.invalidate(opportunitiesProvider());
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Versión nueva creada.')),
+      );
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
+  }
+
+  Future<void> _rfi(BuildContext context, WidgetRef ref, KildeQuote quote) async {
+    final draft = await askRfi(context);
+    if (draft == null || !context.mounted) return;
+    final live = ref.read(dataModeProvider) != NereusDataMode.fixture;
+    if (live && (quote.clientId == null || quote.clientId!.isEmpty)) {
+      showFriendlyError(
+        context,
+        const ApiError(message: 'La cotización no tiene cliente.'),
+      );
+      return;
+    }
+    try {
+      await ref.read(crmRepositoryProvider).createRfi(
+        question: draft.question,
+        blocking: draft.blocking,
+        clientId: quote.clientId,
+        opportunityId: quote.opportunityId,
+        quotationId: quote.id,
+      );
+      ref.invalidate(kildeRfisProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Consulta creada.')),
+      );
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
+  }
+
+  Future<void> _downloadPo(
+    BuildContext context,
+    WidgetRef ref,
+    KildeQuote quote,
+  ) async {
+    try {
+      final bytes = await ref.read(crmRepositoryProvider).clientPoFile(quote.id);
+      saveQuoteBytes(
+        filename: 'oc_${quote.id}.pdf',
+        bytes: bytes,
+        mime: 'application/pdf',
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('OC descargada.')),
+      );
     } on Object catch (error) {
       if (context.mounted) showFriendlyError(context, error);
     }
