@@ -85,7 +85,64 @@ const milestoneLabels = {
   'first_visit': 'Primera visita',
   'work_orders_done': 'OT ejecutadas',
   'report_sent': 'Informe enviado',
+  'ikolu_training': 'Capacitación Ikolu',
   'closed': 'Cierre',
+};
+
+const milestoneSourceLabels = {
+  'project_open': 'Alta del proyecto',
+  'status_change': 'Cambio de estado',
+  'manual': 'Registro manual',
+};
+
+const alertSeverityLabels = {
+  'info': 'Información',
+  'warning': 'Advertencia',
+  'critical': 'Crítica',
+};
+
+const alertStatusLabels = {
+  'open': 'Abierta',
+  'seen': 'Vista',
+  'resolved': 'Resuelta',
+};
+
+const scopeChangeKindLabels = {
+  'added': 'Ítem nuevo',
+  'changed': 'Ítem modificado',
+};
+
+const scopeChangeStatusLabels = {
+  'pending': 'Pendiente',
+  'approved': 'Aprobada',
+  'rejected': 'Rechazada',
+};
+
+const workOrderKindLabels = {
+  'principal': 'Principal',
+  'adicional': 'Adicional',
+};
+
+const activityOriginLabels = {
+  'scope': 'Alcance de la cotización',
+  'quotation_line': 'Línea de cotización',
+};
+
+const captureStatusLabels = {
+  'pending': 'Pendiente',
+  'confirmed': 'Confirmada',
+  'discarded': 'Descartada',
+};
+
+/// Estado de la orden de venta que respalda la cotización (Order.status).
+const orderStatusLabels = {
+  'DRAFT': 'Borrador',
+  'PENDING': 'Pendiente',
+  'IN_PROGRESS': 'En curso',
+  'COMPLETED': 'Completada',
+  'CANCELLED': 'Cancelada',
+  'RETURNED': 'Devuelta',
+  'REFUNDED': 'Reembolsada',
 };
 
 const siteKindLabels = {
@@ -184,6 +241,25 @@ String visitStatusLabel(String value) => opsLabel(value, visitStatusLabels);
 
 String visitTypeLabel(String value) =>
     opsLabel(value, visitTypeLabels, empty: 'Planificada');
+
+String milestoneSourceLabel(String value) =>
+    opsLabel(value, milestoneSourceLabels, empty: 'Hito');
+
+String alertSeverityLabel(String value) =>
+    opsLabel(value, alertSeverityLabels, empty: 'Advertencia');
+
+String alertStatusLabel(String value) => opsLabel(value, alertStatusLabels);
+
+String scopeChangeKindLabel(String value) =>
+    opsLabel(value, scopeChangeKindLabels, empty: 'Cambio de alcance');
+
+String scopeChangeStatusLabel(String value) =>
+    opsLabel(value, scopeChangeStatusLabels);
+
+String workOrderKindLabel(String value) =>
+    opsLabel(value, workOrderKindLabels, empty: 'Principal');
+
+String orderStatusLabel(String value) => opsLabel(value, orderStatusLabels);
 
 /// La reserva de la RTS baja el stock una sola vez, en la bodega de la sucursal.
 const rtsReserveNote =

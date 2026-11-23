@@ -113,7 +113,7 @@ class _BodyState extends ConsumerState<_Body> {
             OpsTile(
               title: opsLabel(milestone.kind, milestoneLabels),
               subtitle: milestone.occurredOn,
-              status: milestone.source.isEmpty ? 'Hito' : milestone.source,
+              status: milestoneSourceLabel(milestone.source),
             ),
         _ScopeBlock(
           projectId: project.id,
