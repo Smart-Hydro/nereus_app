@@ -65,6 +65,7 @@ class _Checks extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const OpsNote('Registrar el check de terreno no cierra el proyecto.'),
+          if (visitId != null) _CrewProposals(visitId: visitId),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: () => _create(context, ref, visitId),
@@ -74,7 +75,13 @@ class _Checks extends ConsumerWidget {
       ),
       itemBuilder: (context, item) => OpsTile(
         title: item.observation.isEmpty ? 'Check de terreno' : item.observation,
-        subtitle: '${item.measurement} ${item.observation}'.trim(),
+        subtitle: [
+          item.measurement,
+          item.observation,
+          if (item.diagnosis.isNotEmpty) 'Diagnóstico: ${item.diagnosis}',
+          if (item.actionsTaken.isNotEmpty) 'Acciones: ${item.actionsTaken}',
+          if (item.partsUsed.isNotEmpty) 'Repuestos: ${item.partsUsed.join(', ')}',
+        ].where((part) => part.trim().isNotEmpty).join(' · '),
         status: opsLabel(item.result, executionLabels),
       ),
     );
@@ -125,6 +132,13 @@ class _Checks extends ConsumerWidget {
         ),
         const OpsField(key: 'measurement', label: 'Medición'),
         const OpsField(key: 'observation', label: 'Observación'),
+        const OpsField(key: 'diagnosis', label: 'Diagnóstico'),
+        const OpsField(key: 'actions', label: 'Acciones realizadas'),
+        const OpsField(
+          key: 'parts',
+          label: 'Repuestos',
+          hint: 'Ítem, serie y cantidad. Ej: Sello A1 x2',
+        ),
         const OpsField(key: 'reason', label: 'Motivo pendiente'),
         const OpsField(key: 'owner', label: 'Responsable del pendiente'),
       ],
@@ -143,12 +157,83 @@ class _Checks extends ConsumerWidget {
         'result': values['result'],
         'measurement': values['measurement'],
         'observation': values['observation'],
+        'diagnosis': values['diagnosis'],
+        'actions_taken': values['actions'],
+        'parts_used': _parts(values['parts'] ?? ''),
         'pending_reason': values['reason'],
         'pending_owner': values['owner'],
       }),
     );
     if (ok) ref.invalidate(opsFieldChecksProvider);
   }
+}
+
+class _CrewProposals extends ConsumerWidget {
+  const _CrewProposals({required this.visitId});
+
+  final String visitId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final visit = ref.watch(opsVisitProvider(visitId)).asData?.value;
+    final rows = visit?.pendingCrewProposals ?? const [];
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        const OpsNote('Propuestas de la cuadrilla. Confírmalas o descártalas.'),
+        for (final row in rows)
+          OpsTile(
+            title: row.crewMemberName.isEmpty ? 'Cuadrilla' : row.crewMemberName,
+            subtitle:
+                '${opsLabel(row.result, executionLabels)} · ${row.observation} ${row.measurement}'
+                    .trim(),
+            status: 'Propuesta',
+            onTap: () => _review(context, ref, row.id),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _review(BuildContext context, WidgetRef ref, String id) async {
+    final values = await askOpsFields(
+      context,
+      title: 'Propuesta de la cuadrilla',
+      fields: const [
+        OpsField(
+          key: 'action',
+          label: 'Qué hacer',
+          initial: 'confirm',
+          options: {'confirm': 'Confirmar en el check', 'discard': 'Descartar'},
+        ),
+      ],
+    );
+    if (values == null || !context.mounted) return;
+    final confirm = values['action'] != 'discard';
+    final ok = await runOps(
+      context,
+      title: confirm ? 'Confirmar propuesta' : 'Descartar propuesta',
+      message: confirm
+          ? 'Pasa al check de terreno de la visita.'
+          : 'La propuesta no entra al check.',
+      action: () => confirm
+          ? ref.read(visitsRepositoryProvider).confirmProposal(id)
+          : ref.read(visitsRepositoryProvider).discardProposal(id),
+    );
+    if (!ok) return;
+    ref.invalidate(opsVisitProvider(visitId));
+    ref.invalidate(opsFieldChecksProvider);
+  }
+}
+
+List<Map<String, Object>> _parts(String raw) {
+  final text = raw.trim();
+  if (text.isEmpty) return const [];
+  return [
+    for (final piece in text.split(','))
+      if (piece.trim().isNotEmpty) {'item': piece.trim(), 'serial': '', 'quantity': 1},
+  ];
 }
 
 class _Evidences extends ConsumerWidget {

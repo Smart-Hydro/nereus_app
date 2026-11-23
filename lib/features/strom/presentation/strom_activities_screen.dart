@@ -102,6 +102,7 @@ class _ActivityBody extends ConsumerWidget {
         OpsNote(opsNextAction(activity.executionStatus)),
         OpsNote(
           'OT ${specialtyLabel(activity.specialty)} · ${activity.pointCaption}\n'
+          '${activity.validationLine}\n'
           '${activity.notDoneReason}\n${activity.validationNotes}',
         ),
         const OpsNote('La ejecución y la validación son estados distintos.'),
