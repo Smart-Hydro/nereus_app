@@ -1,4 +1,5 @@
 import 'package:nereus_app/core/json_util.dart';
+import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/domain/ops_parse.dart';
 
 class OpsWorkOrder {
@@ -13,6 +14,9 @@ class OpsWorkOrder {
     this.confirmedAt = '',
     this.scopeVersion = '',
     this.commercialReference = '',
+    this.confirmedByName = '',
+    this.confirmedAtDisplay = '',
+    this.kind = 'principal',
     this.pendingScopeChanges = 0,
     this.created = '',
   });
@@ -27,6 +31,9 @@ class OpsWorkOrder {
   final String confirmedAt;
   final String scopeVersion;
   final String commercialReference;
+  final String confirmedByName;
+  final String confirmedAtDisplay;
+  final String kind;
   final int pendingScopeChanges;
   final String created;
 
@@ -42,6 +49,9 @@ class OpsWorkOrder {
       confirmedAt: asString(json['confirmed_at']),
       scopeVersion: asString(json['scope_version']),
       commercialReference: asString(json['commercial_reference']),
+      confirmedByName: asString(json['confirmed_by_name']),
+      confirmedAtDisplay: asString(json['confirmed_at_display']),
+      kind: asString(json['kind'], fallback: 'principal'),
       pendingScopeChanges: asInt(json['pending_scope_changes']),
       created: asString(json['created']),
     );
@@ -162,6 +172,10 @@ class OpsVisit {
     this.reschedules = const [],
     this.siteWarnings = const [],
     this.rtsWarnings = const [],
+    this.supportWorkOrder = '',
+    this.supportWorkOrderNumber = '',
+    this.pendingDateProposal,
+    this.pendingCrewProposals = const [],
   });
 
   final String id;
@@ -180,6 +194,10 @@ class OpsVisit {
   final List<OpsReschedule> reschedules;
   final List<String> siteWarnings;
   final List<String> rtsWarnings;
+  final String supportWorkOrder;
+  final String supportWorkOrderNumber;
+  final OpsDateProposal? pendingDateProposal;
+  final List<OpsCrewProposal> pendingCrewProposals;
 
   factory OpsVisit.fromJson(Map<String, dynamic> json) {
     return OpsVisit(
@@ -201,6 +219,69 @@ class OpsVisit {
           .toList(),
       siteWarnings: opsMessages(json['site_requirement_warnings']),
       rtsWarnings: opsMessages(json['rts_warnings']),
+      supportWorkOrder: asString(json['support_work_order']),
+      supportWorkOrderNumber: asString(json['support_work_order_number']),
+      pendingDateProposal: _dateProposal(json['pending_date_proposal']),
+      pendingCrewProposals: asMapList(json['pending_crew_proposals'])
+          .map(OpsCrewProposal.fromJson)
+          .toList(),
+    );
+  }
+}
+
+OpsDateProposal? _dateProposal(Object? raw) {
+  if (raw is! Map) return null;
+  return OpsDateProposal.fromJson(Map<String, dynamic>.from(raw));
+}
+
+class OpsDateProposal {
+  const OpsDateProposal({
+    required this.id,
+    this.proposedFor = '',
+    this.reason = '',
+  });
+
+  final String id;
+  final String proposedFor;
+  final String reason;
+
+  factory OpsDateProposal.fromJson(Map<String, dynamic> json) {
+    return OpsDateProposal(
+      id: asString(json['id']),
+      proposedFor: opsDay(json['proposed_for']),
+      reason: asString(json['reason']),
+    );
+  }
+}
+
+class OpsCrewProposal {
+  const OpsCrewProposal({
+    required this.id,
+    this.activity = '',
+    this.crewMemberName = '',
+    this.result = '',
+    this.observation = '',
+    this.measurement = '',
+    this.status = 'pending',
+  });
+
+  final String id;
+  final String activity;
+  final String crewMemberName;
+  final String result;
+  final String observation;
+  final String measurement;
+  final String status;
+
+  factory OpsCrewProposal.fromJson(Map<String, dynamic> json) {
+    return OpsCrewProposal(
+      id: asString(json['id']),
+      activity: asString(json['activity']),
+      crewMemberName: asString(json['crew_member_name']),
+      result: asString(json['result']),
+      observation: asString(json['observation']),
+      measurement: asString(json['measurement']),
+      status: asString(json['status'], fallback: 'pending'),
     );
   }
 }
@@ -221,6 +302,10 @@ class OpsActivity {
     this.notDoneReason = '',
     this.validationStatus = 'pending',
     this.validationNotes = '',
+    this.leaderValidatedByName = '',
+    this.leaderValidationResult = '',
+    this.operationsValidatedByName = '',
+    this.operationsValidationResult = '',
   });
 
   final String id;
@@ -237,6 +322,20 @@ class OpsActivity {
   final String notDoneReason;
   final String validationStatus;
   final String validationNotes;
+  final String leaderValidatedByName;
+  final String leaderValidationResult;
+  final String operationsValidatedByName;
+  final String operationsValidationResult;
+
+  String get validationLine {
+    final leader = leaderValidatedByName.isEmpty
+        ? 'pendiente'
+        : '$leaderValidatedByName · ${opsLabel(leaderValidationResult, validationLabels)}';
+    final ops = operationsValidatedByName.isEmpty
+        ? 'pendiente'
+        : '$operationsValidatedByName · ${opsLabel(operationsValidationResult, validationLabels)}';
+    return 'Líder: $leader · Operaciones: $ops';
+  }
 
   String get pointCaption =>
       deviceName.isEmpty ? 'punto de captación' : deviceName;
@@ -260,6 +359,58 @@ class OpsActivity {
         fallback: 'pending',
       ),
       validationNotes: asString(json['validation_notes']),
+      leaderValidatedByName: asString(json['leader_validated_by_name']),
+      leaderValidationResult: asString(json['leader_validation_result']),
+      operationsValidatedByName: asString(json['operations_validated_by_name']),
+      operationsValidationResult: asString(json['operations_validation_result']),
+    );
+  }
+}
+
+class OpsAgendaRow {
+  const OpsAgendaRow({
+    required this.id,
+    this.kind = 'visit',
+    this.when = '',
+    this.status = '',
+    this.projectId = '',
+    this.projectName = '',
+    this.clientName = '',
+    this.workOrderId = '',
+    this.specialty = '',
+    this.crew = const [],
+    this.visitId = '',
+    this.reason = '',
+  });
+
+  final String id;
+  final String kind;
+  final String when;
+  final String status;
+  final String projectId;
+  final String projectName;
+  final String clientName;
+  final String workOrderId;
+  final String specialty;
+  final List<String> crew;
+  final String visitId;
+  final String reason;
+
+  factory OpsAgendaRow.fromJson(Map<String, dynamic> json) {
+    final crew = json['crew'];
+    return OpsAgendaRow(
+      id: asString(json['id']),
+      kind: asString(json['kind'], fallback: 'visit'),
+      when: opsDay(json['when']),
+      status: asString(json['status']),
+      projectId: asString(json['project_id']),
+      projectName: asString(json['project_name']),
+      clientName: asString(json['client_name']),
+      workOrderId: asString(json['work_order_id']),
+      specialty: asString(json['specialty']),
+      crew: crew is List ? crew.map(asString).toList() : const [],
+      visitId: asString(json['visit_id']),
+      reason: asString(json['reason']),
     );
   }
 }
