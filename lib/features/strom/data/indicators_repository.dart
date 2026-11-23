@@ -77,6 +77,17 @@ class IndicatorsRepository {
     method: 'DELETE',
   );
 
+  Future<List<OpsAlert>> alerts() =>
+      _http.getList('/api/operations/alerts/', OpsAlert.fromJson);
+
+  Future<OpsAlert> markAlert(String id, {required bool resolve}) {
+    final action = resolve ? 'resolve' : 'seen';
+    return _http.send(
+      '/api/operations/alerts/$id/$action/',
+      parse: OpsAlert.fromJson,
+    );
+  }
+
   Future<Map<String, dynamic>> compute(
     String id, {
     required String projectId,
