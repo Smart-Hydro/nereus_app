@@ -71,6 +71,15 @@ final opsScopeProvider = FutureProvider.autoDispose
       return ref.watch(projectsRepositoryProvider).scope(id);
     });
 
+final opsUnassignedScopeProvider = FutureProvider.autoDispose
+    .family<List<OpsScopeItem>, String>((ref, id) {
+      return ref.watch(projectsRepositoryProvider).unassigned(id);
+    });
+
+final opsAlertsProvider = FutureProvider.autoDispose<List<OpsAlert>>((ref) {
+  return ref.watch(indicatorsRepositoryProvider).alerts();
+});
+
 final opsInstallationsProvider =
     FutureProvider.autoDispose<List<OpsInstallation>>((ref) {
       return ref.watch(installationsRepositoryProvider).list();

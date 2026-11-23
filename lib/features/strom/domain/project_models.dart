@@ -17,6 +17,9 @@ class OpsProject {
     this.clientPoReceivedOn = '',
     this.quotation = '',
     this.ticket = '',
+    this.client = '',
+    this.clientName = '',
+    this.originProject = '',
     this.isActive = true,
     this.milestones = const [],
     this.openClarifications = const [],
@@ -37,6 +40,9 @@ class OpsProject {
   final String clientPoReceivedOn;
   final String quotation;
   final String ticket;
+  final String client;
+  final String clientName;
+  final String originProject;
   final bool isActive;
   final List<OpsMilestone> milestones;
   final List<OpsOpenClarification> openClarifications;
@@ -60,6 +66,9 @@ class OpsProject {
       clientPoReceivedOn: opsDay(json['client_po_received_on']),
       quotation: asString(json['quotation']),
       ticket: asString(json['ticket']),
+      client: asString(json['client']),
+      clientName: asString(json['client_name']),
+      originProject: asString(json['origin_project']),
       isActive: opsBool(json['is_active'], fallback: true),
       milestones: asMapList(json['milestones'])
           .map(OpsMilestone.fromJson)
@@ -150,6 +159,10 @@ class OpsScopeItem {
     this.specialty = '',
     this.mandatory = true,
     this.status = 'pending_technical',
+    this.quantity = '',
+    this.productName = '',
+    this.quotationLineId = '',
+    this.origin = '',
   });
 
   final String id;
@@ -158,6 +171,17 @@ class OpsScopeItem {
   final String specialty;
   final bool mandatory;
   final String status;
+  final String quantity;
+  final String productName;
+  final String quotationLineId;
+  final String origin;
+
+  String get originLabel {
+    if (origin == 'quotation_line' || quotationLineId.isNotEmpty) {
+      return 'Línea de cotización';
+    }
+    return '';
+  }
 
   factory OpsScopeItem.fromJson(Map<String, dynamic> json) {
     return OpsScopeItem(
@@ -167,6 +191,10 @@ class OpsScopeItem {
       specialty: asString(json['specialty']),
       mandatory: opsBool(json['mandatory'], fallback: true),
       status: asString(json['status'], fallback: 'pending_technical'),
+      quantity: asString(json['quantity']),
+      productName: asString(json['product_name']),
+      quotationLineId: asString(json['quotation_line_id']),
+      origin: asString(json['origin']),
     );
   }
 }

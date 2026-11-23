@@ -94,6 +94,7 @@ class _StromProjectsScreenState extends ConsumerState<StromProjectsScreen> {
         title: project.name,
         subtitle: [
           if (project.code.isNotEmpty) project.code,
+          if (project.clientName.isNotEmpty) project.clientName,
           if (project.clientPoNumber.isNotEmpty) 'OC ${project.clientPoNumber}',
           if (project.committedOn.isNotEmpty) project.committedOn,
         ].join(' · '),
