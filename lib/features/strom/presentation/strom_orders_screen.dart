@@ -159,11 +159,13 @@ class _OrderBody extends ConsumerWidget {
           OpsNote('Cancelación: ${order.cancelReason}'),
         for (final change in changes)
           OpsTile(
-            title: change.activity.isEmpty ? change.kind : change.activity,
+            title: change.activity.isEmpty
+                ? scopeChangeKindLabel(change.kind)
+                : change.activity,
             subtitle: change.deviceName.isEmpty
                 ? specialtyLabel(change.specialty)
                 : '${specialtyLabel(change.specialty)} · ${change.deviceName}',
-            status: change.status,
+            status: scopeChangeStatusLabel(change.status),
             onTap: () => _decide(context, ref, change),
           ),
       ],

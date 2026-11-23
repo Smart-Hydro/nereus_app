@@ -30,11 +30,12 @@ List<Widget> _alertTiles(BuildContext context, WidgetRef ref) {
           OpsTile(
             title: alert.indicatorName.isEmpty ? 'Indicador' : alert.indicatorName,
             subtitle: [
+              alertStatusLabel(alert.status),
               if (alert.projectName.isNotEmpty) alert.projectName,
               if (alert.message.isNotEmpty) alert.message,
               'Valor ${alert.value} · meta ${alert.target}',
             ].join(' · '),
-            status: alert.severity == 'critical' ? 'Crítica' : 'Aviso',
+            status: alertSeverityLabel(alert.severity),
             onTap: () async {
               final ok = await runOps(
                 context,

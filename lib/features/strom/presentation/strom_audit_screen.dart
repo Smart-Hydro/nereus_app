@@ -80,8 +80,19 @@ String _valueLabel(String value, {String entity = ''}) {
     projectStatusLabels,
     workOrderStatusLabels,
     visitStatusLabels,
+    visitTypeLabels,
     executionLabels,
     validationLabels,
+    specialtyLabels,
+    milestoneLabels,
+    milestoneSourceLabels,
+    alertSeverityLabels,
+    alertStatusLabels,
+    scopeChangeStatusLabels,
+    scopeChangeKindLabels,
+    obligationLabels,
+    reportKindLabels,
+    serviceTypeLabels,
   ]) {
     final label = known[value];
     if (label != null) return label;

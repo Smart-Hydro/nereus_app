@@ -16,6 +16,8 @@ class OpsProject {
     this.clientPoNumber = '',
     this.clientPoReceivedOn = '',
     this.quotation = '',
+    this.quotationNumber = '',
+    this.quotationStatus = '',
     this.ticket = '',
     this.client = '',
     this.clientName = '',
@@ -39,6 +41,8 @@ class OpsProject {
   final String clientPoNumber;
   final String clientPoReceivedOn;
   final String quotation;
+  final String quotationNumber;
+  final String quotationStatus;
   final String ticket;
   final String client;
   final String clientName;
@@ -65,6 +69,8 @@ class OpsProject {
       clientPoNumber: asString(json['client_po_number']),
       clientPoReceivedOn: opsDay(json['client_po_received_on']),
       quotation: asString(json['quotation']),
+      quotationNumber: asString(json['quotation_number']),
+      quotationStatus: asString(json['quotation_status']),
       ticket: asString(json['ticket']),
       client: asString(json['client']),
       clientName: asString(json['client_name']),
@@ -87,14 +93,35 @@ KildeHandoff? _kildeHandoff(Map<String, dynamic> json) {
   final raw = json['kilde_handoff'];
   if (raw is! Map) return null;
   final merged = Map<String, dynamic>.from(raw);
-  if (merged['client'] == null && json['client'] != null) {
-    merged['client'] = json['client'];
+  final projectName = asString(json['client_name']);
+  if (projectName.isNotEmpty) {
+    merged['client_name'] = projectName;
   }
-  if (merged['client_name'] == null && json['client_name'] != null) {
-    merged['client_name'] = json['client_name'];
+  final client = merged['client'];
+  if (client is num ||
+      (client is String && RegExp(r'^\d+$').hasMatch(client.trim()))) {
+    merged.remove('client');
   }
-  if (merged['quotation'] == null && json['quotation'] is Map) {
-    merged['quotation'] = json['quotation'];
+  final number = asString(json['quotation_number']);
+  final status = asString(json['quotation_status']);
+  final quote = merged['quotation'];
+  if (quote is! Map) {
+    if (number.isNotEmpty || status.isNotEmpty) {
+      merged['quotation'] = {
+        if (number.isNotEmpty) 'order_number': number,
+        if (status.isNotEmpty) 'status': status,
+      };
+    }
+  } else if (number.isNotEmpty || status.isNotEmpty) {
+    final current = Map<String, dynamic>.from(quote);
+    if (asString(current['order_number'] ?? current['number']).isEmpty &&
+        number.isNotEmpty) {
+      current['order_number'] = number;
+    }
+    if (asString(current['status']).isEmpty && status.isNotEmpty) {
+      current['status'] = status;
+    }
+    merged['quotation'] = current;
   }
   return KildeHandoff.fromJson(merged);
 }
