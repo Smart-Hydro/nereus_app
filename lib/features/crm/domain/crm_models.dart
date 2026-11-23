@@ -945,14 +945,23 @@ class QuoteLine {
     required this.quantity,
     required this.unitPrice,
     this.productId,
+    this.discount = 0,
+    this.finalPrice,
   });
 
   final String name;
   final double quantity;
   final double unitPrice;
   final String? productId;
+  final double discount;
+  final double? finalPrice;
 
-  double get total => quantity * unitPrice;
+  /// Precio de la línea ya con descuento. `final_price` del API manda.
+  double get total {
+    final priced = finalPrice;
+    if (priced != null) return priced;
+    return quantity * unitPrice * (1 - discount / 100);
+  }
 }
 
 @immutable
@@ -979,7 +988,7 @@ class QuoteDraft {
   final double discount;
   final String? opportunityId;
 
-  double get total => quantity * unitPrice;
+  double get total => quantity * unitPrice * (1 - discount / 100);
 }
 
 @immutable
@@ -1044,14 +1053,13 @@ class KildeQuote {
     final client = json['client'];
     final lines = _quoteLines(json['products']);
     final parsedTotal = asDoubleOrNull(json['total_amount']) ?? 0;
-    final lineTotal = lines.fold<double>(0, (sum, line) => sum + line.total);
     return KildeQuote(
       id: asString(json['id']),
       number: asString(json['order_number'], fallback: 'Cotización'),
       status: asString(json['kilde_quote_status']),
       discountStatus: asString(json['discount_approval_status']),
       poNumber: asStringOrNull(json['client_po_number']),
-      total: parsedTotal == 0 && lineTotal > 0 ? lineTotal : parsedTotal,
+      total: _visibleQuoteTotal(parsedTotal, lines),
       version: asInt(json['version']) == 0 ? 1 : asInt(json['version']),
       validUntil: asStringOrNull(json['valid_until']),
       objection: asStringOrNull(json['objection']),
@@ -1080,11 +1088,29 @@ class KildeQuote {
   }
 }
 
+/// Si el API todavía guarda el bruto, la tarjeta muestra el neto con descuento.
+double _visibleQuoteTotal(double parsed, List<QuoteLine> lines) {
+  if (lines.isEmpty) return parsed;
+  final net = lines.fold<double>(0, (sum, line) => sum + line.total);
+  if (parsed == 0 && net > 0) return net;
+  final gross = lines.fold<double>(
+    0,
+    (sum, line) => sum + line.quantity * line.unitPrice,
+  );
+  final discounted = lines.any((line) => line.discount > 0 || line.finalPrice != null);
+  if (discounted && net > 0 && (parsed - gross).abs() < 0.02) return net;
+  return parsed;
+}
+
 List<QuoteLine> _quoteLines(Object? raw) {
   if (raw is! List) return const [];
   final lines = <QuoteLine>[];
   for (final item in raw) {
     if (item is! Map) continue;
+    final quantity = asDoubleOrNull(item['quantity']) ?? 1;
+    final unitPrice = asDoubleOrNull(item['unit_price']) ?? 0;
+    final discount =
+        asDoubleOrNull(item['discount_percentage'] ?? item['discount']) ?? 0;
     lines.add(
       QuoteLine(
         name: asString(
@@ -1092,8 +1118,10 @@ List<QuoteLine> _quoteLines(Object? raw) {
           fallback: 'Ítem',
         ),
         productId: asStringOrNull(item['product'] ?? item['product_id']),
-        quantity: asDoubleOrNull(item['quantity']) ?? 1,
-        unitPrice: asDoubleOrNull(item['unit_price']) ?? 0,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        discount: discount,
+        finalPrice: asDoubleOrNull(item['final_price']),
       ),
     );
   }
@@ -1471,7 +1499,7 @@ class KildeHandoff {
     return KildeHandoff(
       clientName: _handoffLabel(json['client'] ?? json['client_name']),
       contacts: _handoffLabels(json['contacts']),
-      wells: _handoffLabels(json['wells']),
+      wells: _wellLabels(json['wells']),
       quotation: _quotationLabel(json['quotation'] ?? json['quote']),
       equipment: _handoffLabels(json['equipment']),
       surveyId: survey is Map ? asStringOrNull(survey['id']) : null,
@@ -1552,6 +1580,38 @@ String? _handoffLabel(Object? raw) {
     return name ?? asStringOrNull(raw['id']);
   }
   return null;
+}
+
+String? _detail(Object? raw, String key) {
+  if (raw is! Map) return null;
+  final value = asStringOrNull(raw[key]);
+  if (value == null || value.isEmpty) return null;
+  return value;
+}
+
+String? _wellLabel(Object? raw) {
+  if (raw is! Map) return _handoffLabel(raw);
+  final name = asStringOrNull(raw['name']) ?? asStringOrNull(raw['pozo']);
+  final details = <String>[
+    if (_detail(raw, 'caudal') case final value?) 'caudal $value',
+    if (_detail(raw, 'profundidad') case final value?) 'profundidad $value',
+    if (_detail(raw, 'energia') case final value?) 'energía $value',
+    if (_detail(raw, 'conectividad') case final value?) 'conectividad $value',
+  ];
+  if ((name == null || name.isEmpty) && details.isEmpty) {
+    return _handoffLabel(raw);
+  }
+  return [if (name != null && name.isNotEmpty) name, ...details].join(' · ');
+}
+
+List<String> _wellLabels(Object? raw) {
+  if (raw is! List) return const [];
+  final labels = <String>[];
+  for (final item in raw) {
+    final label = _wellLabel(item);
+    if (label != null && label.isNotEmpty) labels.add(label);
+  }
+  return labels;
 }
 
 List<String> _handoffLabels(Object? raw) {

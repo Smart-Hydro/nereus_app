@@ -38,6 +38,33 @@ void main() {
     expect(quote.clientName, 'APR Valle del Itata');
     expect(quote.lines.single.name, 'Datalogger');
     expect(quote.total, 2000);
+    final discounted = KildeQuote.fromJson(const {
+      'id': 'q2',
+      'order_number': 'COT-10',
+      'total_amount': '3000000.00',
+      'products': [
+        {
+          'product_name': 'Equipo',
+          'quantity': 2,
+          'unit_price': '1500000.00',
+          'discount_percentage': '10.00',
+          'final_price': '2700000.00',
+        },
+      ],
+    });
+    expect(discounted.lines.single.total, 2700000);
+    expect(discounted.total, 2700000);
+    expect(
+      const QuoteDraft(
+        clientId: '1',
+        clientName: 'Fundo',
+        glosa: 'Equipo',
+        quantity: 2,
+        unitPrice: 1500000,
+        discount: 10,
+      ).total,
+      2700000,
+    );
     expect(quoteDocument(quote), contains('Datalogger'));
   });
 

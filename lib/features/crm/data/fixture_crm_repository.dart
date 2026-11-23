@@ -1453,6 +1453,7 @@ class FixtureCrmRepository extends CrmRepository {
           name: draft.glosa,
           quantity: draft.quantity,
           unitPrice: draft.unitPrice,
+          discount: draft.discount,
         ),
       ],
     );
@@ -1479,6 +1480,7 @@ class FixtureCrmRepository extends CrmRepository {
           productId: asStringOrNull(item['product']),
           quantity: asDoubleOrNull(item['quantity']) ?? 1,
           unitPrice: asDoubleOrNull(item['unit_price']) ?? 0,
+          discount: asDoubleOrNull(item['discount_percentage']) ?? 0,
         ),
       );
     }
