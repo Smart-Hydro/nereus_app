@@ -1497,7 +1497,7 @@ class KildeHandoff {
   factory KildeHandoff.fromJson(Map<String, dynamic> json) {
     final survey = json['survey'];
     return KildeHandoff(
-      clientName: _handoffLabel(json['client'] ?? json['client_name']),
+      clientName: _handoffClientName(json),
       contacts: _handoffLabels(json['contacts']),
       wells: _wellLabels(json['wells']),
       quotation: _quotationLabel(json['quotation'] ?? json['quote']),
@@ -1543,14 +1543,68 @@ class KildeClosedRfi {
   }
 }
 
+/// Estado de la cotización. Los códigos de la orden van en mayúsculas;
+/// los de Kilde, en minúsculas. Un código desconocido se muestra tal cual.
+const quotationStatusLabels = {
+  'DRAFT': 'Borrador',
+  'PENDING': 'Pendiente',
+  'IN_PROGRESS': 'En curso',
+  'COMPLETED': 'Completada',
+  'CANCELLED': 'Cancelada',
+  'RETURNED': 'Devuelta',
+  'REFUNDED': 'Reembolsada',
+  'draft': 'Borrador',
+  'sent': 'Enviada',
+  'accepted': 'Aceptada',
+  'objected': 'Objetada',
+  'rejected': 'Rechazada',
+  'expired': 'Vencida',
+};
+
+String quotationStatusLabel(String code) {
+  if (code.isEmpty) return '';
+  return quotationStatusLabels[code] ??
+      quotationStatusLabels[code.toUpperCase()] ??
+      code;
+}
+
+String? _handoffClientName(Map<String, dynamic> json) {
+  final named = _personOrName(json['client_name']);
+  if (named != null) return named;
+  final client = json['client'];
+  if (client is Map) return _personOrName(client);
+  if (client is String && !_bareId(client)) return client;
+  return null;
+}
+
+String? _personOrName(Object? raw) {
+  final label = _handoffLabel(raw);
+  if (label == null || _bareId(label)) return null;
+  return label;
+}
+
+bool _bareId(String value) => RegExp(r'^\d+$').hasMatch(value.trim());
+
 String? _quotationLabel(Object? raw) {
   if (raw is Map) {
     final number = asStringOrNull(
       raw['order_number'] ?? raw['number'] ?? raw['name'],
     );
+    final statusCode = asStringOrNull(
+      raw['status_display'] ?? raw['status'] ?? raw['kilde_quote_status'],
+    );
+    final status = statusCode == null || statusCode.isEmpty
+        ? null
+        : quotationStatusLabel(statusCode);
     final total = asDoubleOrNull(raw['total'] ?? raw['total_amount']);
-    if (number != null && total != null) return '$number · ${clp(total)}';
-    return number ?? _handoffLabel(raw);
+    if (number != null) {
+      return [
+        number,
+        if (status != null && status.isNotEmpty) status,
+        if (total != null) clp(total),
+      ].join(' · ');
+    }
+    return status ?? _handoffLabel(raw);
   }
   return _handoffLabel(raw);
 }
