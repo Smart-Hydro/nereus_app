@@ -132,7 +132,7 @@ class _PipelineScreenState extends ConsumerState<PipelineScreen> {
             kicker: 'Comercial',
             title: 'Pipeline',
             subtitle: widget.clientId == null
-                ? 'Embudo comercial hidráulico · contacto, terreno, propuesta y cierre'
+                ? 'Embudo comercial Hidráulica · contacto, terreno, propuesta y cierre'
                 : 'Oportunidades asociadas a este cliente',
             actions: [
               if (widget.clientId != null)
