@@ -59,10 +59,15 @@ class CoordinationRepository {
     String id, {
     required String decision,
     String reason = '',
+    String specialty = '',
   }) {
     return _http.send(
       '/api/operations/out-of-scope-work/$id/decide/',
-      data: {'decision': decision, 'reason': reason},
+      data: {
+        'decision': decision,
+        'reason': reason,
+        if (specialty.isNotEmpty) 'specialty': specialty,
+      },
       parse: OpsOutOfScope.fromJson,
     );
   }

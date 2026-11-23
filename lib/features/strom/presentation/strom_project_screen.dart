@@ -65,6 +65,9 @@ class _BodyState extends ConsumerState<_Body> {
         OpsNote(opsNextAction(project.status)),
         OpsNote(
           [
+            if (project.clientName.isNotEmpty) 'Cliente ${project.clientName}',
+            if (project.originProject.isNotEmpty)
+              'Nace del proyecto ${project.originProject}',
             if (project.code.isNotEmpty) 'Código ${project.code}',
             if (project.clientPoNumber.isNotEmpty)
               'OC ${project.clientPoNumber}',
@@ -113,6 +116,7 @@ class _BodyState extends ConsumerState<_Body> {
               status: milestone.source.isEmpty ? 'Hito' : milestone.source,
             ),
         _ScopeBlock(
+          projectId: project.id,
           remote:
               ref.watch(opsScopeProvider(project.id)).asData?.value ?? const [],
           local: _scope,
@@ -337,19 +341,21 @@ class _BodyState extends ConsumerState<_Body> {
   }
 }
 
-class _ScopeBlock extends StatelessWidget {
+class _ScopeBlock extends ConsumerWidget {
   const _ScopeBlock({
+    required this.projectId,
     required this.remote,
     required this.local,
     required this.onConfirm,
   });
 
+  final String projectId;
   final List<OpsScopePoint> remote;
   final List<OpsScopePoint> local;
   final Future<void> Function(String itemId) onConfirm;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final points = remote.isNotEmpty ? remote : local;
     if (points.isEmpty) {
       return const OpsNote(
@@ -367,12 +373,22 @@ class _ScopeBlock extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(point.pointLabel),
+                if (point.quotationText.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text('Cotización: ${point.quotationText}'),
+                ],
                 for (final item in point.items)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(item.activity),
                     subtitle: Text(
-                      '${specialtyLabel(item.specialty)} · ${opsLabel(item.status, scopeItemLabels)}',
+                      [
+                        specialtyLabel(item.specialty),
+                        opsLabel(item.status, scopeItemLabels),
+                        if (item.originLabel.isNotEmpty) item.originLabel,
+                        if (item.productName.isNotEmpty) item.productName,
+                        if (item.quantity.isNotEmpty) 'Cantidad ${item.quantity}',
+                      ].join(' · '),
                     ),
                     trailing: item.status == 'confirmed'
                         ? null
@@ -381,7 +397,69 @@ class _ScopeBlock extends StatelessWidget {
               ],
             ),
           ),
+        _UnassignedItems(projectId: projectId),
       ],
     );
+  }
+}
+
+class _UnassignedItems extends ConsumerWidget {
+  const _UnassignedItems({required this.projectId});
+
+  final String projectId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items =
+        ref.watch(opsUnassignedScopeProvider(projectId)).asData?.value ??
+        const <OpsScopeItem>[];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        const OpsNote(
+          'Sin pozo asignado. Operaciones elige el punto de captación.',
+        ),
+        for (final item in items)
+          OpsTile(
+            title: item.activity,
+            subtitle: [
+              if (item.originLabel.isNotEmpty) item.originLabel,
+              specialtyLabel(item.specialty),
+              if (item.productName.isNotEmpty) item.productName,
+            ].join(' · '),
+            status: 'Sin pozo',
+            onTap: () => _assign(context, ref, item),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _assign(
+    BuildContext context,
+    WidgetRef ref,
+    OpsScopeItem item,
+  ) async {
+    final point = await askOpsEntity(
+      context,
+      title: 'Asignar pozo',
+      label: 'Punto de captación',
+      load: OpsLookups(ref).points,
+    );
+    if (point == null || !context.mounted) return;
+    final device = requireOpsInt(context, point.id, 'punto');
+    if (device == null) return;
+    final ok = await runOps(
+      context,
+      title: 'Asignar pozo',
+      message: 'El ítem queda en ese punto, pendiente de confirmación.',
+      action: () => ref
+          .read(projectsRepositoryProvider)
+          .assignItem(projectId, item.id, device),
+    );
+    if (!ok) return;
+    ref.invalidate(opsUnassignedScopeProvider(projectId));
+    ref.invalidate(opsScopeProvider(projectId));
   }
 }

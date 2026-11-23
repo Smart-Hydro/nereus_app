@@ -73,6 +73,20 @@ class ProjectsRepository {
     );
   }
 
+  Future<List<OpsScopeItem>> unassigned(String id) {
+    return _http.getList(
+      '$_root$id/scope-unassigned/',
+      OpsScopeItem.fromJson,
+    );
+  }
+
+  Future<void> assignItem(String projectId, String itemId, int deviceId) {
+    return _http.sendEmpty(
+      '$_root$projectId/scope-items/$itemId/assign/',
+      data: {'device_id': deviceId},
+    );
+  }
+
   Future<OpsScopePoint> confirmItem(String projectId, String itemId) {
     return _http.send(
       '$_root$projectId/scope-items/$itemId/confirm/',

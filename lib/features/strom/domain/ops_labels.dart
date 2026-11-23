@@ -27,6 +27,8 @@ const projectStatusLabels = {
 const specialtyLabels = {
   'hydraulic': 'Hidráulica',
   'electric': 'Eléctrica',
+  'hidraulica': 'Hidráulica',
+  'electrica': 'Eléctrica',
 };
 
 const workOrderStatusLabels = {

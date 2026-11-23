@@ -27,6 +27,7 @@ class _StromProjectCreateScreenState
   final _poDate = TextEditingController();
   final _committed = TextEditingController();
   OpsChoice? _owner;
+  OpsChoice? _client;
   OpsChoice? _ticket;
   OpsChoice? _quotation;
   var _service = 'project';
@@ -59,6 +60,12 @@ class _StromProjectCreateScreenState
         _committed.text = project.committedOn;
         if (project.owner.isNotEmpty) {
           _owner = OpsChoice(id: project.owner, label: 'Responsable actual');
+        }
+        if (project.client.isNotEmpty) {
+          _client = OpsChoice(
+            id: project.client,
+            label: project.clientName.isEmpty ? 'Cliente actual' : project.clientName,
+          );
         }
         if (serviceTypeLabels.containsKey(project.serviceType)) {
           _service = project.serviceType;
@@ -115,6 +122,13 @@ class _StromProjectCreateScreenState
               initial: _owner,
               onChanged: (choice) => _owner = choice,
             ),
+            const SizedBox(height: 12),
+            OpsEntityField(
+              label: 'Cliente',
+              load: lookups.clients,
+              initial: _client,
+              onChanged: (choice) => _client = choice,
+            ),
             if (id == null) ...[
               const SizedBox(height: 12),
               OpsEntityField(
@@ -151,6 +165,10 @@ class _StromProjectCreateScreenState
         ? null
         : requireOpsInt(context, _owner!.id, 'responsable');
     if (_owner != null && owner == null) return;
+    final client = _client == null
+        ? null
+        : requireOpsInt(context, _client!.id, 'cliente');
+    if (_client != null && client == null) return;
     setState(() => _saving = true);
     try {
       final repo = ref.read(projectsRepositoryProvider);
@@ -165,6 +183,7 @@ class _StromProjectCreateScreenState
         if (_committed.text.trim().isNotEmpty)
           'committed_on': _committed.text.trim(),
         if (owner != null) 'owner': owner,
+        if (client != null) 'client': client,
       };
       if (id == null) {
         if (_ticket != null) body['ticket_id'] = _ticket!.id;

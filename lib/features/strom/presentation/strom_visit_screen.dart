@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nereus_app/core/json_util.dart';
+import 'package:nereus_app/features/auth/providers/session_controller.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/domain/work_models.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
@@ -41,6 +44,13 @@ class _VisitBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final names = visit.crew.map((member) => member.name).join(', ');
     final when = visit.scheduledFor.isEmpty ? 'sin fecha' : visit.scheduledFor;
+    final role =
+        ref.watch(sessionProvider).asData?.value.currentBranch?.roleCode ?? '';
+    final leader = role.startsWith('STROM_LIDER');
+    final operations = role == 'STROM_OPERACIONES' ||
+        role == 'OWNER' ||
+        role == 'ADMIN_LOCAL' ||
+        role == 'MANAGER';
     return OpsDetail(
       title: 'Visita del $when',
       subtitle:
@@ -53,6 +63,14 @@ class _VisitBody extends ConsumerWidget {
           'Cuadrilla: ${names.isEmpty ? 'sin integrantes' : names}\n'
           '${visit.notes}',
         ),
+        if (visit.supportWorkOrder.isNotEmpty)
+          OpsNote(
+            'OT de soporte ${visit.supportWorkOrderNumber.isEmpty ? visit.supportWorkOrder : visit.supportWorkOrderNumber}',
+          ),
+        if (visit.pendingDateProposal != null)
+          OpsNote(
+            'Fecha propuesta ${visit.pendingDateProposal!.proposedFor}. ${visit.pendingDateProposal!.reason}',
+          ),
         OpsLinks([
           OpsLink('Actividades', '/strom/actividades?ot=${visit.workOrder}'),
           OpsLink('Check de terreno', '/strom/terreno?visita=${visit.id}'),
@@ -79,6 +97,14 @@ class _VisitBody extends ConsumerWidget {
                 destructive: true,
               ),
             OpsButton('Sumar cuadrilla', () => _addCrew(context, ref)),
+            if (leader) OpsButton('Proponer fecha', () => _propose(context, ref)),
+            if (operations && visit.pendingDateProposal != null) ...[
+              OpsButton('Aceptar fecha', () => _accept(context, ref)),
+              OpsButton('Rechazar fecha', () => _reject(context, ref)),
+            ],
+            if (leader || operations)
+              OpsButton('Enlace para la cuadrilla', () => _capture(context, ref)),
+            OpsButton('Traer OT de soporte', () => _importSupport(context, ref)),
           ],
         ),
         for (final member in visit.crew)
@@ -97,6 +123,102 @@ class _VisitBody extends ConsumerWidget {
   Future<void> _reload(WidgetRef ref) async {
     ref.invalidate(opsVisitProvider(visit.id));
     ref.invalidate(opsVisitsProvider);
+  }
+
+  Future<void> _propose(BuildContext context, WidgetRef ref) async {
+    final values = await askOpsFields(
+      context,
+      title: 'Proponer fecha',
+      fields: const [
+        OpsField(
+          key: 'day',
+          label: 'Fecha',
+          hint: 'AAAA-MM-DD',
+          required: true,
+        ),
+        OpsField(key: 'reason', label: 'Motivo'),
+      ],
+    );
+    if (values == null || !context.mounted) return;
+    final ok = await runOps(
+      context,
+      title: 'Proponer fecha',
+      message: 'Operaciones acepta o rechaza la fecha. La visita no cambia sola.',
+      action: () => ref
+          .read(visitsRepositoryProvider)
+          .proposeDate(
+            visit.id,
+            proposedFor: values['day']!,
+            reason: values['reason'] ?? '',
+          ),
+    );
+    if (ok) await _reload(ref);
+  }
+
+  Future<void> _accept(BuildContext context, WidgetRef ref) async {
+    final ok = await runOps(
+      context,
+      title: 'Aceptar fecha',
+      message: 'La visita queda programada o reprogramada con la fecha propuesta.',
+      action: () => ref.read(visitsRepositoryProvider).acceptDate(visit.id),
+    );
+    if (ok) await _reload(ref);
+  }
+
+  Future<void> _reject(BuildContext context, WidgetRef ref) async {
+    final reason = await askOpsText(
+      context,
+      title: 'Rechazar fecha',
+      label: 'Motivo',
+    );
+    if (reason == null || !context.mounted) return;
+    final ok = await runOps(
+      context,
+      title: 'Rechazar fecha',
+      message: 'La propuesta queda rechazada. La visita no cambia de fecha.',
+      action: () => ref
+          .read(visitsRepositoryProvider)
+          .rejectDate(visit.id, reason: reason),
+    );
+    if (ok) await _reload(ref);
+  }
+
+  Future<void> _capture(BuildContext context, WidgetRef ref) async {
+    var path = '';
+    final ok = await runOps(
+      context,
+      title: 'Enlace para la cuadrilla',
+      message: 'Vale 48 horas, solo para esta visita, y se puede revocar.',
+      action: () async {
+        final data = await ref
+            .read(visitsRepositoryProvider)
+            .captureLink(visit.id);
+        path = asString(data['path']);
+        if (path.isEmpty) path = '/strom/captura/${asString(data['token'])}';
+        await Clipboard.setData(ClipboardData(text: path));
+      },
+    );
+    if (ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Enlace copiado: $path')),
+      );
+    }
+  }
+
+  Future<void> _importSupport(BuildContext context, WidgetRef ref) async {
+    final code = await askOpsText(
+      context,
+      title: 'Traer OT de soporte',
+      label: 'Identificador de la OT de soporte',
+    );
+    if (code == null || !context.mounted) return;
+    final ok = await runOps(
+      context,
+      title: 'Traer OT de soporte',
+      message: 'Crea o enlaza la visita de Strøm. Soporte sigue igual.',
+      action: () => ref.read(visitsRepositoryProvider).importSupport(code.trim()),
+    );
+    if (ok) await _reload(ref);
   }
 
   Future<void> _schedule(BuildContext context, WidgetRef ref) async {

@@ -41,6 +41,9 @@ class OpsOutOfScope {
     this.decision = 'pending',
     this.decisionReason = '',
     this.decidedAt = '',
+    this.resultingWorkOrder = '',
+    this.resultingProject = '',
+    this.specialty = '',
   });
 
   final String id;
@@ -49,6 +52,9 @@ class OpsOutOfScope {
   final String decision;
   final String decisionReason;
   final String decidedAt;
+  final String resultingWorkOrder;
+  final String resultingProject;
+  final String specialty;
 
   factory OpsOutOfScope.fromJson(Map<String, dynamic> json) {
     return OpsOutOfScope(
@@ -58,6 +64,9 @@ class OpsOutOfScope {
       decision: asString(json['decision'], fallback: 'pending'),
       decisionReason: asString(json['decision_reason']),
       decidedAt: asString(json['decided_at']),
+      resultingWorkOrder: asString(json['resulting_work_order']),
+      resultingProject: asString(json['resulting_project']),
+      specialty: asString(json['specialty']),
     );
   }
 }
@@ -194,6 +203,41 @@ class OpsConfigurableIndicator {
       endEvent: asString(json['end_event']),
       dayType: asString(json['day_type'], fallback: 'calendar'),
       deductPauses: opsBool(json['deduct_pauses'], fallback: true),
+    );
+  }
+}
+
+class OpsAlert {
+  const OpsAlert({
+    required this.id,
+    this.indicatorName = '',
+    this.projectName = '',
+    this.value = '',
+    this.target = '',
+    this.severity = '',
+    this.status = 'open',
+    this.message = '',
+  });
+
+  final String id;
+  final String indicatorName;
+  final String projectName;
+  final String value;
+  final String target;
+  final String severity;
+  final String status;
+  final String message;
+
+  factory OpsAlert.fromJson(Map<String, dynamic> json) {
+    return OpsAlert(
+      id: asString(json['id']),
+      indicatorName: asString(json['indicator_name']),
+      projectName: asString(json['project_name']),
+      value: asString(json['value']),
+      target: asString(json['target']),
+      severity: asString(json['severity']),
+      status: asString(json['status'], fallback: 'open'),
+      message: asString(json['message']),
     );
   }
 }

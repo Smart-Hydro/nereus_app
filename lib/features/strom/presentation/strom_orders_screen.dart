@@ -125,6 +125,12 @@ class _OrderBody extends ConsumerWidget {
       subtitle:
           '${projectName ?? 'Proyecto'} · ${workOrderStatusLabel(order.status)}',
       children: [
+        if (order.kind == 'adicional')
+          const OpsNote('OT adicional. La principal confirmada no se modifica.'),
+        if (order.confirmedByName.isNotEmpty)
+          OpsNote(
+            'Confirmada por ${order.confirmedByName} el ${order.confirmedAtDisplay} · versión ${order.scopeVersion} · ${order.commercialReference.isEmpty ? 'sin cotización ni OC' : order.commercialReference}',
+          ),
         OpsNote(opsNextAction(order.status)),
         OpsNote(
           '${projectName ?? 'Proyecto de la sucursal'}\n'

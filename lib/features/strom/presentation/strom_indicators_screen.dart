@@ -17,6 +17,42 @@ String _kpiName(String code) {
   return code;
 }
 
+List<Widget> _alertTiles(BuildContext context, WidgetRef ref) {
+  final alerts = ref.watch(opsAlertsProvider);
+  return alerts.when(
+    loading: () => const [OpsNote('Cargando alertas.')],
+    error: (_, __) => const [OpsNote('No se pudieron cargar las alertas.')],
+    data: (rows) {
+      final open = rows.where((row) => row.status != 'resolved').toList();
+      if (open.isEmpty) return const [OpsNote('Sin alertas abiertas.')];
+      return [
+        for (final alert in open)
+          OpsTile(
+            title: alert.indicatorName.isEmpty ? 'Indicador' : alert.indicatorName,
+            subtitle: [
+              if (alert.projectName.isNotEmpty) alert.projectName,
+              if (alert.message.isNotEmpty) alert.message,
+              'Valor ${alert.value} · meta ${alert.target}',
+            ].join(' · '),
+            status: alert.severity == 'critical' ? 'Crítica' : 'Aviso',
+            onTap: () async {
+              final ok = await runOps(
+                context,
+                title: 'Alerta',
+                message: 'Puedes marcarla como vista o resuelta.',
+                confirmLabel: 'Marcar vista',
+                action: () => ref
+                    .read(indicatorsRepositoryProvider)
+                    .markAlert(alert.id, resolve: false),
+              );
+              if (ok) ref.invalidate(opsAlertsProvider);
+            },
+          ),
+      ];
+    },
+  );
+}
+
 String _projectTitle(WidgetRef ref, String id) {
   final projects = ref.watch(opsProjectsProvider).asData?.value ?? const [];
   for (final project in projects) {
@@ -43,6 +79,7 @@ class StromIndicatorsScreen extends ConsumerWidget {
             ref.invalidate(opsDashboardProvider);
             ref.invalidate(opsTargetsProvider);
             ref.invalidate(opsConfigurableProvider);
+            ref.invalidate(opsAlertsProvider);
           },
           icon: const Icon(Icons.refresh),
           tooltip: 'Actualizar',
@@ -64,6 +101,15 @@ class StromIndicatorsScreen extends ConsumerWidget {
               if (data.timezone.isNotEmpty) OpsNote('Zona ${data.timezone}'),
               for (final entry in data.kpis.entries)
                 _KpiCard(code: entry.key, value: entry.value),
+              const SizedBox(height: 12),
+              Text(
+                'Alertas del agente',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const OpsNote(
+                'El agente revisa cada hora las metas de la sucursal. No usa un modelo de lenguaje.',
+              ),
+              ..._alertTiles(context, ref),
               const SizedBox(height: 12),
               Text('Atrasos', style: Theme.of(context).textTheme.titleMedium),
               if (data.delayProjects.isEmpty && data.delayOrders.isEmpty)

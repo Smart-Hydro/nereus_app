@@ -16,7 +16,7 @@ class StromTechnicalScreen extends ConsumerWidget {
     return OpsBrowse<OpsActivity>(
       title: 'Check técnico',
       subtitle:
-          'El líder de la especialidad valida. No es el check de terreno.',
+          'El líder de la especialidad y Operaciones registran su visto bueno.',
       value: activities.whenData(
         (items) =>
             items.where((item) => item.validationStatus != 'approved').toList(),
@@ -26,7 +26,7 @@ class StromTechnicalScreen extends ConsumerWidget {
       itemBuilder: (context, item) => OpsTile(
         title: item.description.isEmpty ? 'Actividad' : item.description,
         subtitle:
-            'Ejecución ${opsLabel(item.executionStatus, executionLabels)}',
+            'Ejecución ${opsLabel(item.executionStatus, executionLabels)}\n${item.validationLine}',
         status: opsLabel(item.validationStatus, validationLabels),
         onTap: () => context.go('/strom/actividades/${item.id}'),
       ),

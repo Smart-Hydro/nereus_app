@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:nereus_app/features/crm/domain/quote_file.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nereus_app/core/widgets/confirm_dialog.dart';
 import 'package:nereus_app/features/strom/domain/field_models.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
@@ -8,6 +10,39 @@ import 'package:nereus_app/features/strom/presentation/ops_lookups.dart';
 import 'package:nereus_app/features/strom/presentation/ops_nav.dart';
 import 'package:nereus_app/features/strom/presentation/strom_browse.dart';
 import 'package:nereus_app/features/strom/providers/strom_providers.dart';
+
+final _firmas = <String, String>{};
+
+class _FirmaField extends StatefulWidget {
+  const _FirmaField({required this.onChanged});
+
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_FirmaField> createState() => _FirmaFieldState();
+}
+
+class _FirmaFieldState extends State<_FirmaField> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      decoration: const InputDecoration(
+        labelText: 'Firma de quien aprueba',
+        hintText: 'Nombre. Queda en el PDF.',
+      ),
+      onChanged: widget.onChanged,
+    );
+  }
+}
 
 class StromReportsScreen extends ConsumerWidget {
   const StromReportsScreen({super.key});
@@ -142,6 +177,11 @@ class _Body extends ConsumerWidget {
         ..._reportNotes(report),
         if (report.driveUrl.isNotEmpty)
           OpsButton('Abrir Drive', () => openOpsLink(context, report.driveUrl)),
+        OpsButton('Descargar PDF', () => _pdf(context, ref)),
+        if (report.status == 'review')
+          _FirmaField(
+            onChanged: (value) => _firmas[report.id] = value,
+          ),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -165,6 +205,20 @@ class _Body extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _pdf(BuildContext context, WidgetRef ref) async {
+    try {
+      final bytes = await ref.read(reportsRepositoryProvider).pdf(report.id);
+      saveQuoteBytes(
+        filename: 'informe-${report.project}-v${report.version}.pdf',
+        bytes: bytes,
+        mime: 'application/pdf',
+      );
+      if (context.mounted) showFriendlyOk(context, 'PDF listo.');
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
   }
 
   Future<void> _reload(WidgetRef ref) async {
@@ -211,7 +265,10 @@ class _Body extends ConsumerWidget {
       action: () => switch (action) {
         'review' => repo.submitReview(report.id),
         'return-draft' => repo.returnToDraft(report.id),
-        'approve' => repo.approve(report.id),
+        'approve' => repo.approve(
+          report.id,
+          signature: _firmas[report.id] ?? '',
+        ),
         _ => repo.send(report.id),
       },
     );
@@ -267,7 +324,13 @@ List<Widget> _reportNotes(OpsReport report) {
 
 String _activityLine(OpsReportActivity row) {
   final name = row.title.isEmpty ? 'Actividad' : row.title;
-  return '$name · ${specialtyLabel(row.specialty)} · ${opsLabel(row.validationStatus, validationLabels)}';
+  final leader = row.leaderValidationResult.isEmpty
+      ? 'pendiente'
+      : opsLabel(row.leaderValidationResult, validationLabels);
+  final ops = row.operationsValidationResult.isEmpty
+      ? 'pendiente'
+      : opsLabel(row.operationsValidationResult, validationLabels);
+  return '$name · ${specialtyLabel(row.specialty)} · Líder: $leader · Operaciones: $ops';
 }
 
 String _testLine(OpsReportPerformedTest row) {
@@ -275,6 +338,9 @@ String _testLine(OpsReportPerformedTest row) {
     if (row.result.isNotEmpty) opsLabel(row.result, executionLabels),
     if (row.measurement.isNotEmpty) row.measurement,
     if (row.observation.isNotEmpty) row.observation,
+    if (row.diagnosis.isNotEmpty) 'Diagnóstico ${row.diagnosis}',
+    if (row.actionsTaken.isNotEmpty) 'Acciones ${row.actionsTaken}',
+    if (row.partsUsed.isNotEmpty) 'Repuestos ${row.partsUsed}',
   ].join(' · ');
 }
 

@@ -14,6 +14,9 @@ class OpsFieldCheck {
     this.measurement = '',
     this.pendingReason = '',
     this.pendingOwner = '',
+    this.diagnosis = '',
+    this.actionsTaken = '',
+    this.partsUsed = const [],
     this.created = '',
   });
 
@@ -28,6 +31,9 @@ class OpsFieldCheck {
   final String measurement;
   final String pendingReason;
   final String pendingOwner;
+  final String diagnosis;
+  final String actionsTaken;
+  final List<String> partsUsed;
   final String created;
 
   factory OpsFieldCheck.fromJson(Map<String, dynamic> json) {
@@ -43,9 +49,25 @@ class OpsFieldCheck {
       measurement: asString(json['measurement']),
       pendingReason: asString(json['pending_reason']),
       pendingOwner: asString(json['pending_owner']),
+      diagnosis: asString(json['diagnosis']),
+      actionsTaken: asString(json['actions_taken']),
+      partsUsed: _parts(json['parts_used']),
       created: asString(json['created']),
     );
   }
+}
+
+List<String> _parts(Object? raw) {
+  if (raw is! List) return const [];
+  return [
+    for (final row in raw)
+      if (row is Map)
+        [
+          asString(row['item']),
+          if (asString(row['serial']).isNotEmpty) 'serie ${asString(row['serial'])}',
+          if (asString(row['quantity']).isNotEmpty) 'x${asString(row['quantity'])}',
+        ].where((part) => part.isNotEmpty).join(' · '),
+  ];
 }
 
 class OpsEvidence {
@@ -241,6 +263,8 @@ class OpsReportActivity {
     this.executionStatus = '',
     this.validationStatus = '',
     this.validationNotes = '',
+    this.leaderValidationResult = '',
+    this.operationsValidationResult = '',
   });
 
   final String title;
@@ -248,6 +272,8 @@ class OpsReportActivity {
   final String executionStatus;
   final String validationStatus;
   final String validationNotes;
+  final String leaderValidationResult;
+  final String operationsValidationResult;
 
   factory OpsReportActivity.fromJson(Map<String, dynamic> json) {
     final description = asString(json['description']);
@@ -259,6 +285,8 @@ class OpsReportActivity {
       executionStatus: asString(json['execution_status']),
       validationStatus: asString(json['validation_status']),
       validationNotes: asString(json['validation_notes']),
+      leaderValidationResult: asString(json['leader_validation_result']),
+      operationsValidationResult: asString(json['operations_validation_result']),
     );
   }
 }
@@ -268,17 +296,26 @@ class OpsReportPerformedTest {
     this.result = '',
     this.measurement = '',
     this.observation = '',
+    this.diagnosis = '',
+    this.actionsTaken = '',
+    this.partsUsed = '',
   });
 
   final String result;
   final String measurement;
   final String observation;
+  final String diagnosis;
+  final String actionsTaken;
+  final String partsUsed;
 
   factory OpsReportPerformedTest.fromJson(Map<String, dynamic> json) {
     return OpsReportPerformedTest(
       result: asString(json['result']),
       measurement: asString(json['measurement']),
       observation: asString(json['observation']),
+      diagnosis: asString(json['diagnosis']),
+      actionsTaken: asString(json['actions_taken']),
+      partsUsed: _parts(json['parts_used']).join(', '),
     );
   }
 }

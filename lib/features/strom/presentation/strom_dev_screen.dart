@@ -25,6 +25,11 @@ class StromDevScreen extends StatelessWidget {
     ),
     _Step('Visitas', 'La primera nace planificada.', '/strom/visitas'),
     _Step(
+      'Agenda',
+      'Semana de visitas de la sucursal.',
+      '/strom/agenda',
+    ),
+    _Step(
       'Actividades',
       'Por punto. Ejecución y validación.',
       '/strom/actividades',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nereus_app/features/strom/domain/coord_models.dart';
 import 'package:nereus_app/features/strom/domain/ops_labels.dart';
 import 'package:nereus_app/features/strom/presentation/ops_actions.dart';
@@ -168,10 +169,20 @@ class _OutOfScope extends ConsumerWidget {
       ),
       itemBuilder: (context, item) => OpsTile(
         title: item.description,
-        subtitle: item.decisionReason,
+        subtitle: [
+          if (item.decisionReason.isNotEmpty) item.decisionReason,
+          if (item.resultingWorkOrder.isNotEmpty)
+            'OT adicional ${item.resultingWorkOrder}',
+          if (item.resultingProject.isNotEmpty)
+            'Proyecto nuevo ${item.resultingProject}',
+        ].join(' · '),
         status: opsLabel(item.decision, outOfScopeLabels),
         onTap: item.decision == 'pending'
             ? () => _decide(context, ref, item)
+            : item.resultingWorkOrder.isNotEmpty
+            ? () => context.go('/strom/ordenes/${item.resultingWorkOrder}')
+            : item.resultingProject.isNotEmpty
+            ? () => context.go('/strom/${item.resultingProject}')
             : null,
       ),
     );
@@ -246,19 +257,29 @@ class _OutOfScope extends ConsumerWidget {
           },
         ),
         OpsField(key: 'reason', label: 'Motivo'),
+        OpsField(
+          key: 'specialty',
+          label: 'Especialidad de la OT nueva',
+          initial: 'hydraulic',
+          options: specialtyLabels,
+        ),
       ],
     );
     if (values == null || !context.mounted) return;
     final ok = await runOps(
       context,
       title: 'Decidir fuera de alcance',
-      message: 'Operaciones elige OT nueva o proyecto nuevo.',
+      message:
+          'OT nueva abre una adicional en el mismo proyecto. Proyecto nuevo queda enlazado.',
       action: () => ref
           .read(coordinationRepositoryProvider)
           .decide(
             item.id,
             decision: values['decision']!,
             reason: values['reason'] ?? '',
+            specialty: values['decision'] == 'new_work_order'
+                ? (values['specialty'] ?? '')
+                : '',
           ),
     );
     if (ok) ref.invalidate(opsOutOfScopeProvider);
