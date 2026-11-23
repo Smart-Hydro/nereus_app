@@ -33,6 +33,8 @@ import 'package:nereus_app/features/points/presentation/points_screen.dart';
 import 'package:nereus_app/features/profile/presentation/profile_screen.dart';
 import 'package:nereus_app/features/settings/presentation/settings_screen.dart';
 import 'package:nereus_app/features/strom/presentation/strom_activities_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_agenda_screen.dart';
+import 'package:nereus_app/features/strom/presentation/strom_capture_screen.dart';
 import 'package:nereus_app/features/strom/presentation/strom_audit_screen.dart';
 import 'package:nereus_app/features/strom/presentation/strom_config_screen.dart';
 import 'package:nereus_app/features/strom/presentation/strom_coordination_screen.dart';
@@ -74,7 +76,9 @@ GoRouter appRouter(Ref ref) {
       final loc = state.matchedLocation;
       final isReset = loc.startsWith('/reset-password');
       final isPublicLink =
-          loc.startsWith('/encuesta') || loc.startsWith('/cotizacion');
+          loc.startsWith('/encuesta') ||
+          loc.startsWith('/cotizacion') ||
+          loc.startsWith('/strom/captura');
       final loggingIn = loc == '/login' || loc == '/forgot-password';
       if (session == null || isPublicLink) return null;
       if (isReset) return null;
@@ -114,6 +118,12 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => CotizacionPublicScreen(
           id: state.pathParameters['id'] ?? '',
           demo: state.uri.queryParameters['demo'] == '1',
+        ),
+      ),
+      GoRoute(
+        path: '/strom/captura/:token',
+        builder: (context, state) => StromCaptureScreen(
+          token: state.pathParameters['token'] ?? '',
         ),
       ),
       StatefulShellRoute.indexedStack(
@@ -423,6 +433,10 @@ GoRouter appRouter(Ref ref) {
                       GoRoute(
                         path: 'indicadores',
                         builder: (_, __) => const StromIndicatorsScreen(),
+                      ),
+                      GoRoute(
+                        path: 'agenda',
+                        builder: (_, __) => const StromAgendaScreen(),
                       ),
                       GoRoute(
                         path: 'configuracion',

@@ -110,4 +110,67 @@ class VisitsRepository {
         data: body,
         parse: OpsCrewMember.fromJson,
       );
+
+  Future<OpsVisit> proposeDate(
+    String id, {
+    required String proposedFor,
+    String reason = '',
+  }) {
+    return _http.send(
+      '$_root$id/propose-date/',
+      data: {'proposed_for': proposedFor, 'reason': reason},
+      parse: OpsVisit.fromJson,
+    );
+  }
+
+  Future<OpsVisit> acceptDate(String id) =>
+      _http.send('$_root$id/accept-date/', parse: OpsVisit.fromJson);
+
+  Future<OpsVisit> rejectDate(String id, {required String reason}) {
+    return _http.send(
+      '$_root$id/reject-date/',
+      data: {'reason': reason},
+      parse: OpsVisit.fromJson,
+    );
+  }
+
+  Future<Map<String, dynamic>> captureLink(String id) {
+    return _http.send(
+      '$_root$id/capture-link/',
+      data: {'hours': 48},
+      parse: (json) => json,
+    );
+  }
+
+  Future<void> confirmProposal(String id) => _http.sendEmpty(
+    '/api/operations/crew-proposals/$id/confirm/',
+  );
+
+  Future<void> discardProposal(String id) => _http.sendEmpty(
+    '/api/operations/crew-proposals/$id/discard/',
+  );
+
+  Future<OpsVisit> importSupport(String supportWorkOrderId) {
+    return _http.send(
+      '${_root}import-support/',
+      data: {'support_work_order_id': supportWorkOrderId},
+      parse: OpsVisit.fromJson,
+    );
+  }
+
+  Future<List<OpsAgendaRow>> agenda({
+    required String from,
+    required String to,
+    String specialty = '',
+  }) {
+    return _http.getList(
+      '/api/operations/agenda/',
+      OpsAgendaRow.fromJson,
+      query: {
+        'from': from,
+        'to': to,
+        if (specialty.isNotEmpty) 'specialty': specialty,
+      },
+    );
+  }
 }
