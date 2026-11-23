@@ -194,6 +194,22 @@ void main() {
     expect(handoff.clientName, 'Agrícola El Roble');
     expect(handoff.quotation, contains('B1-261122-0002'));
     expect(handoff.wells, ['Pozo Norte']);
+    final declared = KildeHandoff.fromJson(const {
+      'wells': [
+        {
+          'name': 'Pozo Fundo Norte',
+          'source': 'levantamiento',
+          'caudal': '18',
+          'profundidad': '80',
+          'energia': 'Red trifásica',
+          'conectividad': '4G',
+        },
+      ],
+    });
+    expect(
+      declared.wells.single,
+      'Pozo Fundo Norte · caudal 18 · profundidad 80 · energía Red trifásica · conectividad 4G',
+    );
     expect(handoff.surveyTitle, 'Ficha 3 pozos');
     expect(handoff.closedRfis.single.answeredBy, 'Josefa Lagos');
   });

@@ -43,7 +43,11 @@ class _LineControllers {
             : '${line.quantity}',
       ),
       unitPrice = TextEditingController(text: '${line.unitPrice.round()}'),
-      discount = TextEditingController(text: '0');
+      discount = TextEditingController(
+        text: line.discount == line.discount.roundToDouble()
+            ? '${line.discount.round()}'
+            : '${line.discount}',
+      );
 
   final String name;
   final String? productId;
