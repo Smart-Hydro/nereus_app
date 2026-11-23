@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:nereus_app/features/strom/data/ops_http.dart';
 import 'package:nereus_app/features/strom/domain/field_models.dart';
 
@@ -52,8 +53,19 @@ class ReportsRepository {
       _http.send('$_root$id/return-draft/', parse: OpsReport.fromJson);
 
   /// Con especialidad, el líder de esa especialidad. Sin ella, Operaciones o cualquier líder.
-  Future<OpsReport> approve(String id) =>
-      _http.send('$_root$id/approve/', parse: OpsReport.fromJson);
+  Future<OpsReport> approve(String id, {String signature = ''}) => _http.send(
+    '$_root$id/approve/',
+    data: {'signature': signature},
+    parse: OpsReport.fromJson,
+  );
+
+  Future<List<int>> pdf(String id) async {
+    final response = await _http.dio.get<List<int>>(
+      '$_root$id/pdf/',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return response.data ?? const [];
+  }
 
   Future<OpsReport> send(String id) => _http.send(
     '$_root$id/send/',

@@ -256,6 +256,15 @@ class _FakeReports extends Fake implements ReportsRepository {
   }
 
   @override
+  Future<List<int>> pdf(String id) async => const [];
+
+  @override
+  Future<OpsReport> approve(String id, {String signature = ''}) async {
+    calls.add('approve');
+    return reports[id]!;
+  }
+
+  @override
   Future<OpsReport> revise(String id) async {
     calls.add('revise');
     final current = reports[id]!;
