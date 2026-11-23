@@ -75,6 +75,15 @@ class KildeClientCard extends ConsumerWidget {
     );
   }
 
+  String _labeled(String field, Map row) {
+    final raw = asString(row[field]);
+    if (field == 'status') return quoteStatusLabel(raw);
+    if (field.endsWith('_at') || field.endsWith('_on')) {
+      return formatKildeStamp(raw);
+    }
+    return raw;
+  }
+
   Widget _block(BuildContext context, String title, Object? raw, String field) {
     if (raw is! List || raw.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -88,13 +97,12 @@ class KildeClientCard extends ConsumerWidget {
               Text(
                 [
                   activityTypeLabel(asString(row['channel'])),
-                  asString(row[field]),
-                  asString(row['at']),
-                  asString(
-                    row['assigned_to_name'] ??
-                        row['created_by_name'] ??
-                        row['assigned_to_id'],
-                  ),
+                  _labeled(field, row),
+                  formatKildeStamp(asString(row['at'])),
+                  visiblePersonName(
+                        row['assigned_to_name'] ?? row['created_by_name'],
+                      ) ??
+                      '',
                 ].where((part) => part.isNotEmpty && part != field).join(' · '),
               ),
         ],

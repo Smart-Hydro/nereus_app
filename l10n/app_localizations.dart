@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTagline.
   ///
   /// In es, this message translates to:
-  /// **'Telemetría hídrica SmartHydro'**
+  /// **'Telemetría hidráulica SmartHydro'**
   String get appTagline;
 
   /// No description provided for @loginTitle.

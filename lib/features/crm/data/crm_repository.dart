@@ -3,6 +3,37 @@ import 'package:nereus_app/core/json_util.dart';
 import 'package:nereus_app/core/network/api_error.dart';
 import 'package:nereus_app/features/crm/domain/crm_models.dart';
 
+/// Fecha civil de hoy en America/Santiago (YYYY-MM-DD).
+///
+/// Chile continental, regla IANA vigente desde 2019: horario de verano
+/// UTC-3 desde el domingo en o después del 2 de septiembre a las 04:00 UTC
+/// hasta el domingo en o después del 2 de abril a las 03:00 UTC; el resto
+/// del año es UTC-4.
+String kildeSantiagoDate([DateTime? now]) {
+  final utc = (now ?? DateTime.now()).toUtc();
+  final offset = _santiagoIsDaylight(utc)
+      ? const Duration(hours: -3)
+      : const Duration(hours: -4);
+  final local = utc.add(offset);
+  final year = local.year.toString().padLeft(4, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  final day = local.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+
+DateTime _sundayOnOrAfter(int year, int month, int day) {
+  final start = DateTime.utc(year, month, day);
+  final delta = (DateTime.sunday - start.weekday) % 7;
+  return DateTime.utc(year, month, day + delta);
+}
+
+bool _santiagoIsDaylight(DateTime utc) {
+  final year = utc.year;
+  final start = _sundayOnOrAfter(year, 9, 2).add(const Duration(hours: 4));
+  final end = _sundayOnOrAfter(year, 4, 2).add(const Duration(hours: 3));
+  return !utc.isBefore(start) || utc.isBefore(end);
+}
+
 class CrmRepository {
   CrmRepository({required Dio dio}) : _dio = dio;
 
@@ -155,11 +186,16 @@ class CrmRepository {
   Future<void> setLeadStatus({
     required String id,
     required String status,
+    String? noRequirementReason,
   }) async {
     try {
       await _dio.patch<dynamic>(
         '/api/crm/leads/$id/',
-        data: {'status': status},
+        data: {
+          'status': status,
+          if (noRequirementReason != null && noRequirementReason.isNotEmpty)
+            'no_requirement_reason': noRequirementReason,
+        },
       );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
@@ -554,108 +590,16 @@ class CrmRepository {
     }
   }
 
-  /// Resumen de lo que se copia a Strøm, armado con lo que ya está en Kilde.
+  /// Resumen real de lo que se copia a Strøm. Lo arma el API, no el listado.
   Future<KildeHandoff> derivationPreview(String opportunityId) async {
     try {
-      final deal = await retrieve(opportunityId);
-      final quotes = await quotations();
-      final allRfis = await rfis();
-      final related = [
-        for (final quote in quotes)
-          if (quote.opportunityId == opportunityId) quote,
-      ];
-      final accepted = related.where((quote) => quote.status == 'accepted');
-      final quote = accepted.isNotEmpty
-          ? accepted.first
-          : (related.isEmpty ? null : related.first);
-      var card = const <String, dynamic>{};
-      if ((deal.clientId ?? '').isNotEmpty) {
-        try {
-          card = await client360(deal.clientId!);
-        } on Object {
-          card = const {};
-        }
-      }
-      final wells = <String>[];
-      if ((deal.clientId ?? '').isNotEmpty) {
-        try {
-          final response = await _dio.get<dynamic>(
-            '/api/inventory/measurement-points/',
-            queryParameters: {'client': deal.clientId, 'page_size': 100},
-          );
-          for (final row in asResults(response.data)) {
-            final label = asString(
-              row['label'] ?? row['name'] ?? row['code'],
-              fallback: 'Pozo',
-            );
-            if (label.isNotEmpty) wells.add(label);
-          }
-        } on Object {
-          // El resumen sigue sin pozos si el inventario no responde.
-        }
-      }
-      String? surveyTitle;
-      for (final row in asMapList(card['surveys'])) {
-        if (asString(row['id']) == (deal.surveyId ?? '')) {
-          surveyTitle = asStringOrNull(row['title']);
-        }
-      }
-      return KildeHandoff(
-        clientName: deal.clientName ?? _handoffName(card['client']),
-        contacts: [
-          for (final row in asMapList(card['contacts']))
-            if (_contactLabel(row) != null) _contactLabel(row)!,
-        ],
-        wells: wells,
-        quotation: quote == null
-            ? null
-            : '${quote.number} · ${clp(quote.total)}',
-        equipment: [
-          for (final line in quote?.lines ?? const <QuoteLine>[])
-            '${_qtyLabel(line.quantity)} × ${line.name}',
-        ],
-        surveyId: deal.surveyId,
-        surveyTitle: surveyTitle ??
-            ((deal.surveyId ?? '').isEmpty
-                ? null
-                : 'Ficha ${deal.surveyId}'),
-        closedRfis: [
-          for (final rfi in allRfis)
-            if (rfi.opportunityId == opportunityId && rfi.status == 'closed')
-              KildeClosedRfi(
-                id: rfi.id,
-                question: rfi.question,
-                answer: rfi.answer ?? rfi.history.lastOrNull?.answer ?? '',
-                answeredBy: rfi.history.lastOrNull?.answeredBy,
-                answeredAt: rfi.history.lastOrNull?.answeredAt,
-              ),
-        ],
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/crm/opportunities/$opportunityId/derivation_preview/',
       );
+      return KildeHandoff.fromJson(response.data ?? const {});
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }
-  }
-
-  String? _handoffName(Object? raw) {
-    if (raw is Map) return asStringOrNull(raw['name']);
-    return asStringOrNull(raw);
-  }
-
-  String? _contactLabel(Map<String, dynamic> row) {
-    final person = [
-      asStringOrNull(row['first_name']),
-      asStringOrNull(row['last_name']),
-    ].whereType<String>().join(' ');
-    final name = person.isEmpty ? asStringOrNull(row['name']) : person;
-    final email = asStringOrNull(row['email']);
-    if (name == null) return email;
-    if (email == null) return name;
-    return '$name · $email';
-  }
-
-  String _qtyLabel(double quantity) {
-    if (quantity == quantity.roundToDouble()) return '${quantity.round()}';
-    return '$quantity';
   }
 
   Future<KildeIndicators> kildeIndicators() async {
@@ -785,11 +729,23 @@ class CrmRepository {
   Future<void> createRfi({
     required String question,
     required bool blocking,
+    String? clientId,
+    String? opportunityId,
+    String? quotationId,
   }) async {
     try {
+      final client = int.tryParse(clientId ?? '');
       await _dio.post<dynamic>(
         '/api/crm/rfis/',
-        data: {'question': question, 'is_blocking': blocking},
+        data: {
+          'question': question,
+          'is_blocking': blocking,
+          if (client != null) 'client': client,
+          if (opportunityId != null && opportunityId.isNotEmpty)
+            'opportunity': opportunityId,
+          if (quotationId != null && quotationId.isNotEmpty)
+            'quotation': quotationId,
+        },
       );
     } on Object catch (error, stack) {
       _rethrow(error, stack);
@@ -837,13 +793,58 @@ class CrmRepository {
     }
   }
 
-  Future<List<KildeQuote>> quotations() async {
+  Future<List<KildeQuote>> quotations({String? opportunityId}) async {
     try {
+      final scoped = opportunityId != null && opportunityId.isNotEmpty;
       final response = await _dio.get<dynamic>(
         '/api/sales/quotations/',
-        queryParameters: {'page_size': 50, 'ordering': '-created'},
+        queryParameters: {
+          'page_size': scoped ? 100 : 50,
+          'ordering': scoped ? '-version' : '-created',
+          if (scoped) 'opportunity': opportunityId,
+        },
       );
       return asResults(response.data).map(KildeQuote.fromJson).toList();
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<void> saveQuotationVersion({
+    required String id,
+    required String validUntil,
+    required double total,
+    List<Map<String, dynamic>>? items,
+  }) async {
+    try {
+      final canSendItems =
+          items != null &&
+          items.isNotEmpty &&
+          items.every((row) => row['product'] != null);
+      await _dio.patch<dynamic>(
+        '/api/sales/quotations/$id/',
+        data: {
+          if (validUntil.isNotEmpty) 'valid_until': validUntil,
+          'total_amount': total,
+          if (canSendItems) 'items': items,
+        },
+      );
+    } on Object catch (error, stack) {
+      _rethrow(error, stack);
+    }
+  }
+
+  Future<List<int>> clientPoFile(String quotationId) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        '/api/sales/quotations/$quotationId/client-po-file/',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) {
+        throw const ApiError(message: 'El archivo de la OC vino vacío.');
+      }
+      return bytes;
     } on Object catch (error, stack) {
       _rethrow(error, stack);
     }
@@ -920,10 +921,13 @@ class CrmRepository {
       final response = await _dio.post<dynamic>(
         '/api/sales/quotations/',
         data: {
+          'date': kildeSantiagoDate(),
           if (clientId != null) 'client_id': clientId,
           'observation': draft.glosa,
           if ((draft.validUntil ?? '').isNotEmpty)
             'valid_until': draft.validUntil,
+          if ((draft.opportunityId ?? '').isNotEmpty)
+            'opportunity_id': draft.opportunityId,
           'order_type': 'SALE',
           'status': 'DRAFT',
           if (productId != null)
@@ -933,6 +937,7 @@ class CrmRepository {
                 'quantity': draft.quantity.round().clamp(1, 1000000),
                 'unit_price': draft.unitPrice,
                 'notes': draft.glosa,
+                if (draft.discount > 0) 'discount_percentage': draft.discount,
               },
             ],
         },

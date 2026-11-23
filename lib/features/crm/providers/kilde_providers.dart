@@ -26,6 +26,13 @@ final kildeQuotesProvider = FutureProvider<List<KildeQuote>>((ref) {
   return ref.watch(crmRepositoryProvider).quotations();
 });
 
+final opportunityQuotesProvider =
+    FutureProvider.family<List<KildeQuote>, String>((ref, opportunityId) {
+  return ref.watch(crmRepositoryProvider).quotations(
+        opportunityId: opportunityId,
+      );
+});
+
 final lostReasonsProvider = FutureProvider<List<LostReasonItem>>((ref) {
   return ref.watch(crmRepositoryProvider).lostReasons();
 });

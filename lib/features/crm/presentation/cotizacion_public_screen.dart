@@ -278,7 +278,7 @@ class _QuoteBody extends StatelessWidget {
                   'Vencida',
                 if ((quote.validUntil ?? '').isNotEmpty)
                   'vigente hasta ${quote.validUntil}',
-                if (pending) 'descuento pendiente del líder',
+                if (pending) pendingDiscountLabel,
               ].join(' · '),
               style: TextStyle(color: ink, fontSize: 13.5, height: 1.4),
             ),

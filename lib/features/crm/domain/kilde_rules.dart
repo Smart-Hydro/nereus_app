@@ -1,6 +1,8 @@
 /// Reglas de UI de Kilde. El API sigue siendo quien rechaza la acción.
 library;
 
+import 'package:nereus_app/features/crm/domain/crm_models.dart';
+
 const kildeSalesLead = 'KILDE_SALES_LEAD';
 const kildeSalesRep = 'KILDE_SALES_REP';
 
@@ -10,12 +12,43 @@ bool kildeIsLead(String? roleCode) => roleCode == kildeSalesLead;
 
 bool kildeSeesTeam(String? roleCode) => kildeTeamRoles.contains(roleCode);
 
+/// Equipo y Motivos. Con el rol todavía desconocido se muestran, para no
+/// ocultarlos en el arranque. El Ejecutivo no los ve: el API responde 403.
+bool showLeadOnlyDestination({
+  required String? roleCode,
+  required bool leadOnly,
+}) {
+  if (!leadOnly) return true;
+  if (roleCode == null || roleCode.isEmpty) return true;
+  return kildeSeesTeam(roleCode);
+}
+
+/// Cotización aceptada con OC de esta oportunidad, la de mayor versión.
+/// Una v1 sin OC no tapa a la v2 que sí la tiene.
+KildeQuote? acceptedQuoteWithPo(
+  Iterable<KildeQuote> quotes, {
+  String? opportunityId,
+}) {
+  KildeQuote? best;
+  for (final quote in quotes) {
+    if (opportunityId != null && quote.opportunityId != opportunityId) {
+      continue;
+    }
+    if (!quote.acceptedWithPo) continue;
+    if (best == null || quote.version > best.version) best = quote;
+  }
+  return best;
+}
+
 /// El ejecutivo no aprueba descuentos. Solo el Líder, y solo si está pendiente.
 bool showDiscountDecision({
   required String? roleCode,
   required String discountStatus,
 }) =>
     kildeIsLead(roleCode) && discountStatus == 'pending';
+
+/// Texto que ve el vendedor mientras el Líder no decide el descuento.
+const pendingDiscountLabel = 'Descuento pendiente de aprobación';
 
 /// CA-04: pendiente del Líder no se envía. Una RFI bloqueante abierta tampoco.
 bool quoteSendBlocked({

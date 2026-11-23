@@ -239,7 +239,7 @@ class _Shell extends StatelessWidget {
                         const Padding(
                           padding: EdgeInsets.fromLTRB(0, 4, 0, 12),
                           child: Text(
-                            'Telemetría hídrica',
+                            'Telemetría hidráulica',
                             style: TextStyle(
                               color: Color(0xFF9EC9C4),
                               fontSize: 12,

@@ -13,7 +13,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appName => 'Nereus';
 
   @override
-  String get appTagline => 'Telemetría hídrica SmartHydro';
+  String get appTagline => 'Telemetría hidráulica SmartHydro';
 
   @override
   String get loginTitle => 'Ingresa a tu cuenta';

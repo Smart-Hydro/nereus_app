@@ -4,6 +4,7 @@ import 'package:nereus_app/core/theme/glass.dart';
 import 'package:nereus_app/core/theme/tokens.dart';
 import 'package:nereus_app/core/widgets/nereus_brand.dart';
 import 'package:nereus_app/features/auth/providers/session_controller.dart';
+import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/home/presentation/home_shell.dart';
 
 const _sectionOrder = [
@@ -15,12 +16,19 @@ const _sectionOrder = [
   'Sistema',
 ];
 
-List<({String section, List<int> indices})> groupedShellDestinations() {
+List<({String section, List<int> indices})> groupedShellDestinations({
+  String? roleCode,
+}) {
   final result = <({String section, List<int> indices})>[];
   for (final section in _sectionOrder) {
     final indices = [
       for (var i = 0; i < shellDestinations.length; i++)
-        if (shellDestinations[i].section == section) i,
+        if (shellDestinations[i].section == section &&
+            showLeadOnlyDestination(
+              roleCode: roleCode,
+              leadOnly: shellDestinations[i].leadOnly,
+            ))
+          i,
     ];
     if (indices.isNotEmpty) {
       result.add((section: section, indices: indices));
@@ -130,7 +138,9 @@ class _ShellDesktopSidebarState extends State<ShellDesktopSidebar> {
     final muted = dark ? NereusTokens.darkMuted : NereusTokens.inkMuted;
     final line = dark ? NereusTokens.darkLine : NereusTokens.line;
     final width = _collapsed ? 72.0 : 256.0;
-    final groups = groupedShellDestinations();
+    final groups = groupedShellDestinations(
+      roleCode: widget.session?.currentBranch?.roleCode,
+    );
 
     return GlassSidebar(
       width: width,

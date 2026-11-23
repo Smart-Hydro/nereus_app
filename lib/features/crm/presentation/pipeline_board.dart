@@ -11,6 +11,7 @@ class _PipelineBody extends StatelessWidget {
     required this.stageList,
     required this.items,
     required this.canWrite,
+    required this.canSeed,
     required this.onRetry,
     required this.onSeed,
     required this.onOpen,
@@ -26,6 +27,7 @@ class _PipelineBody extends StatelessWidget {
   final List<OpportunityStageItem> stageList;
   final List<OpportunityItem> items;
   final bool canWrite;
+  final bool canSeed;
   final VoidCallback onRetry;
   final VoidCallback onSeed;
   final ValueChanged<String> onOpen;
@@ -49,6 +51,7 @@ class _PipelineBody extends StatelessWidget {
     if (stageList.isEmpty) {
       return _EmptyStages(
         canWrite: canWrite,
+        canSeed: canSeed,
         seeding: seeding,
         onSeed: onSeed,
       );
@@ -121,11 +124,13 @@ class _PipelineBody extends StatelessWidget {
 class _EmptyStages extends StatelessWidget {
   const _EmptyStages({
     required this.canWrite,
+    required this.canSeed,
     required this.seeding,
     required this.onSeed,
   });
 
   final bool canWrite;
+  final bool canSeed;
   final bool seeding;
   final VoidCallback onSeed;
 
@@ -147,7 +152,7 @@ class _EmptyStages extends StatelessWidget {
               const Text(
                 'El pipeline usa las etapas de la sucursal, de Prospección a Perdida.',
               ),
-              if (canWrite) ...[
+              if (canSeed) ...[
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: seeding ? null : onSeed,
@@ -155,6 +160,9 @@ class _EmptyStages extends StatelessWidget {
                     seeding ? 'Creando etapas...' : 'Crear etapas de agua',
                   ),
                 ),
+              ] else if (canWrite) ...[
+                const SizedBox(height: 16),
+                const Text('Pide al Líder que cree las etapas.'),
               ],
             ],
           ),

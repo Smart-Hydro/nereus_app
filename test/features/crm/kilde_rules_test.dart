@@ -67,7 +67,8 @@ void main() {
     );
     final member = KildeMember.fromJson(const {
       'user_id': '9',
-      'username': 'Josefa',
+      'username': 'invited_josefa',
+      'name': 'Josefa Lagos',
       'open_opportunities': 2,
       'week_activities': 4,
       'missing_next_action': 1,
@@ -75,7 +76,14 @@ void main() {
         {'activity_type': 'CALL', 'description': 'Llamar al APR'},
       ],
     });
-    expect(member.label, 'Josefa');
+    expect(member.label, 'Josefa Lagos');
+    expect(
+      KildeMember.fromJson(const {
+        'user_id': '171',
+        'username': 'invited_171',
+      }).label,
+      'Ejecutivo',
+    );
     expect(member.weekActivities, 4);
     expect(member.todayAgenda.single, contains('Llamada'));
     expect(member.missingNext, 1);
@@ -97,6 +105,97 @@ void main() {
     expect(quote.parentId, 'q-1');
     expect(quote.acceptedWithPo, isTrue);
     expect(quote.validUntil, '2026-12-01');
+  });
+
+  test('la OC de la versión mayor habilita derivar aunque la v1 no la tenga', () {
+    const v1 = KildeQuote(
+      id: 'v1',
+      number: 'B1-261122-0001',
+      status: 'accepted',
+      version: 1,
+      opportunityId: 'opp',
+    );
+    const v2 = KildeQuote(
+      id: 'v2',
+      number: 'B1-261122-0002',
+      status: 'accepted',
+      version: 2,
+      opportunityId: 'opp',
+      poNumber: 'OC-PRUEBA',
+      poNet: 1000,
+    );
+    const draft = KildeQuote(
+      id: 'v3',
+      number: 'B1-261122-0003',
+      status: 'draft',
+      version: 3,
+      opportunityId: 'opp',
+      poNumber: 'NO',
+      poNet: 1,
+    );
+    final chosen = acceptedQuoteWithPo([v1, draft, v2], opportunityId: 'opp');
+    expect(chosen?.number, 'B1-261122-0002');
+    expect(
+      deriveEnabled(
+        roleCode: kildeSalesLead,
+        hasSurvey: true,
+        hasAcceptedQuoteWithPo: chosen != null,
+      ),
+      isTrue,
+    );
+    expect(acceptedQuoteWithPo([v1], opportunityId: 'opp'), isNull);
+    expect(showLeadOnlyDestination(roleCode: kildeSalesRep, leadOnly: true), isFalse);
+    expect(showLeadOnlyDestination(roleCode: kildeSalesLead, leadOnly: true), isTrue);
+    expect(showLeadOnlyDestination(roleCode: null, leadOnly: true), isTrue);
+  });
+
+  test('las consultas pendientes se agrupan por persona y oportunidad', () {
+    final indicators = KildeIndicators.fromJson(const {
+      'open_rfis': [
+        {
+          'assigned_to_name': 'Ana Soto',
+          'count': 2,
+          'oldest_at': '2026-11-02T10:00:00',
+          'opportunities': [
+            {'id': '1', 'title': 'PRUEBA Pozo'},
+          ],
+        },
+      ],
+    });
+    expect(indicators.openRfis, 2);
+    expect(indicators.openRfiPeople.single.name, 'Ana Soto');
+    expect(indicators.openRfiPeople.single.opportunities, ['PRUEBA Pozo']);
+    final handoff = KildeHandoff.fromJson(const {
+      'client': {'id': 'c', 'name': 'Agrícola El Roble'},
+      'contacts': [
+        {'first_name': 'Ana', 'last_name': 'Soto', 'email': 'ana@roble.test'},
+      ],
+      'wells': [
+        {'name': 'Pozo Norte'},
+      ],
+      'quotation': {
+        'order_number': 'B1-261122-0002',
+        'version': 2,
+        'total_amount': '19300000',
+      },
+      'equipment': [
+        {'product_name': 'Caudalímetro', 'quantity': 3},
+      ],
+      'survey': {'id': 's', 'title': 'Ficha 3 pozos'},
+      'closed_rfis': [
+        {
+          'id': 'r',
+          'question': '¿Caudal?',
+          'answer': '12 L/s',
+          'answered_by_name': 'Josefa Lagos',
+        },
+      ],
+    });
+    expect(handoff.clientName, 'Agrícola El Roble');
+    expect(handoff.quotation, contains('B1-261122-0002'));
+    expect(handoff.wells, ['Pozo Norte']);
+    expect(handoff.surveyTitle, 'Ficha 3 pozos');
+    expect(handoff.closedRfis.single.answeredBy, 'Josefa Lagos');
   });
 
   test('una cotización vence el día después de valid_until', () {

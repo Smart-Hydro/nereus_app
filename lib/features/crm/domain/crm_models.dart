@@ -238,6 +238,8 @@ class OpportunityItem {
     this.nextActionAt,
     this.nextActionType,
     this.surveyId,
+    this.derivationStatus,
+    this.stromProjectId,
     this.lostReasonId,
     this.lostReasonName,
     this.lostReasonText,
@@ -262,6 +264,8 @@ class OpportunityItem {
   final String? nextActionAt;
   final String? nextActionType;
   final String? surveyId;
+  final String? derivationStatus;
+  final String? stromProjectId;
   final String? lostReasonId;
   final String? lostReasonName;
   final String? lostReasonText;
@@ -311,12 +315,7 @@ class OpportunityItem {
       weightedValue: asDoubleOrNull(json['weighted_value']) ?? 0,
       expectedCloseDate: asStringOrNull(json['expected_close_date']),
       closedAt: asDateTime(json['closed_at']),
-      assignedToName:
-          asStringOrNull(json['assigned_to_name']) ??
-          (assigned is Map
-              ? (asStringOrNull(assigned['full_name']) ??
-                    asStringOrNull(assigned['username']))
-              : null),
+      assignedToName: visiblePersonName(json['assigned_to_name'], assigned),
       nextActionAt: json['next_action'] is Map
           ? asStringOrNull((json['next_action'] as Map)['at'])
           : null,
@@ -324,6 +323,8 @@ class OpportunityItem {
           ? asStringOrNull((json['next_action'] as Map)['type'])
           : null,
       surveyId: asStringOrNull(json['survey_id']),
+      derivationStatus: asStringOrNull(json['kilde_derivation_status']),
+      stromProjectId: asStringOrNull(json['strom_project_id']),
       lostReasonId: lost is Map
           ? asStringOrNull(lost['id'])
           : asStringOrNull(lost),
@@ -410,12 +411,7 @@ class LeadItem {
           asStringOrNull(json['source_name']) ??
           (source is Map ? asStringOrNull(source['name']) : null),
       sourceDetail: asStringOrNull(json['source_detail']),
-      assignedToName:
-          asStringOrNull(json['assigned_to_name']) ??
-          (assigned is Map
-              ? (asStringOrNull(assigned['full_name']) ??
-                    asStringOrNull(assigned['username']))
-              : null),
+      assignedToName: visiblePersonName(json['assigned_to_name'], assigned),
       notes: asStringOrNull(json['notes']),
       convertedClientId: converted is Map
           ? asStringOrNull(converted['id'])
@@ -470,8 +466,14 @@ class FollowUpItem {
       scheduledAt: asDateTime(json['scheduled_at']),
       completedAt: asDateTime(json['completed_at']),
       isCompleted: json['is_completed'] == true,
-      createdByName: asStringOrNull(json['created_by_name']),
-      assignedToName: asStringOrNull(json['assigned_to_name']),
+      createdByName: visiblePersonName(
+        json['created_by_name'],
+        json['created_by'],
+      ),
+      assignedToName: visiblePersonName(
+        json['assigned_to_name'],
+        json['assigned_to'],
+      ),
       opportunityId: opportunity is Map
           ? asStringOrNull(opportunity['id'])
           : asStringOrNull(opportunity),
@@ -584,6 +586,21 @@ class CrmDashboardSummary {
 }
 
 @immutable
+class KildeOpenRfiPerson {
+  const KildeOpenRfiPerson({
+    this.name = 'Sin asignar',
+    this.count = 0,
+    this.since,
+    this.opportunities = const [],
+  });
+
+  final String name;
+  final int count;
+  final String? since;
+  final List<String> opportunities;
+}
+
+@immutable
 class KildeIndicators {
   const KildeIndicators({
     this.contacted = 0,
@@ -601,6 +618,7 @@ class KildeIndicators {
     this.missingNext = 0,
     this.overdue = 0,
     this.openRfis = 0,
+    this.openRfiPeople = const [],
     this.periodLabel,
   });
 
@@ -619,6 +637,7 @@ class KildeIndicators {
   final int missingNext;
   final int overdue;
   final int openRfis;
+  final List<KildeOpenRfiPerson> openRfiPeople;
   final String? periodLabel;
 
   factory KildeIndicators.fromJson(Map<String, dynamic> json) {
@@ -654,10 +673,40 @@ class KildeIndicators {
       missingNext: asInt(json['missing_next_action']),
       overdue: asInt(json['overdue_activities']),
       openRfis: _openRfiCount(json['open_rfis']),
+      openRfiPeople: _openRfiPeople(json['open_rfis']),
       periodLabel: period is Map
           ? '${asString(period['start'])} – ${asString(period['end'])}'
           : null,
     );
+  }
+
+  static List<KildeOpenRfiPerson> _openRfiPeople(Object? raw) {
+    if (raw is! List) return const [];
+    final rows = <KildeOpenRfiPerson>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final map = Map<String, dynamic>.from(item);
+      final titles = <String>[];
+      final opps = map['opportunities'];
+      if (opps is List) {
+        for (final opp in opps) {
+          if (opp is Map) {
+            final title = asStringOrNull(opp['title']);
+            if (title != null && title.isNotEmpty) titles.add(title);
+          }
+        }
+      }
+      final name = visiblePersonName(map['assigned_to_name']);
+      rows.add(
+        KildeOpenRfiPerson(
+          name: (name == null || name.isEmpty) ? 'Sin asignar' : name,
+          count: asInt(map['count']),
+          since: asStringOrNull(map['oldest_at']),
+          opportunities: titles,
+        ),
+      );
+    }
+    return rows;
   }
 
   static int _openRfiCount(Object? raw) {
@@ -701,16 +750,15 @@ class KildeMember {
   final List<String> todayAgenda;
 
   String get label =>
-      (name != null && name!.isNotEmpty) ? name! : 'Ejecutivo $userId';
+      (name != null && name!.isNotEmpty) ? name! : 'Ejecutivo';
 
   factory KildeMember.fromJson(Map<String, dynamic> json) {
     final agenda = json['today_agenda'];
     return KildeMember(
       userId: asString(json['user_id'], fallback: '—'),
-      name:
-          asStringOrNull(json['name']) ??
-          asStringOrNull(json['username']) ??
-          asStringOrNull(json['full_name']),
+      name: visiblePersonName(
+        json['name'] ?? json['full_name'] ?? json['email'],
+      ),
       openOpportunities: asInt(json['open_opportunities']),
       weightedValue: asDoubleOrNull(json['weighted_value']) ?? 0,
       missingNext: asInt(json['missing_next_action']),
@@ -783,8 +831,10 @@ class KildeRfi {
     this.reopenReason,
     this.assignedToId,
     this.assignedToName,
+    this.assignedAt,
     this.quotationId,
     this.opportunityId,
+    this.opportunityTitle,
     this.answers = const [],
   });
 
@@ -797,8 +847,10 @@ class KildeRfi {
   final String? reopenReason;
   final String? assignedToId;
   final String? assignedToName;
+  final String? assignedAt;
   final String? quotationId;
   final String? opportunityId;
+  final String? opportunityTitle;
   final List<KildeRfiAnswer> answers;
 
   bool get isOpen => status != 'closed' && status != 'answered';
@@ -827,12 +879,14 @@ class KildeRfi {
       assignedToId: assignedMap != null
           ? asStringOrNull(assignedMap['id'])
           : asStringOrNull(assigned),
-      assignedToName: assignedMap != null
-          ? asStringOrNull(assignedMap['full_name']) ??
-                asStringOrNull(assignedMap['username'])
-          : asStringOrNull(json['assigned_to_name']),
+      assignedToName: visiblePersonName(
+        json['assigned_to_name'],
+        assignedMap ?? assigned,
+      ),
+      assignedAt: asStringOrNull(json['assigned_at']),
       quotationId: asStringOrNull(json['quotation']),
       opportunityId: asStringOrNull(json['opportunity']),
+      opportunityTitle: asStringOrNull(json['opportunity_title']),
       answers: _rfiAnswers(json['answers']),
     );
   }
@@ -856,7 +910,9 @@ class KildeRfiAnswer {
     return KildeRfiAnswer(
       id: asString(json['id']),
       answer: asString(json['answer']),
-      answeredBy: _personLabel(json['answered_by']),
+      answeredBy:
+          asStringOrNull(json['answered_by_name']) ??
+          _personLabel(json['answered_by']),
       answeredAt: asStringOrNull(json['answered_at']),
     );
   }
@@ -888,11 +944,13 @@ class QuoteLine {
     required this.name,
     required this.quantity,
     required this.unitPrice,
+    this.productId,
   });
 
   final String name;
   final double quantity;
   final double unitPrice;
+  final String? productId;
 
   double get total => quantity * unitPrice;
 }
@@ -907,6 +965,8 @@ class QuoteDraft {
     required this.unitPrice,
     this.productId,
     this.validUntil,
+    this.discount = 0,
+    this.opportunityId,
   });
 
   final String clientId;
@@ -916,6 +976,8 @@ class QuoteDraft {
   final double unitPrice;
   final String? productId;
   final String? validUntil;
+  final double discount;
+  final String? opportunityId;
 
   double get total => quantity * unitPrice;
 }
@@ -941,6 +1003,7 @@ class KildeQuote {
     this.poReceivedOn,
     this.poNet,
     this.poFile,
+    this.clientId,
     this.clientName,
     this.observation,
     this.lines = const [],
@@ -964,6 +1027,7 @@ class KildeQuote {
   final String? poReceivedOn;
   final double? poNet;
   final String? poFile;
+  final String? clientId;
   final String? clientName;
   final String? observation;
   final List<QuoteLine> lines;
@@ -1004,6 +1068,9 @@ class KildeQuote {
       poReceivedOn: asStringOrNull(json['client_po_received_on']),
       poNet: asDoubleOrNull(json['client_po_net_amount']),
       poFile: asStringOrNull(json['client_po_file']),
+      clientId: client is Map
+          ? asStringOrNull(client['id'])
+          : asStringOrNull(client ?? json['client_id']),
       clientName: client is Map
           ? asStringOrNull(client['name'])
           : asStringOrNull(json['client_name']),
@@ -1024,6 +1091,7 @@ List<QuoteLine> _quoteLines(Object? raw) {
           item['product_name'] ?? item['name'] ?? item['notes'],
           fallback: 'Ítem',
         ),
+        productId: asStringOrNull(item['product'] ?? item['product_id']),
         quantity: asDoubleOrNull(item['quantity']) ?? 1,
         unitPrice: asDoubleOrNull(item['unit_price']) ?? 0,
       ),
@@ -1129,14 +1197,24 @@ class QuoteVersionDiff {
   final String? validUntilAfter;
 
   factory QuoteVersionDiff.fromJson(Map<String, dynamic> json) {
+    final total = json['total'];
+    final until = json['valid_until'];
     return QuoteVersionDiff(
       added: _versionItems(json['added']),
       removed: _versionItems(json['removed']),
       changed: _fieldChanges(json['changed']),
-      totalBefore: asDoubleOrNull(json['total_before']),
-      totalAfter: asDoubleOrNull(json['total_after']),
-      validUntilBefore: asStringOrNull(json['valid_until_before']),
-      validUntilAfter: asStringOrNull(json['valid_until_after']),
+      totalBefore:
+          asDoubleOrNull(json['total_before']) ??
+          (total is Map ? asDoubleOrNull(total['before']) : null),
+      totalAfter:
+          asDoubleOrNull(json['total_after']) ??
+          (total is Map ? asDoubleOrNull(total['after']) : null),
+      validUntilBefore:
+          asStringOrNull(json['valid_until_before']) ??
+          (until is Map ? asStringOrNull(until['before']) : null),
+      validUntilAfter:
+          asStringOrNull(json['valid_until_after']) ??
+          (until is Map ? asStringOrNull(until['after']) : null),
     );
   }
 }
@@ -1214,14 +1292,65 @@ List<QuoteVersionItem> _versionItems(Object? raw) {
   return items;
 }
 
+const _lineDiffFields = [
+  'quantity',
+  'unit_price',
+  'discount',
+  'total',
+  'product_name',
+];
+
 List<QuoteFieldChange> _fieldChanges(Object? raw) {
   if (raw is! List) return const [];
   final items = <QuoteFieldChange>[];
   for (final row in raw) {
     if (row is! Map) continue;
-    items.add(QuoteFieldChange.fromJson(Map<String, dynamic>.from(row)));
+    final map = Map<String, dynamic>.from(row);
+    final before = map['before'];
+    final after = map['after'];
+    if (before is Map || after is Map) {
+      items.addAll(_lineFieldChanges(map, before, after));
+      continue;
+    }
+    items.add(QuoteFieldChange.fromJson(map));
   }
   return items;
+}
+
+List<QuoteFieldChange> _lineFieldChanges(
+  Map<String, dynamic> row,
+  Object? before,
+  Object? after,
+) {
+  final beforeMap = before is Map
+      ? Map<String, dynamic>.from(before)
+      : const <String, dynamic>{};
+  final afterMap = after is Map
+      ? Map<String, dynamic>.from(after)
+      : const <String, dynamic>{};
+  final productName = asString(
+    afterMap['product_name'] ?? beforeMap['product_name'] ?? row['product_name'],
+    fallback: 'Ítem',
+  );
+  final productId = asString(
+    row['product_id'] ?? afterMap['product_id'] ?? beforeMap['product_id'],
+  );
+  final changes = <QuoteFieldChange>[];
+  for (final field in _lineDiffFields) {
+    final left = _diffScalar(beforeMap[field]);
+    final right = _diffScalar(afterMap[field]);
+    if (left == right) continue;
+    changes.add(
+      QuoteFieldChange(
+        productId: productId,
+        productName: productName,
+        field: field,
+        before: left,
+        after: right,
+      ),
+    );
+  }
+  return changes;
 }
 
 String _diffScalar(Object? raw) {
@@ -1241,6 +1370,43 @@ const quoteDiffFieldLabels = <String, String>{
 
 String quoteDiffFieldLabel(String field) => quoteDiffFieldLabels[field] ?? field;
 
+bool technicalPersonHandle(String value) =>
+    RegExp(r'^\d+$').hasMatch(value) || value.startsWith('invited_');
+
+/// Nombre para mostrar: nombre y apellido, o el correo. Nunca el username ni el id.
+String? visiblePersonName(Object? preferred, [Object? raw]) {
+  final explicit = asStringOrNull(preferred);
+  if (explicit != null && !technicalPersonHandle(explicit)) return explicit;
+  if (raw is Map) {
+    final person = [
+      asStringOrNull(raw['first_name']),
+      asStringOrNull(raw['last_name']),
+    ].whereType<String>().join(' ').trim();
+    if (person.isNotEmpty) return person;
+    final email = asStringOrNull(raw['email']);
+    if (email != null) return email;
+    final full =
+        asStringOrNull(raw['full_name']) ?? asStringOrNull(raw['name']);
+    if (full != null && !technicalPersonHandle(full)) return full;
+  }
+  return null;
+}
+
+final _kildeStamp = RegExp(
+  r'^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?',
+);
+
+/// Fecha del texto ISO, sin pasar por la zona del dispositivo.
+String formatKildeStamp(String raw) {
+  final match = _kildeStamp.firstMatch(raw.trim());
+  if (match == null) return raw;
+  final date = '${match[3]}-${match[2]}-${match[1]}';
+  final hour = match[4];
+  final minute = match[5];
+  if (hour == null || minute == null) return date;
+  return '$date $hour:$minute';
+}
+
 String quoteDiffValue(String field, String raw) {
   if (raw.isEmpty) return '—';
   const money = {'unit_price', 'discount', 'total', 'subtotal'};
@@ -1255,15 +1421,17 @@ String quoteDiffValue(String field, String raw) {
 String stromMilestoneLine(Map<dynamic, dynamic> row) {
   final kind = activityTypeLabel(asString(row['channel']));
   final description = asString(row['description']);
-  final at = asString(row['at'] ?? row['occurred_on'] ?? row['scheduled_at']);
-  final who = asString(
-    row['assigned_to_name'] ?? row['created_by_name'] ?? row['assigned_to_id'],
+  final at = formatKildeStamp(
+    asString(row['at'] ?? row['occurred_on'] ?? row['scheduled_at']),
+  );
+  final who = visiblePersonName(
+    row['assigned_to_name'] ?? row['created_by_name'],
   );
   return [
     if (kind.isNotEmpty) kind,
     if (description.isNotEmpty) description,
     if (at.isNotEmpty) 'Fecha $at',
-    if (who.isNotEmpty) 'Responsable $who',
+    if ((who ?? '').isNotEmpty) 'Responsable $who',
   ].join(' · ');
 }
 
@@ -1339,7 +1507,9 @@ class KildeClosedRfi {
       id: asString(json['id']),
       question: asString(json['question'], fallback: 'Consulta'),
       answer: asString(json['answer']),
-      answeredBy: _personLabel(json['answered_by']),
+      answeredBy:
+          asStringOrNull(json['answered_by_name']) ??
+          _personLabel(json['answered_by']),
       answeredAt: asStringOrNull(json['answered_at']),
     );
   }

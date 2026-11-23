@@ -65,6 +65,43 @@ class _LeadCard extends ConsumerWidget {
     }
   }
 
+  Future<void> _markLost(BuildContext context, CrmRepository repo) async {
+    final text = TextEditingController();
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Marcar como perdido'),
+        content: TextField(
+          controller: text,
+          decoration: const InputDecoration(labelText: 'Motivo'),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    final reason = text.text.trim();
+    text.dispose();
+    if (saved != true || reason.isEmpty) return;
+    if (!context.mounted) return;
+    await _run(
+      context,
+      () => repo.setLeadStatus(
+        id: lead.id,
+        status: 'LOST',
+        noRequirementReason: reason,
+      ),
+    );
+  }
+
   Future<void> _register(BuildContext context, CrmRepository repo) async {
     final text = TextEditingController();
     var channel = 'CALL';
@@ -295,10 +332,7 @@ class _LeadCard extends ConsumerWidget {
                 ),
                 if (lead.status != 'LOST' && lead.status != 'CONVERTED')
                   TextButton(
-                    onPressed: () => _run(
-                      context,
-                      () => repo.setLeadStatus(id: lead.id, status: 'LOST'),
-                    ),
+                    onPressed: () => _markLost(context, repo),
                     child: const Text('Perdido'),
                   ),
                 if (lead.convertedClientId != null)

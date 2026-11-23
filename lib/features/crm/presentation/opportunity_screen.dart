@@ -16,6 +16,7 @@ import 'package:nereus_app/features/crm/domain/kilde_rules.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_client_card.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_flow.dart';
 import 'package:nereus_app/features/crm/presentation/kilde_handoff_panel.dart';
+import 'package:nereus_app/features/crm/presentation/rfi_create_dialog.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_actions.dart';
 import 'package:nereus_app/features/crm/providers/kilde_providers.dart';
 import 'package:nereus_app/features/crm/presentation/opportunity_form.dart';
@@ -44,12 +45,14 @@ class OpportunityScreen extends ConsumerWidget {
     final activities = ref.watch(opportunityActivitiesProvider(opportunityId));
     final proposals = ref.watch(opportunityProposalsProvider(opportunityId));
     final clients = ref.watch(customerClientsProvider);
-    final quotes = ref.watch(kildeQuotesProvider);
+    final quotes = ref.watch(opportunityQuotesProvider(opportunityId));
     final role = ref.watch(sessionProvider).value?.currentBranch?.roleCode;
     final deal = detail.value;
-    final hasPo = (quotes.value ?? const <KildeQuote>[]).any(
-      (quote) => quote.opportunityId == deal?.id && quote.acceptedWithPo,
-    );
+    final hasPo = acceptedQuoteWithPo(
+          quotes.value ?? const <KildeQuote>[],
+          opportunityId: deal?.id ?? opportunityId,
+        ) !=
+        null;
     final canDerive = deriveEnabled(
       roleCode: role,
       hasSurvey: (deal?.surveyId ?? '').isNotEmpty,
@@ -58,6 +61,7 @@ class OpportunityScreen extends ConsumerWidget {
 
     Future<void> reload() async {
       ref.invalidate(opportunityDetailProvider(opportunityId));
+      ref.invalidate(opportunityQuotesProvider(opportunityId));
       ref.invalidate(opportunityActivitiesProvider(opportunityId));
       ref.invalidate(opportunityProposalsProvider(opportunityId));
       ref.invalidate(opportunitiesProvider());
@@ -152,6 +156,12 @@ class OpportunityScreen extends ConsumerWidget {
                 ),
               if (canWrite && deal != null)
                 OutlinedButton.icon(
+                  onPressed: () => _askRfi(context, ref, deal),
+                  icon: const Icon(Icons.help_outline, size: 16),
+                  label: const Text('Consulta'),
+                ),
+              if (canWrite && deal != null)
+                OutlinedButton.icon(
                   onPressed: () => _openSurvey(context, ref, deal),
                   icon: const Icon(Icons.fact_check_outlined, size: 16),
                   label: Text(
@@ -191,6 +201,22 @@ class OpportunityScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 children: [
+                  if ((deal?.stromProjectId ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () => context.go(
+                            '/strom/${deal?.stromProjectId}',
+                          ),
+                          icon: const Icon(Icons.account_tree_outlined, size: 16),
+                          label: Text(
+                            'Proyecto Strøm ${deal?.stromProjectId}',
+                          ),
+                        ),
+                      ),
+                    ),
                   if (kildeIsLead(role) && deal != null && !canDerive)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -246,6 +272,30 @@ class OpportunityScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _askRfi(
+    BuildContext context,
+    WidgetRef ref,
+    OpportunityItem deal,
+  ) async {
+    final draft = await askRfi(context);
+    if (draft == null || !context.mounted) return;
+    try {
+      await ref.read(crmRepositoryProvider).createRfi(
+        question: draft.question,
+        blocking: draft.blocking,
+        clientId: deal.clientId,
+        opportunityId: deal.id,
+      );
+      ref.invalidate(kildeRfisProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Consulta creada.')),
+      );
+    } on Object catch (error) {
+      if (context.mounted) showFriendlyError(context, error);
+    }
   }
 
   Future<void> _openSurvey(

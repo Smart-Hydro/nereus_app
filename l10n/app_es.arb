@@ -1,7 +1,7 @@
 {
   "@@locale": "es",
   "appName": "Nereus",
-  "appTagline": "Telemetría hídrica SmartHydro",
+  "appTagline": "Telemetría hidráulica SmartHydro",
   "loginTitle": "Ingresa a tu cuenta",
   "emailLabel": "Correo electrónico",
   "passwordLabel": "Contraseña",
